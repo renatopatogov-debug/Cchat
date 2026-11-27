@@ -44,7 +44,7 @@ export function CommunityPauseBanner({
         <Button
           variant="secondary"
           size="sm"
-          className="h-7 px-2.5 shrink-0 clip-corner-lg"
+          className="h-7 px-2.5 shrink-0 rounded-2xl"
           disabled={resuming}
           onClick={onResume}
         >

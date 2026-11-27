@@ -37,7 +37,7 @@ type Step = "text" | "repo" | "confirm";
 
 function StepGlyph({ children }: { children: ReactNode }) {
   return (
-    <div className="flex size-16 items-center justify-center clip-corner-lg bg-primary/15 text-primary">
+    <div className="flex size-16 items-center justify-center rounded-2xl bg-primary/15 text-primary">
       {children}
     </div>
   );
@@ -337,7 +337,7 @@ export function NewChannelDialog({ open, onOpenChange, connectedCoordinates, onC
                 type="submit"
                 size="lg"
                 disabled={creating || !name.trim()}
-                className="h-12 w-full clip-corner-lg text-base font-medium"
+                className="h-12 w-full rounded-2xl text-base font-medium"
               >
                 {creating ? <Loader2 className="size-4 animate-spin" /> : (
                   <FormattedMessage id="newChannelDialog.createChannel" defaultMessage="Create channel" />
@@ -398,7 +398,7 @@ export function NewChannelDialog({ open, onOpenChange, connectedCoordinates, onC
                 type="submit"
                 size="lg"
                 disabled={creating || !name.trim()}
-                className="h-12 w-full clip-corner-lg text-base font-medium"
+                className="h-12 w-full rounded-2xl text-base font-medium"
               >
                 {creating ? <Loader2 className="size-4 animate-spin" /> : (
                   <FormattedMessage id="newChannelDialog.createRepoChannel" defaultMessage="Create repository channel" />

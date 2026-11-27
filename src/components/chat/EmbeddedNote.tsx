@@ -234,7 +234,7 @@ export function EmbeddedNaddr({ addr, relays, className }: { addr: AddrCoords; r
 export function EmbeddedEventCard({ event, sourceUrl, className }: { event: NostrRumor; sourceUrl?: string; className?: string }) {
   if (useIsUserBanned()(event.pubkey)) {
     return (
-      <div className={cn("max-w-md w-full clip-corner-lg bg-secondary/20 px-3 py-2 my-1.5", className)}>
+      <div className={cn("max-w-md w-full rounded-2xl bg-secondary/20 px-3 py-2 my-1.5", className)}>
         <BannedTombstone />
       </div>
     );
@@ -279,7 +279,7 @@ function GenericEventCard({ event, sourceUrl, className }: { event: NostrRumor; 
   return (
     <div
       className={cn(
-        "group block max-w-md w-full clip-hairline-lg [--edge:var(--border)/0.5] [--fill:var(--background)/0.4] [--fill-hover:var(--secondary)/0.4] overflow-hidden my-1.5",
+        "group block max-w-md w-full rounded-2xl border border-border/70 bg-card/60 [--edge:var(--border)/0.5] [--fill:var(--background)/0.4] [--fill-hover:var(--secondary)/0.4] overflow-hidden my-1.5",
         className,
       )}
       onClick={(e) => e.stopPropagation()}
@@ -645,7 +645,7 @@ function DeckCardTile({ card, onClick }: { card: DeckCard; onClick?: () => void 
   if (failed) {
     return (
       <div
-        className="aspect-[5/7] clip-hairline-lg [--edge:var(--border)/0.5] [--fill:var(--secondary)/0.6] [--fill-hover:var(--secondary)/0.6] flex items-center justify-center p-1 cursor-pointer"
+        className="aspect-[5/7] rounded-2xl border border-border/70 bg-card/60 [--edge:var(--border)/0.5] [--fill:var(--secondary)/0.6] [--fill-hover:var(--secondary)/0.6] flex items-center justify-center p-1 cursor-pointer"
         onClick={onClick}
       >
         <span className="text-3xs text-center text-muted-foreground leading-tight line-clamp-3">{card.name}</span>
@@ -655,7 +655,7 @@ function DeckCardTile({ card, onClick }: { card: DeckCard; onClick?: () => void 
   }
 
   return (
-    <div className="relative aspect-[5/7] clip-corner-lg overflow-hidden group cursor-pointer" onClick={onClick}>
+    <div className="relative aspect-[5/7] rounded-2xl overflow-hidden group cursor-pointer" onClick={onClick}>
       <img
         src={scryfallImageUrl(ref, "normal")}
         alt={card.name}
@@ -792,7 +792,7 @@ function EmbeddedMagicDeckCard({ event }: { event: NostrRumor }) {
       </div>
 
       {mainDeck.length > 0 && (
-        <div className="clip-hairline-lg [--edge:var(--border)/0.5] [--fill:var(--background)/0.4] [--fill-hover:var(--background)/0.4] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="rounded-2xl border border-border/70 bg-card/60 [--edge:var(--border)/0.5] [--fill:var(--background)/0.4] [--fill-hover:var(--background)/0.4] overflow-hidden" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between px-3 py-1.5 bg-secondary/30 border-b border-border/50">
             <span className="text-2xs font-medium text-muted-foreground">{visualView ? (
                 <FormattedMessage id="embeddedNote.deck.visualSpoiler" defaultMessage="Visual spoiler" />
@@ -1113,7 +1113,7 @@ function EmbeddedRepositoryCard({ repository }: { repository: GitRepositoryAnnou
             onClick={copy}
             title={copyLabel}
             aria-label={copyLabel}
-            className="shrink-0 grid place-items-center size-7 touch:size-11 clip-corner-lg text-muted-foreground hover:text-primary hover:bg-secondary transition-colors"
+            className="shrink-0 grid place-items-center size-7 touch:size-11 rounded-2xl text-muted-foreground hover:text-primary hover:bg-secondary transition-colors"
           >
             {copied ? <Check className="size-3.5 shrink-0" /> : <Copy className="size-3.5 shrink-0" />}
           </button>
@@ -1274,7 +1274,7 @@ function DittoLink({ href, label: labelProp, iconOnly = false }: { href: string;
         title={label}
         aria-label={label}
         className={cn(
-          "shrink-0 grid place-items-center size-6 touch:size-8 clip-corner-lg",
+          "shrink-0 grid place-items-center size-6 touch:size-8 rounded-2xl",
           "text-muted-foreground hover:text-primary hover:bg-secondary transition-colors",
         )}
       >
@@ -1326,7 +1326,7 @@ function CopyIdButton({ uri, className }: { uri: string; className?: string }) {
       title={copyLabel}
       aria-label={copyLabel}
       className={cn(
-        "shrink-0 grid place-items-center size-6 touch:size-8 -mr-1 -mb-0.5 clip-corner-lg",
+        "shrink-0 grid place-items-center size-6 touch:size-8 -mr-1 -mb-0.5 rounded-2xl",
         "text-muted-foreground hover:text-primary hover:bg-secondary transition-colors",
         className,
       )}
@@ -1340,7 +1340,7 @@ function CopyIdButton({ uri, className }: { uri: string; className?: string }) {
 
 function EmbeddedNoteSkeleton({ className }: { className?: string }) {
   return (
-    <div className={cn("max-w-md clip-hairline-lg [--edge:var(--border)/0.5] [--fill:var(--background)/0.4] [--fill-hover:var(--background)/0.4] overflow-hidden my-1.5", className)}>
+    <div className={cn("max-w-md rounded-2xl border border-border/70 bg-card/60 [--edge:var(--border)/0.5] [--fill:var(--background)/0.4] [--fill-hover:var(--background)/0.4] overflow-hidden my-1.5", className)}>
       <div className="px-3 py-2.5 space-y-2">
         <div className="flex items-center gap-2">
           <Skeleton className="size-5 rounded-full shrink-0" />
@@ -1370,7 +1370,7 @@ function EmbeddedNoteTombstone({ label, nip19Id, retrying, onRetry, className }:
   return (
     <div
       className={cn(
-        "max-w-md w-full clip-corner-lg bg-secondary/20 px-3 py-2 my-1.5 space-y-1 text-muted-foreground",
+        "max-w-md w-full rounded-2xl bg-secondary/20 px-3 py-2 my-1.5 space-y-1 text-muted-foreground",
         className,
       )}
       onClick={(e) => e.stopPropagation()}
@@ -1398,7 +1398,7 @@ function EmbeddedNoteTombstone({ label, nip19Id, retrying, onRetry, className }:
             title={retryLabel}
             aria-label={retryLabel}
             className={cn(
-              "shrink-0 grid place-items-center size-6 touch:size-8 clip-corner-lg",
+              "shrink-0 grid place-items-center size-6 touch:size-8 rounded-2xl",
               "text-muted-foreground hover:text-primary hover:bg-secondary transition-colors disabled:opacity-60",
             )}
           >

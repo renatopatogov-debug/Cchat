@@ -100,7 +100,7 @@ export function ThemePreviewBar() {
       <div
         role="region"
         aria-label={intl.formatMessage({ id: "themePreviewBar.region", defaultMessage: "Theme preview" })}
-        className="pointer-events-auto w-full max-w-md clip-corner-lg bg-popover p-4 text-popover-foreground shadow-xl animate-in fade-in-0 slide-in-from-bottom-2"
+        className="pointer-events-auto w-full max-w-md rounded-2xl bg-popover p-4 text-popover-foreground shadow-xl animate-in fade-in-0 slide-in-from-bottom-2"
       >
         <div className="flex items-start gap-3">
           <Palette className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
@@ -136,13 +136,13 @@ export function ThemePreviewBar() {
         <div className="mt-3 flex justify-end gap-2">
           <Button
             variant="ghost"
-            className="clip-corner-lg touch:h-11"
+            className="rounded-2xl touch:h-11"
             onClick={clearThemePreview}
             disabled={rehost.isPending}
           >
             <FormattedMessage {...common.cancel} />
           </Button>
-          <Button className="clip-corner-lg touch:h-11" onClick={use} disabled={rehost.isPending}>
+          <Button className="rounded-2xl touch:h-11" onClick={use} disabled={rehost.isPending}>
             {rehost.isPending && <Loader2 className="size-4 animate-spin" />}
             <FormattedMessage id="themePreviewBar.useTheme" defaultMessage="Use this theme" />
           </Button>

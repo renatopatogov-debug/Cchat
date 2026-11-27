@@ -41,7 +41,7 @@ export function DmInboxNotice({ dismissible = false, className }: { dismissible?
   return (
     <div
       className={cn(
-        "clip-hairline-lg [--fill:var(--muted)/0.4] [--fill-hover:var(--muted)/0.4] px-4 py-3 text-sm",
+        "rounded-2xl border border-border/70 bg-card/60 [--fill:var(--muted)/0.4] [--fill-hover:var(--muted)/0.4] px-4 py-3 text-sm",
         className,
       )}
     >
@@ -70,7 +70,7 @@ export function DmInboxNotice({ dismissible = false, className }: { dismissible?
               <Button
                 size="sm"
                 variant="secondary"
-                className="clip-corner-lg touch:h-11"
+                className="rounded-2xl touch:h-11"
                 onClick={() => settings.show("app-relays")}
               >
                 <FormattedMessage id="dmInboxNotice.manage" defaultMessage="Change in Settings" />
@@ -97,7 +97,7 @@ export function DmInboxNotice({ dismissible = false, className }: { dismissible?
                 defaultMessage="People using other Nostr apps can't message you yet."
               />
             </p>
-            <Button size="sm" className="clip-corner-lg touch:h-11" disabled={publishing} onClick={onPublish}>
+            <Button size="sm" className="rounded-2xl touch:h-11" disabled={publishing} onClick={onPublish}>
               {publishing ? (
                 <FormattedMessage id="dmInboxNotice.settingUp" defaultMessage="Setting up…" />
               ) : (

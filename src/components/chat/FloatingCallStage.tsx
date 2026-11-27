@@ -351,7 +351,7 @@ export function FloatingCallStage({
       onClickCapture={swallowClick}
       className={cn(
         "fixed z-40 flex flex-col overflow-hidden select-none",
-        "clip-corner-lg bg-chrome-deep shadow-2xl ring-1 ring-white/10",
+        "rounded-2xl bg-chrome-deep shadow-2xl ring-1 ring-white/10",
         // Position is imperative, so `left`/`top` must never tween: Tailwind's
         // `duration-200` also emits a transition with `transition-property: all`.
         "transition-none",

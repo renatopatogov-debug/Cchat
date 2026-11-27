@@ -125,7 +125,7 @@ export function EditorPane({
         ))}
       </div>
       {model.canManageRoles && (
-        <Button type="button" variant="secondary" className="w-full clip-corner-lg" disabled={model.busy || model.unkeyed} onClick={() => setPicking(true)}>
+        <Button type="button" variant="secondary" className="w-full rounded-2xl" disabled={model.busy || model.unkeyed} onClick={() => setPicking(true)}>
           <Plus className="size-4" />
           <FormattedMessage {...m.addTarget} />
         </Button>
@@ -161,7 +161,7 @@ export function EditorPane({
             type="button"
             variant="ghost"
             size="sm"
-            className="clip-corner-lg text-destructive hover:text-destructive"
+            className="rounded-2xl text-destructive hover:text-destructive"
             disabled={model.busy || selected.reach === 0n}
             onClick={() => {
               model.removeTarget(selected.key);
@@ -186,7 +186,7 @@ export function EditorPane({
           <FormattedMessage {...m.rotateHint} />
         </span>
       </span>
-      <Button type="button" variant="secondary" size="sm" className="clip-corner-lg" disabled={model.busy || model.dirty} onClick={() => flow.ask("rotate")}>
+      <Button type="button" variant="secondary" size="sm" className="rounded-2xl" disabled={model.busy || model.dirty} onClick={() => flow.ask("rotate")}>
         <RotateCw className="size-4" />
         <FormattedMessage {...m.rotate} />
       </Button>
@@ -289,7 +289,7 @@ export function EditorPane({
                     </>
                   )}
                 </span>
-                <Button type="button" variant="secondary" size="sm" className="clip-corner-lg" disabled={model.busy || !model.canSyncAll} onClick={() => void model.syncAll()}>
+                <Button type="button" variant="secondary" size="sm" className="rounded-2xl" disabled={model.busy || !model.canSyncAll} onClick={() => void model.syncAll()}>
                   <RefreshCw className="size-4" />
                   <FormattedMessage {...m.syncAll} />
                 </Button>
@@ -344,13 +344,13 @@ export function EditorPane({
       <div className="flex shrink-0 items-center justify-end gap-2">
         {flow.confirm ? (
           <>
-            <Button type="button" variant="ghost" className="clip-corner-lg" onClick={flow.dismiss}>
+            <Button type="button" variant="ghost" className="rounded-2xl" onClick={flow.dismiss}>
               <FormattedMessage {...common.back} />
             </Button>
             <Button
               type="button"
               variant={flow.confirm === "delete" ? "destructive" : "default"}
-              className="clip-corner-lg"
+              className="rounded-2xl"
               onClick={() => void flow.accept()}
             >
               <FormattedMessage {...common.confirm} />
@@ -362,7 +362,7 @@ export function EditorPane({
               <Button
                 type="button"
                 variant="ghost"
-                className="mr-auto clip-corner-lg text-destructive hover:text-destructive"
+                className="mr-auto rounded-2xl text-destructive hover:text-destructive"
                 disabled={model.busy}
                 onClick={() => flow.ask("delete")}
               >
@@ -370,10 +370,10 @@ export function EditorPane({
                 <FormattedMessage {...(isChannel ? m.deleteChannel : m.deleteCategory)} />
               </Button>
             )}
-            <Button type="button" variant="ghost" className="clip-corner-lg" disabled={model.saving || (inline && !model.dirty)} onClick={onCancel}>
+            <Button type="button" variant="ghost" className="rounded-2xl" disabled={model.saving || (inline && !model.dirty)} onClick={onCancel}>
               <FormattedMessage {...common.cancel} />
             </Button>
-            <Button type="button" className="clip-corner-lg" disabled={!model.dirty || model.invalid || model.busy} onClick={flow.requestSave}>
+            <Button type="button" className="rounded-2xl" disabled={!model.dirty || model.invalid || model.busy} onClick={flow.requestSave}>
               {model.saving && <Loader2 className="size-4 animate-spin" />}
               <FormattedMessage {...common.save} />
             </Button>

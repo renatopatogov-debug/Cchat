@@ -122,7 +122,7 @@ function InviteResolvedCard({
   return (
     <div
       className={cn(
-        "block max-w-sm w-full clip-hairline-lg [--edge:var(--border)/0.5] [--fill:var(--secondary)/0.3] [--fill-hover:var(--secondary)/0.3] overflow-hidden my-1.5",
+        "block max-w-sm w-full rounded-2xl border border-border/70 bg-card/60 [--edge:var(--border)/0.5] [--fill:var(--secondary)/0.3] [--fill-hover:var(--secondary)/0.3] overflow-hidden my-1.5",
         className,
       )}
       onClick={(e) => e.stopPropagation()}
@@ -133,9 +133,9 @@ function InviteResolvedCard({
         </p>
 
         <div className="flex items-center gap-3 min-w-0">
-          <Avatar className="size-11 clip-corner-lg shrink-0">
+          <Avatar className="size-11 rounded-2xl shrink-0">
             {iconUrl && <AvatarImage src={iconUrl} alt={preview.name} className="object-cover" />}
-            <AvatarFallback className="clip-corner-lg bg-primary/20 text-primary font-semibold">
+            <AvatarFallback className="rounded-2xl bg-primary/20 text-primary font-semibold">
               {preview.name.slice(0, 2).toUpperCase() || "??"}
             </AvatarFallback>
           </Avatar>
@@ -162,15 +162,15 @@ function InviteResolvedCard({
         </div>
 
         {alreadyJoined ? (
-          <Button variant="secondary" className="w-full clip-corner-lg" onClick={open}>
+          <Button variant="secondary" className="w-full rounded-2xl" onClick={open}>
             <FormattedMessage id="inviteEmbed.open" defaultMessage="Open" />
           </Button>
         ) : expired ? (
-          <Button variant="secondary" className="w-full clip-corner-lg" disabled>
+          <Button variant="secondary" className="w-full rounded-2xl" disabled>
             <FormattedMessage id="inviteEmbed.expired" defaultMessage="Invite expired" />
           </Button>
         ) : (
-          <Button className="w-full clip-corner-lg" onClick={doJoin} disabled={isJoining}>
+          <Button className="w-full rounded-2xl" onClick={doJoin} disabled={isJoining}>
             <FormattedMessage id="inviteEmbed.join" defaultMessage="Join" />
           </Button>
         )}
@@ -183,20 +183,20 @@ function InviteSkeleton({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "max-w-sm w-full clip-hairline-lg [--edge:var(--border)/0.5] [--fill:var(--secondary)/0.3] [--fill-hover:var(--secondary)/0.3] overflow-hidden my-1.5",
+        "max-w-sm w-full rounded-2xl border border-border/70 bg-card/60 [--edge:var(--border)/0.5] [--fill:var(--secondary)/0.3] [--fill-hover:var(--secondary)/0.3] overflow-hidden my-1.5",
         className,
       )}
     >
       <div className="px-3.5 py-3 space-y-2.5">
         <Skeleton className="h-2.5 w-48" />
         <div className="flex items-center gap-3">
-          <Skeleton className="size-11 clip-corner-lg shrink-0" />
+          <Skeleton className="size-11 rounded-2xl shrink-0" />
           <div className="flex-1 space-y-1.5">
             <Skeleton className="h-4 w-32" />
             <Skeleton className="h-3 w-24" />
           </div>
         </div>
-        <Skeleton className="h-9 w-full clip-corner-lg" />
+        <Skeleton className="h-9 w-full rounded-2xl" />
       </div>
     </div>
   );
@@ -206,7 +206,7 @@ function InviteTombstone({ message, className }: { message: string; className?: 
   return (
     <div
       className={cn(
-        "flex items-center gap-2 max-w-sm clip-corner-lg bg-secondary/20 px-3.5 py-4 my-1.5 text-muted-foreground",
+        "flex items-center gap-2 max-w-sm rounded-2xl bg-secondary/20 px-3.5 py-4 my-1.5 text-muted-foreground",
         className,
       )}
     >

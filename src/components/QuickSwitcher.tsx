@@ -27,7 +27,6 @@ import { useDMConversations } from "@/hooks/useDirectMessages";
 import { useEventStore } from "@/hooks/useEventStore";
 import { useKnownDmPeers } from "@/hooks/useKnownDmPeers";
 import { useScopedDisplayName } from "@/hooks/useScopedDisplayName";
-import { useNip29Servers } from "@/hooks/useNip29Servers";
 import { useLiveCommunities } from "@/concord/hooks/useCommunityList";
 import { shortTimeAgo } from "@/lib/formatTime";
 import { flattenLayout, mergeLayout } from "@/lib/railLayout";
@@ -167,7 +166,6 @@ export function QuickSwitcher() {
   const { user } = useCurrentUser();
   const { config } = useAppContext();
 
-  const liveServers = useNip29Servers();
   const communities = useLiveCommunities();
   // Globally mounted, so NIP-17 stays non-interactive: Ctrl+K must never prompt a signer.
   const { conversations: legacyDms, isLoading: legacyDmsLoading } = useDMConversations();
@@ -197,12 +195,11 @@ export function QuickSwitcher() {
   ]);
   const allowedDmKeys = useMemo(() => new Set(dmEntries.map((entry) => entry.key)), [dmEntries]);
 
-  // Same ordering as the ServerRail (layout with folders flattened).
   const orderedKeys = useMemo(() => {
-    const liveKeys = switcherLiveKeys(liveServers, communities);
+    const liveKeys = switcherLiveKeys([], communities);
     const live = new Set(liveKeys);
     return flattenLayout(mergeLayout(config.railLayout, liveKeys)).filter((key) => live.has(key));
-  }, [liveServers, communities, config.railLayout]);
+  }, [communities, config.railLayout]);
 
   const ctx = useMemo<SwitcherContext>(
     () => ({
@@ -326,7 +323,7 @@ export function QuickSwitcher() {
             <ToggleGroupItem
               key={t.value}
               value={t.value}
-              className="h-auto px-3 py-1.5 touch:py-2.5 text-sm font-normal clip-corner-lg text-muted-foreground hover:bg-foreground/5 hover:text-foreground data-[state=on]:bg-primary data-[state=on]:font-medium data-[state=on]:text-primary-foreground"
+              className="h-auto px-3 py-1.5 touch:py-2.5 text-sm font-normal rounded-2xl text-muted-foreground hover:bg-foreground/5 hover:text-foreground data-[state=on]:bg-primary data-[state=on]:font-medium data-[state=on]:text-primary-foreground"
             >
               <FormattedMessage {...t.label} />
             </ToggleGroupItem>

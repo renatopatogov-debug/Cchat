@@ -151,7 +151,10 @@ export function FloatingDateBadge({
         visible ? "opacity-100" : "opacity-0",
       )}
     >
-      <span className="clip-corner bg-background/85 backdrop-blur px-3 py-1 text-xs font-medium text-muted-foreground shadow-md select-none">
+      <span
+        data-testid="floating-date-badge"
+        className="rounded-full bg-background/85 backdrop-blur px-3 py-1 text-xs font-medium text-muted-foreground shadow-md select-none"
+      >
         {formatDayLabel(day, intl)}
       </span>
     </div>

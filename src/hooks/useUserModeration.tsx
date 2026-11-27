@@ -90,7 +90,7 @@ export function useUserModeration(
             <div className="mb-4 flex flex-col items-center gap-2 text-center">
               <div
                 className={cn(
-                  "flex size-12 items-center justify-center clip-corner-lg",
+                  "flex size-12 items-center justify-center rounded-2xl",
                   confirming.destructive ? "bg-destructive/15 text-destructive" : "bg-primary/15 text-primary",
                 )}
               >

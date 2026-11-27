@@ -207,7 +207,7 @@ function PickerOverlay({
   );
 
   return (
-    <div className="absolute inset-0 z-[60] flex origin-top flex-col bg-chrome clip-corner-lg animate-terminal-expand">
+    <div className="absolute inset-0 z-[60] flex origin-top flex-col bg-chrome rounded-2xl animate-terminal-expand">
       <div className="flex items-center justify-between gap-2 border-b border-border/60 px-3 py-2.5">
         <div className="flex min-w-0 items-center gap-2">
           <Button
@@ -228,7 +228,7 @@ function PickerOverlay({
         <Button
           type="button"
           size="sm"
-          className="h-7 shrink-0 gap-1 px-3 clip-corner-lg"
+          className="h-7 shrink-0 gap-1 px-3 rounded-2xl"
           onClick={commitAndClose}
         >
           <Check className="size-3.5" /> <FormattedMessage id="dateTimePicker.set" defaultMessage="Set" />

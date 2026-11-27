@@ -65,18 +65,18 @@ export function ThemeBackgroundField({
       <div className="flex items-center gap-2">
         {value?.url && thumbSrc ? (
           <div
-            className="size-11 shrink-0 clip-corner-lg bg-cover bg-center bg-secondary"
+            className="size-11 shrink-0 rounded-2xl bg-cover bg-center bg-secondary"
             style={{ backgroundImage: `url("${thumbSrc.replace(/["\\\n\r]/g, (c) => encodeURIComponent(c))}")` }}
           />
         ) : (
-          <div className="flex size-11 shrink-0 items-center justify-center clip-corner-lg bg-secondary text-muted-foreground">
+          <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-secondary text-muted-foreground">
             <ImageIcon className="size-5" />
           </div>
         )}
         <Button
           variant="secondary"
           size="sm"
-          className="clip-corner-lg"
+          className="rounded-2xl"
           disabled={uploading}
           onClick={() => fileRef.current?.click()}
         >

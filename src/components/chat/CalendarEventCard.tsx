@@ -165,7 +165,7 @@ function RsvpButton({
       disabled={disabled}
       aria-pressed={active}
       className={cn(
-        "flex items-center justify-center gap-1.5 clip-corner-lg px-2 py-2 text-xs font-medium transition-colors disabled:opacity-60",
+        "flex items-center justify-center gap-1.5 rounded-2xl px-2 py-2 text-xs font-medium transition-colors disabled:opacity-60",
         active ? toneActive : toneIdle,
       )}
     >
@@ -193,11 +193,11 @@ export function CalendarEventMessageCard({
 }: CalendarEventMessageCardProps) {
   const past = !isUpcoming(event);
   return (
-    <div className="max-w-md clip-hairline-lg [--edge:var(--border)/0.5] [--fill:var(--secondary)/0.2] [--fill-hover:var(--secondary)/0.2] px-3 py-2.5 my-1.5 space-y-2.5">
+    <div className="max-w-md rounded-2xl border border-border/70 bg-card/60 [--edge:var(--border)/0.5] [--fill:var(--secondary)/0.2] [--fill-hover:var(--secondary)/0.2] px-3 py-2.5 my-1.5 space-y-2.5">
       <div className="flex items-start gap-3">
         <div
           className={cn(
-            "flex size-11 shrink-0 items-center justify-center clip-corner-lg",
+            "flex size-11 shrink-0 items-center justify-center rounded-2xl",
             past ? "bg-secondary text-muted-foreground" : "bg-primary/15 text-primary",
           )}
         >
@@ -254,7 +254,7 @@ export function EventDetailDialog({ calendar, event, open, onOpenChange }: Event
       <ChromeDialogContent title={event.title}>
         <div className="space-y-4">
           <div className="flex items-start gap-3">
-            <div className="flex size-11 shrink-0 items-center justify-center clip-corner-lg bg-primary/15 text-primary">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary">
               {event.kind === KIND_CALENDAR_TIME ? <Clock className="size-5" /> : <CalendarDays className="size-5" />}
             </div>
             <div className="min-w-0">
@@ -294,7 +294,7 @@ export function EventDetailDialog({ calendar, event, open, onOpenChange }: Event
                   href={dittoHashtagUrl(t)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="clip-corner bg-secondary px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  className="rounded-xl bg-secondary px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   #{t}
                 </a>

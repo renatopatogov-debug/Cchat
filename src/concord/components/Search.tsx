@@ -53,7 +53,7 @@ function MediaToggle({ media, onChange }: { media: SearchMedia; onChange: (m: Se
         <ToggleGroupItem
           key={o.value}
           value={o.value}
-          className="gap-1.5 h-auto px-3 py-1.5 touch:py-2.5 text-sm font-normal clip-corner-lg text-muted-foreground hover:bg-foreground/5 hover:text-foreground data-[state=on]:bg-primary data-[state=on]:font-medium data-[state=on]:text-primary-foreground"
+          className="gap-1.5 h-auto px-3 py-1.5 touch:py-2.5 text-sm font-normal rounded-2xl text-muted-foreground hover:bg-foreground/5 hover:text-foreground data-[state=on]:bg-primary data-[state=on]:font-medium data-[state=on]:text-primary-foreground"
         >
           {o.icon && <o.icon className="size-3.5" />}
           <FormattedMessage {...o.label} />
@@ -576,7 +576,7 @@ export function SearchTokenSuggest({
               type="button"
               data-highlighted={i === active || undefined}
               className={cn(
-                "flex w-full items-center gap-2 clip-corner px-2 py-1.5 touch:py-2.5 text-left text-sm transition-colors",
+                "flex w-full items-center gap-2 rounded-xl px-2 py-1.5 touch:py-2.5 text-left text-sm transition-colors",
                 i === active ? "bg-foreground/[0.08]" : "hover:bg-foreground/[0.05]",
               )}
               onMouseEnter={() => setSelected(i)}
@@ -731,7 +731,7 @@ const SearchRow = memo(function SearchRow({
       className={cn(
         "relative isolate",
         onJump &&
-          "cursor-pointer before:absolute before:inset-0 before:-z-10 before:clip-corner-lg before:transition-colors before:content-[''] hover:before:bg-foreground/5",
+          "cursor-pointer before:absolute before:inset-0 before:-z-10 before:rounded-2xl before:transition-colors before:content-[''] hover:before:bg-foreground/5",
       )}
       aria-label={onJump ? intl.formatMessage({ id: "search.jumpToMessage", defaultMessage: "Jump to this message" }) : undefined}
     >

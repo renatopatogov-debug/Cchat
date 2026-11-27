@@ -8,7 +8,7 @@ export const buttonVariants = cva(
         default: "bg-primary text-primary-foreground hover:bg-primary/90",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        // Buttons are fill-only (a border is sliced off by clip-corner-*); kept as an alias of secondary.
+        // Buttons are fill-only (a border is sliced off by rounded-xl-*); kept as an alias of secondary.
         outline:
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         secondary:

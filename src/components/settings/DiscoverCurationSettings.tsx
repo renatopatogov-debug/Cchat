@@ -133,7 +133,7 @@ function CuratorRow({ entry, onRemove }: { entry: string; onRemove: () => void }
     );
   }
   return (
-    <li className="flex items-start gap-3 px-3 py-2.5 clip-corner-lg bg-background/40">
+    <li className="flex items-start gap-3 px-3 py-2.5 rounded-2xl bg-background/40">
       {art}
       <div className="min-w-0 flex-1 self-center">{body}</div>
       <Button
@@ -154,8 +154,8 @@ function CuratorRow({ entry, onRemove }: { entry: string; onRemove: () => void }
 function EveryoneRow({ onRemove }: { onRemove: () => void }) {
   const intl = useIntl();
   return (
-    <li className="flex items-start gap-3 px-3 py-2.5 clip-corner-lg bg-warning/10">
-      <span className="flex size-8 shrink-0 items-center justify-center clip-corner-lg bg-warning/15 text-warning">
+    <li className="flex items-start gap-3 px-3 py-2.5 rounded-2xl bg-warning/10">
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-2xl bg-warning/15 text-warning">
         <Globe className="size-4" />
       </span>
       <div className="min-w-0 flex-1 self-center">
@@ -182,7 +182,7 @@ function EveryoneRow({ onRemove }: { onRemove: () => void }) {
 
 function IconTile({ icon: Icon }: { icon: typeof Users }) {
   return (
-    <span className="flex size-8 shrink-0 items-center justify-center clip-corner-lg bg-secondary text-muted-foreground">
+    <span className="flex size-8 shrink-0 items-center justify-center rounded-2xl bg-secondary text-muted-foreground">
       <Icon className="size-4" />
     </span>
   );
@@ -314,7 +314,7 @@ export function DiscoverCurationSettings() {
                 spellCheck={false}
                 className="font-mono text-base md:text-sm bg-background/40 border-transparent"
               />
-              <Button type="submit" disabled={!draft.trim()} className="clip-corner-lg shrink-0">
+              <Button type="submit" disabled={!draft.trim()} className="rounded-2xl shrink-0">
                 <Plus className="size-4" />
                 <FormattedMessage id="discoverCuration.add" defaultMessage="Add" />
               </Button>

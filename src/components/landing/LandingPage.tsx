@@ -90,7 +90,7 @@ export const LandingPage = memo(function LandingPage({
             <Button
               size="lg"
               onClick={onJoin}
-              className="h-12 w-full clip-corner-lg text-base font-medium"
+              className="h-12 w-full rounded-2xl text-base font-medium"
             >
               <FormattedMessage id="landingPage.join" defaultMessage="Join" />
             </Button>
@@ -196,7 +196,7 @@ export const LandingPage = memo(function LandingPage({
             <Button
               size="lg"
               onClick={onJoin}
-              className="h-12 w-full clip-corner-lg text-base font-medium"
+              className="h-12 w-full rounded-2xl text-base font-medium"
             >
               <FormattedMessage id="landingPage.join" defaultMessage="Join" />
             </Button>

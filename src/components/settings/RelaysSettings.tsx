@@ -213,7 +213,7 @@ export function RelaysSettings() {
             <Collapsible
               open={publishedOpen}
               onOpenChange={setPublishedListOpen}
-              className="clip-corner bg-background/40"
+              className="rounded-xl bg-background/40"
             >
               <CollapsibleTrigger asChild>
                 <button type="button" className="flex w-full items-start gap-3 px-3 py-2.5 text-left">

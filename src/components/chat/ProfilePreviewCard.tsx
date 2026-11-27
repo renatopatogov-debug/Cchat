@@ -159,7 +159,7 @@ function ProfilePreviewBody({
                 size="icon"
                 variant="ghost"
                 aria-label={intl.formatMessage({ id: "profilePreviewCard.moreActions", defaultMessage: "More actions" })}
-                className="absolute right-1.5 top-1.5 z-10 size-8 touch:size-11 clip-corner-lg text-foreground drop-shadow hover:bg-background/40"
+                className="absolute right-1.5 top-1.5 z-10 size-8 touch:size-11 rounded-2xl text-foreground drop-shadow hover:bg-background/40"
               >
                 <MoreHorizontal className="size-4" />
               </Button>
@@ -330,7 +330,7 @@ function ProfilePreviewBody({
         {!isSelf && (
           <div className="mt-3 flex items-center gap-2">
             {!config.dmsDisabled && (
-              <Button size="sm" className="flex-1 clip-corner-lg h-8" onClick={message}>
+              <Button size="sm" className="flex-1 rounded-2xl h-8" onClick={message}>
                 <MessageSquare className="size-3.5 mr-1.5" />
                 <FormattedMessage id="profilePreviewCard.message" defaultMessage="Message" />
               </Button>
@@ -338,7 +338,7 @@ function ProfilePreviewBody({
             <Button
               size="sm"
               variant="secondary"
-              className="flex-1 clip-corner-lg h-8"
+              className="flex-1 rounded-2xl h-8"
               onClick={mention}
             >
               <AtSign className="size-3.5 mr-1.5" />
@@ -351,7 +351,7 @@ function ProfilePreviewBody({
         <div className="mt-2 flex items-center gap-2">
           <Button
             size="sm"
-            className="flex-1 clip-corner-lg h-8"
+            className="flex-1 rounded-2xl h-8"
             onClick={viewProfile}
             // Prefetch the profile's slowest queries on hover.
             onPointerEnter={() => prefetchProfile(pubkey)}
@@ -360,7 +360,7 @@ function ProfilePreviewBody({
             <FormattedMessage id="profilePreviewCard.viewProfile" defaultMessage="View profile" />
           </Button>
           {dittoProfileHref && (
-            <Button size="icon" variant="secondary" className="size-8 touch:size-11 clip-corner-lg shrink-0" asChild>
+            <Button size="icon" variant="secondary" className="size-8 touch:size-11 rounded-2xl shrink-0" asChild>
               <a
                 href={dittoProfileHref}
                 target="_blank"
@@ -374,7 +374,7 @@ function ProfilePreviewBody({
             </Button>
           )}
           {nsite && (
-            <Button size="icon" variant="secondary" className="size-8 touch:size-11 clip-corner-lg shrink-0" asChild>
+            <Button size="icon" variant="secondary" className="size-8 touch:size-11 rounded-2xl shrink-0" asChild>
               <a
                 href={nsite.url}
                 target="_blank"

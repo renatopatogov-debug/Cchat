@@ -85,7 +85,7 @@ function Mark({ tone, small }: { tone: Tone; small?: boolean }) {
     <span
       aria-hidden
       className={cn(
-        "flex shrink-0 items-center justify-center clip-corner",
+        "flex shrink-0 items-center justify-center rounded-xl",
         small ? "size-5" : "size-7",
         tone === "loss" ? "bg-destructive/15 text-destructive" : tone === "gain" ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground",
       )}
@@ -351,7 +351,7 @@ export function AccessReviewPanel({
     )
   ) : (
     <div className="flex shrink-0 flex-col items-center gap-2 text-center">
-      <div className={cn("flex size-12 items-center justify-center clip-corner-lg", headTone)}>
+      <div className={cn("flex size-12 items-center justify-center rounded-2xl", headTone)}>
         <HeadIcon className="size-6" />
       </div>
       <h2 className="chrome-dialog-title font-mono font-bold lowercase tracking-tight text-foreground">{title}</h2>
@@ -411,7 +411,7 @@ export function AccessReviewPanel({
       </>
     );
 
-  const grow = "flex-1 clip-corner-lg";
+  const grow = "flex-1 rounded-2xl";
   const footer =
     status === "review" ? (
       <>

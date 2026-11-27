@@ -30,7 +30,7 @@ export function ThemeBuilderFields({
   return (
     <div className="space-y-5">
       <div
-        className="clip-corner-lg p-4 space-y-3"
+        className="rounded-2xl p-4 space-y-3"
         style={{ backgroundColor: `hsl(${tokens.background})`, color: `hsl(${tokens.foreground})` }}
       >
         <div className="flex items-center gap-2">
@@ -43,7 +43,7 @@ export function ThemeBuilderFields({
             </div>
           </div>
           <span
-            className="clip-corner-lg px-2 py-1 text-xs font-medium"
+            className="rounded-2xl px-2 py-1 text-xs font-medium"
             style={{ backgroundColor: `hsl(${tokens.primary})`, color: `hsl(${tokens.primaryForeground})` }}
           >
             <FormattedMessage id="themeBuilderFields.sampleButton" defaultMessage="Button" />

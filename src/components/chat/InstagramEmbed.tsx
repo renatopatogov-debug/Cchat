@@ -58,7 +58,7 @@ export function InstagramEmbed({ shortcode, className, fallback }: InstagramEmbe
 
   return (
     <div
-      className={cn("max-w-md overflow-hidden clip-corner-lg", className)}
+      className={cn("max-w-md overflow-hidden rounded-2xl", className)}
       onClick={(e) => e.stopPropagation()}
     >
       <iframe

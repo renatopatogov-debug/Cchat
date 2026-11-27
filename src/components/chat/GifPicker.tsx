@@ -45,7 +45,7 @@ function GifThumbnail({ gif, onClick, isFavorite, onToggleFavorite }: { gif: Gif
       onPointerEnter={still ? () => void videoRef.current?.play().catch(() => {}) : undefined}
       onPointerLeave={still ? () => videoRef.current?.pause() : undefined}
       className={cn(
-        'group relative w-full overflow-hidden cursor-pointer clip-corner-lg bg-secondary/40',
+        'group relative w-full overflow-hidden cursor-pointer rounded-2xl bg-secondary/40',
         'focus-visible:outline-none',
       )}
       style={{ height: displayHeight }}
@@ -114,7 +114,7 @@ function GifThumbnail({ gif, onClick, isFavorite, onToggleFavorite }: { gif: Gif
             role="button"
             tabIndex={0}
             className={cn(
-              'flex items-center justify-center size-7 touch:size-9 clip-corner backdrop-blur-sm transition-colors cursor-pointer',
+              'flex items-center justify-center size-7 touch:size-9 rounded-xl backdrop-blur-sm transition-colors cursor-pointer',
               isFavorite
                 ? 'bg-amber-500/90 text-white opacity-100'
                 : 'bg-black/40 text-white/80 opacity-0 group-hover:opacity-100 hover:bg-black/60',
@@ -138,7 +138,7 @@ function GifThumbnail({ gif, onClick, isFavorite, onToggleFavorite }: { gif: Gif
       {/* Drawn inside: an outer ring would be cut off by the tile's clip-path. */}
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-0 z-[1] clip-corner-lg-ring opacity-0 transition-opacity [--ring-edge:hsl(var(--primary)/0.8)] group-hover:opacity-100 group-focus-visible:opacity-100"
+        className="pointer-events-none absolute inset-0 z-[1] rounded-2xl ring-2 ring-[var(--ring-edge)] opacity-0 transition-opacity [--ring-edge:hsl(var(--primary)/0.8)] group-hover:opacity-100 group-focus-visible:opacity-100"
       />
 
       <div className={cn(
@@ -234,7 +234,7 @@ export function GifPicker({ onSelect, className }: GifPickerProps) {
           aria-label={favoritesLabel}
           title={favoritesLabel}
           className={cn(
-            'flex size-9 touch:size-11 shrink-0 items-center justify-center clip-corner-lg transition-colors',
+            'flex size-9 touch:size-11 shrink-0 items-center justify-center rounded-2xl transition-colors',
             showFavorites
               ? 'bg-primary text-primary-foreground'
               : 'bg-chrome text-muted-foreground hover:text-foreground',
@@ -285,7 +285,7 @@ export function GifPicker({ onSelect, className }: GifPickerProps) {
                     {Array.from({ length: 4 }).map((_, i) => (
                       <Skeleton
                         key={i}
-                        className="w-full rounded-[0.55rem] clip-corner-lg"
+                        className="w-full rounded-[0.55rem] rounded-2xl"
                         style={{ height: 60 + Math.random() * 50 }}
                       />
                     ))}

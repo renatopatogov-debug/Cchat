@@ -127,12 +127,11 @@ function SignalDesktopSidebar({
     },
     {
       to: "/communities",
-      label: "Comunidades",
+      label: "Grupos",
       icon: Users,
       active:
         !settings.open &&
         (pathname.startsWith("/communities") ||
-          pathname.startsWith("/discover") ||
           pathname.startsWith("/create") ||
           pathname.startsWith("/c/") ||
           pathname.startsWith("/cc/") ||

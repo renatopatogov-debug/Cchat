@@ -327,7 +327,7 @@ export function ForumPostPage({
                   <button
                     type="button"
                     onClick={openCommentBox}
-                    className="flex w-full items-center clip-corner-lg bg-secondary/60 px-3 py-2.5 text-left text-sm text-muted-foreground transition-colors hover:bg-secondary/80 hover:text-foreground touch:py-3"
+                    className="flex w-full items-center rounded-2xl bg-secondary/60 px-3 py-2.5 text-left text-sm text-muted-foreground transition-colors hover:bg-secondary/80 hover:text-foreground touch:py-3"
                   >
                     <FormattedMessage id="forumPostPage.addComment" defaultMessage="Add a comment" />
                   </button>

@@ -154,7 +154,7 @@ export function ProfileDialog({ pubkey, onClose }: { pubkey: string; onClose: ()
         aria-modal="false"
         aria-label={intl.formatMessage({ id: "profileDialog.label", defaultMessage: "Profile" })}
         // Absolute, so the pane's safe-area padding doesn't reach it; add the top inset here.
-        className="absolute inset-0 pt-[var(--safe-area-inset-top,env(safe-area-inset-top,0px))] md:pt-0 md:inset-4 md:top-[calc(1rem+var(--safe-area-inset-top,env(safe-area-inset-top,0px)))] md:clip-corner-lg z-30 overflow-hidden bg-background animate-in fade-in-0 zoom-in-95"
+        className="absolute inset-0 pt-[var(--safe-area-inset-top,env(safe-area-inset-top,0px))] md:pt-0 md:inset-4 md:top-[calc(1rem+var(--safe-area-inset-top,env(safe-area-inset-top,0px)))] md:rounded-2xl z-30 overflow-hidden bg-background animate-in fade-in-0 zoom-in-95"
       >
         {banned ? <UserBanned /> : <ProfileView pubkey={pubkey} onClose={onClose} />}
       </div>
@@ -338,7 +338,7 @@ function ProfileView({ pubkey, onClose }: { pubkey: string; onClose: () => void 
         size="icon"
         variant="ghost"
         aria-label={intl.formatMessage({ id: "profileDialog.close", defaultMessage: "Close profile" })}
-        className="absolute right-3 top-3 z-10 size-9 touch:size-11 clip-corner-lg bg-background/60 backdrop-blur-sm hover:bg-background/80"
+        className="absolute right-3 top-3 z-10 size-9 touch:size-11 rounded-2xl bg-background/60 backdrop-blur-sm hover:bg-background/80"
         onClick={onClose}
       >
         <X className="size-5" />
@@ -386,7 +386,7 @@ function ProfileView({ pubkey, onClose }: { pubkey: string; onClose: () => void 
                       <Button
                         size="sm"
                         variant="secondary"
-                        className="clip-corner-lg h-9 touch:h-11"
+                        className="rounded-2xl h-9 touch:h-11"
                         onClick={() => setThemeEditorOpen(true)}
                       >
                         <Palette className="size-4 mr-1.5" />
@@ -395,7 +395,7 @@ function ProfileView({ pubkey, onClose }: { pubkey: string; onClose: () => void 
                       <Button
                         size="sm"
                         variant="secondary"
-                        className="clip-corner-lg h-9 touch:h-11"
+                        className="rounded-2xl h-9 touch:h-11"
                         onClick={() => setEditOpen(true)}
                       >
                         <Pencil className="size-4 mr-1.5" />
@@ -405,7 +405,7 @@ function ProfileView({ pubkey, onClose }: { pubkey: string; onClose: () => void 
                   ) : (
                     <>
                       {user && npub && !config.dmsDisabled && (
-                        <Button size="sm" className="clip-corner-lg h-9 touch:h-11" onClick={openDm}>
+                        <Button size="sm" className="rounded-2xl h-9 touch:h-11" onClick={openDm}>
                           <MessageSquare className="size-4 mr-1.5" />
                           <FormattedMessage id="profileDialog.message" defaultMessage="Message" />
                         </Button>
@@ -414,7 +414,7 @@ function ProfileView({ pubkey, onClose }: { pubkey: string; onClose: () => void 
                         <Button
                           size="sm"
                           variant={isFollowing ? "secondary" : "default"}
-                          className="clip-corner-lg h-9 touch:h-11"
+                          className="rounded-2xl h-9 touch:h-11"
                           disabled={followPending}
                           onClick={() => void toggleFollow()}
                         >
@@ -430,7 +430,7 @@ function ProfileView({ pubkey, onClose }: { pubkey: string; onClose: () => void 
                               size="icon"
                               variant="secondary"
                               aria-label={intl.formatMessage({ id: "profileDialog.moreActions", defaultMessage: "More actions" })}
-                              className="size-9 touch:size-11 clip-corner-lg"
+                              className="size-9 touch:size-11 rounded-2xl"
                             >
                               <MoreHorizontal className="size-4" />
                             </Button>
@@ -456,7 +456,7 @@ function ProfileView({ pubkey, onClose }: { pubkey: string; onClose: () => void 
                     <Button
                       size="icon"
                       variant="secondary"
-                      className="size-9 touch:size-11 clip-corner-lg"
+                      className="size-9 touch:size-11 rounded-2xl"
                       asChild
                     >
                       <a href={dittoHref} target="_blank" rel="noopener noreferrer" title={intl.formatMessage({ id: "profileDialog.viewOnDitto", defaultMessage: "View on Ditto" })} aria-label={intl.formatMessage({ id: "profileDialog.viewOnDitto", defaultMessage: "View on Ditto" })}>
@@ -468,7 +468,7 @@ function ProfileView({ pubkey, onClose }: { pubkey: string; onClose: () => void 
                     <Button
                       size="icon"
                       variant="secondary"
-                      className="size-9 touch:size-11 clip-corner-lg"
+                      className="size-9 touch:size-11 rounded-2xl"
                       asChild
                     >
                       <a
@@ -584,7 +584,7 @@ function ProfileView({ pubkey, onClose }: { pubkey: string; onClose: () => void 
           <div className="mt-3 md:mt-4 grid gap-3 md:gap-4 lg:grid-cols-[1fr_18rem] items-start">
             <div className="space-y-3 md:space-y-4 min-w-0">
               {(fields.length > 0 || website || lud16) && (
-                <section className={cn("clip-corner-lg p-4 md:p-5", card)}>
+                <section className={cn("rounded-2xl p-4 md:p-5", card)}>
                   <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">
                     <FormattedMessage id="profileDialog.about" defaultMessage="About" />
                   </h2>
@@ -617,7 +617,7 @@ function ProfileView({ pubkey, onClose }: { pubkey: string; onClose: () => void 
 
             <div className="space-y-3 md:space-y-4 min-w-0">
               {sidebarLoading && sidebarEmpty && (
-                <section className={cn("clip-corner-lg p-4", card)}>
+                <section className={cn("rounded-2xl p-4", card)}>
                   <Skeleton className="h-3 w-28" />
                   <div className="mt-3 space-y-2">
                     <Skeleton className="h-7 w-full" />
@@ -628,7 +628,7 @@ function ProfileView({ pubkey, onClose }: { pubkey: string; onClose: () => void 
               )}
 
               {badges.length > 0 && (
-                <section className={cn("clip-corner-lg p-4", card)}>
+                <section className={cn("rounded-2xl p-4", card)}>
                   <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">
                     <FormattedMessage id="profileDialog.badges" defaultMessage="Badges" />
                   </h2>
@@ -645,7 +645,7 @@ function ProfileView({ pubkey, onClose }: { pubkey: string; onClose: () => void 
               )}
 
               {!isSelf && shared.length > 0 && (
-                <section className={cn("clip-corner-lg p-4", card)}>
+                <section className={cn("rounded-2xl p-4", card)}>
                   <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2 flex items-center gap-1.5">
                     <Users className="size-3.5" />
                     <FormattedMessage id="profileDialog.sharedCommunities" defaultMessage="{count, plural, one {# shared community} other {# shared communities}}" values={{ count: shared.length }} />
@@ -806,7 +806,7 @@ function SharedFollowersCard({
   const [showAll, setShowAll] = useState(false);
   const visible = showAll ? shared : shared.slice(0, 5);
   return (
-    <section className={cn("clip-corner-lg p-4", cardClass)}>
+    <section className={cn("rounded-2xl p-4", cardClass)}>
       <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2 flex items-center gap-1.5">
         <UserCheck className="size-3.5" />
         <FormattedMessage id="profileDialog.sharedFollowers" defaultMessage="{count, plural, one {# shared follower} other {# shared followers}}" values={{ count: shared.length }} />
@@ -850,7 +850,7 @@ function PersonRow({ pubkey }: { pubkey: string }) {
       <button
         type="button"
         onClick={() => openProfile(npub ?? pubkey)}
-        className="flex w-full items-center gap-2 clip-corner px-2 py-1.5 touch:py-2.5 hover:bg-secondary transition-colors min-w-0 text-left"
+        className="flex w-full items-center gap-2 rounded-xl px-2 py-1.5 touch:py-2.5 hover:bg-secondary transition-colors min-w-0 text-left"
       >
         <Avatar shape={getAvatarShape(metadata)} className="size-7 shrink-0">
           <AvatarImage src={metadata?.picture} imeta={author.data?.imeta?.picture} alt="" />
@@ -874,9 +874,9 @@ function SharedCommunityRow({ entry }: { entry: SharedCommunity }) {
     <li>
       <Link
         to={`/c/${entry.idHex}`}
-        className="flex items-center gap-2 clip-corner px-2 py-1.5 touch:py-2.5 hover:bg-secondary transition-colors min-w-0"
+        className="flex items-center gap-2 rounded-xl px-2 py-1.5 touch:py-2.5 hover:bg-secondary transition-colors min-w-0"
       >
-        <span className="flex size-7 shrink-0 items-center justify-center overflow-hidden clip-corner-lg bg-primary/15 text-primary text-xs font-bold">
+        <span className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-primary/15 text-primary text-xs font-bold">
           {iconUrl ? (
             <img src={iconUrl} alt="" className="size-full object-cover" decoding="async" />
           ) : (

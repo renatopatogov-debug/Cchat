@@ -356,13 +356,13 @@ export function EditorSheet({ model, open, onOpenChange }: { model: EditorModel;
             <div className={FOOTER}>
               {flow.confirm ? (
                 <>
-                  <Button type="button" variant="ghost" className="flex-1 clip-corner-lg" onClick={flow.dismiss}>
+                  <Button type="button" variant="ghost" className="flex-1 rounded-2xl" onClick={flow.dismiss}>
                     <FormattedMessage {...common.back} />
                   </Button>
                   <Button
                     type="button"
                     variant={flow.confirm === "delete" ? "destructive" : "default"}
-                    className="flex-1 clip-corner-lg"
+                    className="flex-1 rounded-2xl"
                     onClick={() => void flow.accept()}
                   >
                     <FormattedMessage {...common.confirm} />
@@ -375,7 +375,7 @@ export function EditorSheet({ model, open, onOpenChange }: { model: EditorModel;
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="shrink-0 clip-corner-lg text-destructive hover:text-destructive"
+                      className="shrink-0 rounded-2xl text-destructive hover:text-destructive"
                       aria-label={
                         isChannel
                           ? intl.formatMessage(m.deleteChannel)
@@ -387,10 +387,10 @@ export function EditorSheet({ model, open, onOpenChange }: { model: EditorModel;
                       {isChannel ? <Trash2 className="size-4" /> : <FolderX className="size-4" />}
                     </Button>
                   )}
-                  <Button type="button" variant="ghost" className="flex-1 clip-corner-lg" onClick={() => onOpenChange(false)}>
+                  <Button type="button" variant="ghost" className="flex-1 rounded-2xl" onClick={() => onOpenChange(false)}>
                     <FormattedMessage {...common.cancel} />
                   </Button>
-                  <Button type="button" className="flex-1 clip-corner-lg" disabled={!model.dirty || model.invalid || model.busy} onClick={flow.requestSave}>
+                  <Button type="button" className="flex-1 rounded-2xl" disabled={!model.dirty || model.invalid || model.busy} onClick={flow.requestSave}>
                     {model.saving && <Loader2 className="size-4 animate-spin" />}
                     <FormattedMessage {...common.save} />
                   </Button>
@@ -468,7 +468,7 @@ export function EditorSheet({ model, open, onOpenChange }: { model: EditorModel;
                 <Button
                   type="button"
                   variant="ghost"
-                  className="flex-1 clip-corner-lg text-destructive hover:text-destructive"
+                  className="flex-1 rounded-2xl text-destructive hover:text-destructive"
                   disabled={ruled.reach === 0n}
                   onClick={() => {
                     model.removeTarget(ruled.key);
@@ -481,7 +481,7 @@ export function EditorSheet({ model, open, onOpenChange }: { model: EditorModel;
                   />
                 </Button>
               )}
-              <Button type="button" className="flex-1 clip-corner-lg" onClick={root}>
+              <Button type="button" className="flex-1 rounded-2xl" onClick={root}>
                 <FormattedMessage {...common.done} />
               </Button>
             </div>

@@ -320,7 +320,7 @@ export default function ZapDialogImpl({ target, sendZap, sendOnchainZap, onDone 
         <button
           type="button"
           onClick={onDone}
-          className="inline-flex size-8 touch:size-11 -mr-1.5 items-center justify-center clip-corner-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+          className="inline-flex size-8 touch:size-11 -mr-1.5 items-center justify-center rounded-2xl text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
           aria-label={intl.formatMessage(common.close)}
         >
           <X className="size-5" />
@@ -494,7 +494,7 @@ function LightningZapPane({
           onClick={onZap}
           disabled={busy || amountSats <= 0 || walletRequired}
           variant={isLarge && !busy ? "destructive" : "default"}
-          className="flex-1 clip-corner-lg"
+          className="flex-1 rounded-2xl"
         >
           {busy ? (
             <>
@@ -518,7 +518,7 @@ function LightningZapPane({
           onClick={() => setShowComment(!showComment)}
           aria-label={intl.formatMessage({ id: "zapDialogImpl.addComment", defaultMessage: "Add a comment" })}
           aria-pressed={showComment}
-          className={`clip-corner-lg touch:size-11 ${comment.trim() ? "text-primary" : "text-muted-foreground"}`}
+          className={`rounded-2xl touch:size-11 ${comment.trim() ? "text-primary" : "text-muted-foreground"}`}
         >
           <MessageCircle className="size-4" />
         </Button>

@@ -12,6 +12,7 @@ const state = vi.hoisted(() => ({
   stranded: false,
   canPost: true,
   isDesktop: false,
+  joinConcordCall: vi.fn(),
 }));
 
 const mockCommunity = {
@@ -24,16 +25,28 @@ const mockCommunity = {
   heldRoots: [{ epoch: 0n, key: new Uint8Array(32) }],
   privateChannels: [],
   relays: ["wss://relay.example.com"],
-  name: "Comunidade Teste",
+  name: "Grupo Teste",
 };
 
 const mockChannel = {
   id: new Uint8Array(32),
   idHex: "c".repeat(64),
   name: "geral",
-  topic: "Canal principal",
+  topic: "Subgrupo principal",
   isPrivate: false,
   streams: [],
+  voice: { room: { pk: "e".repeat(64) } },
+};
+
+const mockVoiceChannel = {
+  id: new Uint8Array(32),
+  idHex: "d".repeat(64),
+  name: "chamada-geral",
+  topic: undefined,
+  isPrivate: false,
+  view: "voice" as const,
+  streams: [],
+  voice: { room: { pk: "f".repeat(64) } },
 };
 
 vi.mock("@/lib/blocklistStore", async (importOriginal) => {
@@ -144,10 +157,39 @@ vi.mock("@/concord/hooks/useControlPlane", async (importOriginal) => {
         incomplete: [],
       },
     }),
-    useChannels: () => [mockChannel],
+    useChannels: () => [mockChannel, mockVoiceChannel],
     useDissolved: () => ({ data: state.dissolved }),
   };
 });
+vi.mock("@/hooks/useCall", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/hooks/useCall")>();
+  return {
+    ...actual,
+    useCall: () => ({
+      joinConcordCall: state.joinConcordCall,
+      activeCall: undefined,
+      registerCallStageSlot: () => () => undefined,
+    }),
+  };
+});
+vi.mock("@/concord/hooks/useVoice", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/concord/hooks/useVoice")>();
+  return {
+    ...actual,
+    resolveVoiceBroker: async () => "https://av.example.com",
+    useVoiceBroker: () => ({ data: "https://av.example.com" }),
+    useVoicePresence: () => ({ present: [], otherTransport: [], claims: new Map() }),
+  };
+});
+vi.mock("@/concord/lib/callGate", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/concord/lib/callGate")>();
+  return { ...actual, mayConnect: () => true };
+});
+vi.mock("@/concord/lib/voice", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/concord/lib/voice")>();
+  return { ...actual, communityAvBrokers: () => ["https://av.example.com"] };
+});
+vi.mock("@/components/chat/CallStageSlot", () => ({ CallStageSlot: () => null }));
 vi.mock("@/concord/hooks/useStreamAuth", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/concord/hooks/useStreamAuth")>();
   return {
@@ -285,33 +327,39 @@ beforeEach(() => {
   state.stranded = false;
   state.canPost = true;
   state.isDesktop = false;
+  state.joinConcordCall.mockClear();
 });
 
 describe("CommunityScreen Signal UI & E2EE guards", () => {
-  it("lists community channels on mobile and navigates into a channel on tap", () => {
+  it("lists subgroups and call channels on mobile, opens a subgroup on tap, and joins voice calls", () => {
     render(
-      <MemoryRouter initialEntries={[`/cc/${mockCommunity.idHex}`]}>
+      <MemoryRouter initialEntries={[`/c/${mockCommunity.idHex}`]}>
         <Routes>
-          <Route path="/cc/:communityId" element={<CommunityScreen />} />
-          <Route path="/cc/:communityId/:channelId" element={<CommunityScreen />} />
+          <Route path="/c/:communityId" element={<CommunityScreen />} />
+          <Route path="/c/:communityId/:channelId" element={<CommunityScreen />} />
         </Routes>
       </MemoryRouter>,
     );
 
-    expect(screen.getByText("Comunidade Teste")).toBeInTheDocument();
+    expect(screen.getByText("Grupo Teste")).toBeInTheDocument();
+    const voiceBtn = screen.getByRole("button", { name: /chamada-geral/i });
+    fireEvent.click(voiceBtn);
+    expect(state.joinConcordCall).toHaveBeenCalledTimes(1);
+
     const channelBtn = screen.getByRole("button", { name: /geral/i });
     fireEvent.click(channelBtn);
 
     expect(screen.getByTestId("message-timeline")).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "chat-composer" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Entrar na chamada de voz" })).toBeInTheDocument();
   });
 
   it("replaces the composer with read-only notices when dissolved, excluded, stranded, or lacking post access", () => {
     state.dissolved = Date.now();
     const { unmount: u1 } = render(
-      <MemoryRouter initialEntries={[`/cc/${mockCommunity.idHex}/${mockChannel.idHex}`]}>
+      <MemoryRouter initialEntries={[`/c/${mockCommunity.idHex}/${mockChannel.idHex}`]}>
         <Routes>
-          <Route path="/cc/:communityId/:channelId" element={<CommunityScreen />} />
+          <Route path="/c/:communityId/:channelId" element={<CommunityScreen />} />
         </Routes>
       </MemoryRouter>,
     );
@@ -322,9 +370,9 @@ describe("CommunityScreen Signal UI & E2EE guards", () => {
     state.dissolved = null;
     state.excluded = true;
     const { unmount: u2 } = render(
-      <MemoryRouter initialEntries={[`/cc/${mockCommunity.idHex}/${mockChannel.idHex}`]}>
+      <MemoryRouter initialEntries={[`/c/${mockCommunity.idHex}/${mockChannel.idHex}`]}>
         <Routes>
-          <Route path="/cc/:communityId/:channelId" element={<CommunityScreen />} />
+          <Route path="/c/:communityId/:channelId" element={<CommunityScreen />} />
         </Routes>
       </MemoryRouter>,
     );
@@ -335,9 +383,9 @@ describe("CommunityScreen Signal UI & E2EE guards", () => {
     state.excluded = false;
     state.stranded = true;
     const { unmount: u3 } = render(
-      <MemoryRouter initialEntries={[`/cc/${mockCommunity.idHex}/${mockChannel.idHex}`]}>
+      <MemoryRouter initialEntries={[`/c/${mockCommunity.idHex}/${mockChannel.idHex}`]}>
         <Routes>
-          <Route path="/cc/:communityId/:channelId" element={<CommunityScreen />} />
+          <Route path="/c/:communityId/:channelId" element={<CommunityScreen />} />
         </Routes>
       </MemoryRouter>,
     );
@@ -348,9 +396,9 @@ describe("CommunityScreen Signal UI & E2EE guards", () => {
     state.stranded = false;
     state.canPost = false;
     const { unmount: u4 } = render(
-      <MemoryRouter initialEntries={[`/cc/${mockCommunity.idHex}/${mockChannel.idHex}`]}>
+      <MemoryRouter initialEntries={[`/c/${mockCommunity.idHex}/${mockChannel.idHex}`]}>
         <Routes>
-          <Route path="/cc/:communityId/:channelId" element={<CommunityScreen />} />
+          <Route path="/c/:communityId/:channelId" element={<CommunityScreen />} />
         </Routes>
       </MemoryRouter>,
     );

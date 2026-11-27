@@ -70,7 +70,7 @@ export function EditorLegacyAccess({ model, surface }: { model: EditorModel; sur
             placeholder={intl.formatMessage({ id: "channelEditor.legacy.newRoleName", defaultMessage: "New access role name" })}
             className={field(surface)}
           />
-          <Button type="submit" variant="secondary" className="shrink-0 clip-corner-lg" disabled={model.busy || !roleName.trim()}>
+          <Button type="submit" variant="secondary" className="shrink-0 rounded-2xl" disabled={model.busy || !roleName.trim()}>
             {model.busy ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
             <FormattedMessage id="channelEditor.legacy.createRole" defaultMessage="Create role" />
           </Button>

@@ -1999,7 +1999,7 @@ function ImageOrCharacterCard({ image, onOpen }: { image: ImageRef; onOpen: () =
       ref={boxRef}
       className={cn(
         "w-fit max-w-full",
-        card && "my-1.5 overflow-hidden clip-hairline-lg [--edge:var(--border)/0.5] [--fill:var(--secondary)/0.3] [--fill-hover:var(--secondary)/0.5]",
+        card && "my-1.5 overflow-hidden rounded-2xl border border-border/70 bg-card/60 [--edge:var(--border)/0.5] [--fill:var(--secondary)/0.3] [--fill-hover:var(--secondary)/0.5]",
       )}
     >
       <InlineImage
@@ -2298,7 +2298,7 @@ function LightningInvoice({ invoice }: { invoice: string }) {
     <span className="inline-flex items-center gap-1 max-w-full my-1">
       <button
         type="button"
-        className="inline-flex items-center gap-1.5 min-w-0 px-2.5 py-1 touch:px-3.5 touch:py-2 touch:min-h-11 clip-corner-lg bg-amber-500/15 text-amber-500 text-xs hover:bg-amber-500/25 transition-colors"
+        className="inline-flex items-center gap-1.5 min-w-0 px-2.5 py-1 touch:px-3.5 touch:py-2 touch:min-h-11 rounded-2xl bg-amber-500/15 text-amber-500 text-xs hover:bg-amber-500/25 transition-colors"
         onClick={(e) => {
           e.stopPropagation();
           writeClipboardText(invoice).then(() => {
@@ -2320,7 +2320,7 @@ function LightningInvoice({ invoice }: { invoice: string }) {
         <button
           type="button"
           className={cn(
-            "shrink-0 px-2.5 py-1 touch:px-3.5 touch:py-2 touch:min-h-11 clip-corner-lg text-xs font-medium transition-colors disabled:opacity-60",
+            "shrink-0 px-2.5 py-1 touch:px-3.5 touch:py-2 touch:min-h-11 rounded-2xl text-xs font-medium transition-colors disabled:opacity-60",
             armed
               ? "bg-amber-500 text-amber-950 hover:bg-amber-400"
               : "bg-amber-500/25 text-amber-500 hover:bg-amber-500/35",

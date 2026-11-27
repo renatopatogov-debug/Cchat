@@ -331,7 +331,7 @@ function ProfileCard({ compact, active, onOpen }: { compact?: boolean; active?: 
       type="button"
       onClick={() => onOpen(user ? "profile" : "account")}
       className={cn(
-        "gutter-tick flex w-full items-center gap-3 bg-chrome clip-corner-lg text-left transition-colors hover:bg-accent/40 active:bg-accent/60",
+        "gutter-tick flex w-full items-center gap-3 bg-chrome rounded-2xl text-left transition-colors hover:bg-accent/40 active:bg-accent/60",
         compact ? "px-3 py-3" : "px-4 py-4",
         active && "is-active bg-accent/50",
       )}
@@ -392,7 +392,7 @@ function RootList({
       {groups.map((ids, index) => (
         <div
           key={ids.join()}
-          className="bg-chrome clip-corner-lg overflow-hidden [&>*]:border-chrome [&>*:not(:first-child)]:border-t"
+          className="bg-chrome rounded-2xl overflow-hidden [&>*]:border-chrome [&>*:not(:first-child)]:border-t"
         >
           {index === groups.length - 1 && showInstall && (
             <SettingsRow
@@ -663,7 +663,7 @@ export function SettingsPage({
       <main ref={mainRef} className="flex-1 min-w-0 flex flex-col safe-area-top">
         <header
           className={cn(
-            "relative h-12 touch:h-[3.25rem] mx-gutter mt-1 sidebar:mt-3 w-[calc(100%-2*var(--gutter))] sm:mx-auto px-2 sidebar:px-3 flex items-center gap-1.5 shrink-0 clip-corner-lg bg-chrome",
+            "relative h-12 touch:h-[3.25rem] mx-gutter mt-1 sidebar:mt-3 w-[calc(100%-2*var(--gutter))] sm:mx-auto px-2 sidebar:px-3 flex items-center gap-1.5 shrink-0 rounded-2xl bg-chrome",
             wide ? "max-w-5xl" : "max-w-2xl",
           )}
         >

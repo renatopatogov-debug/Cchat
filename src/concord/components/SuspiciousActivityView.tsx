@@ -28,7 +28,7 @@ function ActorRow({
   const author = useAuthor(actor.author);
   const name = useScopedDisplayName(actor.author, author.data?.metadata);
   return (
-    <li className="clip-corner-lg bg-destructive/10 p-3">
+    <li className="rounded-2xl bg-destructive/10 p-3">
       <p className="text-sm">
         <FormattedMessage
           id="suspiciousActivityView.actor"
@@ -100,7 +100,7 @@ function TravelerRow({
   };
 
   return (
-    <li className="clip-corner-lg bg-primary/10 p-3">
+    <li className="rounded-2xl bg-primary/10 p-3">
       <div className="flex items-start gap-3">
         <Avatar className="size-9 shrink-0">
           {picture ? <AvatarImage src={picture} imeta={author.data?.imeta?.picture} alt="" /> : null}

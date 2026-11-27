@@ -68,7 +68,7 @@ function CashuTokenCard({
     <div
       className={cn(
         // No border: the chamfer clips it into a broken outline.
-        "relative block max-w-sm w-full clip-corner-lg bg-secondary/40 overflow-hidden my-1.5",
+        "relative block max-w-sm w-full rounded-2xl bg-secondary/40 overflow-hidden my-1.5",
         className,
       )}
       onClick={(e) => e.stopPropagation()}
@@ -78,7 +78,7 @@ function CashuTokenCard({
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="absolute right-1 top-1 inline-flex size-8 touch:size-11 items-center justify-center clip-corner-lg text-muted-foreground transition-colors hover:bg-background/40 hover:text-foreground"
+            className="absolute right-1 top-1 inline-flex size-8 touch:size-11 items-center justify-center rounded-2xl text-muted-foreground transition-colors hover:bg-background/40 hover:text-foreground"
             aria-label={intl.formatMessage({ id: "cashuToken.about", defaultMessage: "About this token" })}
           >
             <span aria-hidden className="text-sm leading-none">🥜</span>
@@ -133,7 +133,7 @@ function CashuTokenCard({
 
         <button
           type="button"
-          className="w-full px-2.5 py-2 touch:py-2.5 clip-corner-lg bg-amber-500/20 text-amber-500 text-xs font-medium transition-colors hover:bg-amber-500/30 disabled:bg-destructive/20 disabled:text-destructive disabled:hover:bg-destructive/20"
+          className="w-full px-2.5 py-2 touch:py-2.5 rounded-2xl bg-amber-500/20 text-amber-500 text-xs font-medium transition-colors hover:bg-amber-500/30 disabled:bg-destructive/20 disabled:text-destructive disabled:hover:bg-destructive/20"
           onClick={copy}
           disabled={spent}
           title={spent ? undefined : intl.formatMessage({ id: "cashuToken.copyHint", defaultMessage: "Copy the token to redeem it in an ecash wallet" })}

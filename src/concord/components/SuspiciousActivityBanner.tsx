@@ -31,7 +31,7 @@ export function SuspiciousActivityBanner({
       type="button"
       onClick={onOpen}
       className={cn(
-        "flex w-full items-center gap-2 px-2 py-1.5 touch:py-3 text-sm transition-colors text-left clip-corner-lg",
+        "flex w-full items-center gap-2 px-2 py-1.5 touch:py-3 text-sm transition-colors text-left rounded-2xl",
         "bg-destructive/15 text-destructive font-semibold hover:bg-destructive/25",
       )}
     >

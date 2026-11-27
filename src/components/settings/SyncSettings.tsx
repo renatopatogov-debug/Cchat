@@ -116,7 +116,7 @@ export function SyncSettings() {
             <Button
               type="button"
               variant="secondary"
-              className="h-10 clip-corner-lg touch:h-11"
+              className="h-10 rounded-2xl touch:h-11"
               disabled={portablePull.isPending || portableSetup.isPending}
               onClick={pull}
             >
@@ -126,7 +126,7 @@ export function SyncSettings() {
             </Button>
             <Button
               type="button"
-              className="h-10 clip-corner-lg touch:h-11"
+              className="h-10 rounded-2xl touch:h-11"
               disabled={portableSetup.isPending || portableSetup.isStatusLoading || portablePull.isPending}
               onClick={publish}
             >

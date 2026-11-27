@@ -114,7 +114,7 @@ function ThemeEditorForm({ current, onDone }: { current?: DittoTheme; onDone: ()
       <ThemeBackgroundField value={background} onChange={setBackground} onUploadingChange={setUploading} />
 
       <div className="space-y-2">
-        <Button className="w-full clip-corner-lg" onClick={doSave} disabled={isPending || uploading}>
+        <Button className="w-full rounded-2xl" onClick={doSave} disabled={isPending || uploading}>
           {isPending && <Loader2 className="size-4 animate-spin" />}
           <FormattedMessage id="profileThemeEditor.save" defaultMessage="Save theme" />
         </Button>

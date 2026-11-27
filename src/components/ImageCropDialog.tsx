@@ -87,7 +87,7 @@ export function ImageCropDialog({ open, imageSrc, aspect, title: titleProp, maxE
       <ChromeDialogContent title={title} className="sm:max-w-lg">
         <ChromeDialogHeader icon={Crop} title={title} />
 
-        <div className="relative mt-5 overflow-hidden clip-corner-lg bg-black" style={{ height: 320 }}>
+        <div className="relative mt-5 overflow-hidden rounded-2xl bg-black" style={{ height: 320 }}>
           <Cropper
             image={imageSrc}
             crop={crop}

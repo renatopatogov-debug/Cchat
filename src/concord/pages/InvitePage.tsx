@@ -2,7 +2,6 @@ import { Ban, Loader2, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
-import { ServerRail } from "@/components/layout/ServerRail";
 import { JoinButton } from "@/components/auth/JoinButton";
 import { Button } from "@/components/ui/button";
 import {
@@ -99,84 +98,72 @@ export function InvitePage() {
 
   if (blocked) {
     return (
-      <>
-        <ServerRail />
-        <main className="flex-1 min-w-0">
-          <CommunityBlocked />
-        </main>
-      </>
+      <main className="flex-1 min-w-0">
+        <CommunityBlocked />
+      </main>
     );
   }
 
   if (error) {
     return (
-      <>
-        <ServerRail />
-        <main className="flex-1 min-w-0 flex flex-col items-center justify-center gap-4 p-8 text-center">
+      <main className="flex-1 min-w-0 flex flex-col items-center justify-center gap-4 p-8 text-center">
+        {banned ? (
+          <Ban className="size-12 text-destructive" />
+        ) : (
+          <ShieldCheck className="size-12 text-muted-foreground" />
+        )}
+        <h1 className="text-2xl font-bold">
           {banned ? (
-            <Ban className="size-12 text-destructive" />
+            <FormattedMessage id="invitePage.bannedTitle" defaultMessage="You’re banned" />
+          ) : dissolved ? (
+            <FormattedMessage id="invitePage.dissolvedTitle" defaultMessage="Community dissolved" />
           ) : (
-            <ShieldCheck className="size-12 text-muted-foreground" />
+            <FormattedMessage id="invitePage.failedTitle" defaultMessage="Invite link didn’t work" />
           )}
-          <h1 className="text-2xl font-bold">
-            {banned ? (
-              <FormattedMessage id="invitePage.bannedTitle" defaultMessage="You’re banned" />
-            ) : dissolved ? (
-              <FormattedMessage id="invitePage.dissolvedTitle" defaultMessage="Community dissolved" />
-            ) : (
-              <FormattedMessage id="invitePage.failedTitle" defaultMessage="Invite link didn’t work" />
-            )}
-          </h1>
-          <p className="max-w-md text-muted-foreground">{error}</p>
-          <Button asChild>
-            <Link to="/">
-              <FormattedMessage id="invitePage.backToBase" defaultMessage="Back to base" />
-            </Link>
-          </Button>
-        </main>
-      </>
+        </h1>
+        <p className="max-w-md text-muted-foreground">{error}</p>
+        <Button asChild>
+          <Link to="/">
+            <FormattedMessage id="invitePage.backToBase" defaultMessage="Back to base" />
+          </Link>
+        </Button>
+      </main>
     );
   }
 
   if (!resolved) {
     return (
-      <>
-        <ServerRail />
-        <main className="flex-1 min-w-0 flex flex-col items-center justify-center gap-4 p-8 text-center">
-          <Loader2 className="size-6 animate-spin text-muted-foreground" />
-          <p className="text-muted-foreground">
-            <FormattedMessage id="invitePage.opening" defaultMessage="Opening the invite…" />
-          </p>
-        </main>
-      </>
+      <main className="flex-1 min-w-0 flex flex-col items-center justify-center gap-4 p-8 text-center">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+        <p className="text-muted-foreground">
+          <FormattedMessage id="invitePage.opening" defaultMessage="Opening the invite…" />
+        </p>
+      </main>
     );
   }
 
   return (
-    <>
-      <ServerRail />
-      <main className="flex flex-1 min-w-0 flex-col bg-background h-full">
-        <InviteDetail
-          bundle={resolved.bundle}
-          communityId={resolved.communityId}
-          name={resolved.name}
-          accepting={isJoining}
-          declining={false}
-          onAccept={handleAccept}
-          onDecline={() => navigate("/")}
-          signInSlot={
-            user ? undefined : (
-              <JoinButton
-                size="lg"
-                className="h-12 min-w-0 flex-1 clip-corner-lg text-base font-medium"
-              >
-                <FormattedMessage id="invitePage.signInToAccept" defaultMessage="Sign in to accept" />
-              </JoinButton>
-            )
-          }
-        />
-      </main>
-    </>
+    <main className="flex flex-1 min-w-0 flex-col bg-background h-full">
+      <InviteDetail
+        bundle={resolved.bundle}
+        communityId={resolved.communityId}
+        name={resolved.name}
+        accepting={isJoining}
+        declining={false}
+        onAccept={handleAccept}
+        onDecline={() => navigate("/")}
+        signInSlot={
+          user ? undefined : (
+            <JoinButton
+              size="lg"
+              className="h-12 min-w-0 flex-1 rounded-2xl text-base font-medium"
+            >
+              <FormattedMessage id="invitePage.signInToAccept" defaultMessage="Sign in to accept" />
+            </JoinButton>
+          )
+        }
+      />
+    </main>
   );
 }
 

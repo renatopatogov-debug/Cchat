@@ -168,7 +168,7 @@ export function ScreenSharePicker() {
               type="button"
               disabled={choosing}
               onClick={() => void choose(s.id)}
-              className="group flex flex-col gap-2 clip-corner-lg bg-background/40 p-2 text-left transition-colors hover:bg-primary/15 disabled:pointer-events-none disabled:opacity-50"
+              className="group flex flex-col gap-2 rounded-2xl bg-background/40 p-2 text-left transition-colors hover:bg-primary/15 disabled:pointer-events-none disabled:opacity-50"
             >
               {s.thumbnail ? (
                 <img

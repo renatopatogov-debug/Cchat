@@ -154,7 +154,7 @@ function ProfileRow({
       disabled={isBusy}
       onClick={onClick}
       className={cn(
-        "flex w-full items-center gap-3 clip-corner px-2 py-2 text-left transition-colors",
+        "flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors",
         "hover:bg-secondary/70 disabled:opacity-60",
       )}
     >

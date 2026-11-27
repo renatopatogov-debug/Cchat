@@ -122,7 +122,7 @@ export function LinkEmbed({ url, className }: LinkEmbedProps) {
     return (
       <div className={cn("max-w-md", className)} onClick={(e) => e.stopPropagation()}>
         <div
-          className="relative w-full overflow-hidden clip-corner-lg bg-black"
+          className="relative w-full overflow-hidden rounded-2xl bg-black"
           style={{ paddingBottom: "56.25%" }}
         >
           <iframe
@@ -152,7 +152,7 @@ function TenorEmbed({ url, className }: { url: string; className?: string }) {
   const { data, isLoading } = useLinkPreview(url);
   const mp4 = tenorMp4FromThumbnail(data?.thumbnail_url);
   if (isLoading) {
-    return <Skeleton className={cn("h-32 w-48 clip-corner-lg", className)} />;
+    return <Skeleton className={cn("h-32 w-48 rounded-2xl", className)} />;
   }
   if (!mp4) return <LinkPreview url={url} className={className} />;
   const dim = data?.thumbnail_width && data.thumbnail_height
@@ -173,7 +173,7 @@ function EmbedInfoBar({ url }: { url: string }) {
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="ml-auto flex items-center gap-1 px-2 py-0.5 clip-corner hover:bg-primary/10 hover:text-primary transition-colors"
+          className="ml-auto flex items-center gap-1 px-2 py-0.5 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors"
           onClick={(e) => e.stopPropagation()}
         >
           <ExternalLink className="size-3" />
@@ -236,7 +236,7 @@ function LinkPreview({ url, className }: { url: string; className?: string }) {
 
   if (isLoading) {
     return (
-      <div className={cn("max-w-md clip-corner-lg border-l-4 border-primary bg-secondary/40 overflow-hidden", className)}>
+      <div className={cn("max-w-md rounded-2xl border-l-4 border-primary bg-secondary/40 overflow-hidden", className)}>
         <div className="px-3 py-2.5 space-y-1.5">
           <Skeleton className="h-3 w-24" />
           <Skeleton className="h-4 w-3/4" />
@@ -259,7 +259,7 @@ function LinkPreview({ url, className }: { url: string; className?: string }) {
     // `pointer-events-none` content, with the copy button and images as exceptions.
     <div
       className={cn(
-        "group relative block w-fit max-w-md clip-corner-lg border-l-4 border-primary bg-secondary/40 overflow-hidden",
+        "group relative block w-fit max-w-md rounded-2xl border-l-4 border-primary bg-secondary/40 overflow-hidden",
         "hover:bg-secondary/60 transition-colors",
         className,
       )}
@@ -495,7 +495,7 @@ function CopyLinkButton({ url }: { url: string }) {
       title={intl.formatMessage(common.copyLink)}
       aria-label={intl.formatMessage(common.copyLink)}
       className={cn(
-        "absolute top-1 right-1 z-10 grid place-items-center size-7 touch:size-9 clip-corner-lg",
+        "absolute top-1 right-1 z-10 grid place-items-center size-7 touch:size-9 rounded-2xl",
         "text-muted-foreground hover:text-primary hover:bg-secondary transition-colors",
       )}
     >
@@ -558,7 +558,7 @@ function PeerTubeEmbed({ api, url }: { api: string; url: string }) {
 
   return (
     <div
-      className="relative my-1.5 clip-corner-lg overflow-hidden bg-black"
+      className="relative my-1.5 rounded-2xl overflow-hidden bg-black"
       style={{ aspectRatio: "16 / 9" }}
       onClick={(e) => e.stopPropagation()}
     >
@@ -684,7 +684,7 @@ export function YouTubeEmbed({ videoId, start, className }: { videoId: string; s
 
   return (
     <div
-      className={cn("clip-corner-lg overflow-hidden", className)}
+      className={cn("rounded-2xl overflow-hidden", className)}
       onClick={(e) => e.stopPropagation()}
     >
       <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>

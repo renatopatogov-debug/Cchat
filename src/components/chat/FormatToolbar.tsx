@@ -152,7 +152,7 @@ export function FormatToolbar({ rich }: { rich: RichText }) {
                 handle.format(kind);
               }}
               className={cn(
-                "flex size-8 touch:size-11 items-center justify-center clip-corner transition-colors",
+                "flex size-8 touch:size-11 items-center justify-center rounded-xl transition-colors",
                 pressed
                   ? "bg-primary/15 text-primary"
                   : "text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground",

@@ -11,8 +11,6 @@ import { ChatComposer } from "@/components/chat/ChatComposer";
 import { ChatMessage } from "@/components/chat/ChatMessage";
 import { keepItemFocus } from "@/components/chat/ChatHeader";
 import { ChatSearchBar } from "@/components/chat/ChatSearchBar";
-import { ChatShell } from "@/components/chat/ChatShell";
-import { useSwipeLayout } from "@/components/layout/SwipeReveal";
 import type { ChatMsg } from "@/components/chat/transport";
 import { useChatEditing } from "@/components/chat/useChatEditing";
 import { getQuoteReplyToId } from "@/components/chat/messageHelpers";
@@ -72,9 +70,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ChromeDialogContent, Dialog } from "@/components/ui/dialog";
 import { MountWhenOpened } from "@/components/MountWhenOpened";
-import { useAndroidBack } from "@/hooks/useAndroidBack";
+import { leaveApp, useAndroidBack } from "@/hooks/useAndroidBack";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
-import { PaneCoveredContext, useListShowing } from "@/contexts/PaneCoveredContext";
+import type { AppScope } from "@/contexts/AppsContext";
+import { ChatScopeContext } from "@/contexts/ChatScopeContext";
+import { PaneCoveredContext } from "@/contexts/PaneCoveredContext";
+import { CustomEmojisProvider } from "@/hooks/useCustomEmojis";
 import { useAppContext } from "@/hooks/useAppContext";
 import { useAuthor } from "@/hooks/useAuthor";
 import { useCall } from "@/hooks/useCall";
@@ -264,11 +265,12 @@ const ConversationRow = memo(function ConversationRow({
       <ContextMenuTrigger asChild>
         <button
           type="button"
+          data-testid="conversation-row"
           data-conversation={conversation}
           onClick={() => actions.open(conversation)}
           className={cn(
             // Larger than a channel row: avatar and preview carry recognition here.
-            "flex items-center gap-3 w-full px-2 py-2.5 clip-corner text-left transition-colors",
+            "flex items-center gap-3 w-full px-2 py-2.5 rounded-xl text-left transition-colors",
             active ? "bg-secondary" : "hover:bg-secondary/60",
           )}
         >
@@ -479,7 +481,7 @@ function DmPlaceholderRow({
           <button
             type="button"
             onClick={() => onDecrypt?.(id)}
-            className="inline-flex items-center gap-1.5 clip-corner-lg bg-muted/60 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-2xl bg-muted/60 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <Lock className="size-3" />
             <FormattedMessage id="dmsPage.placeholder.tapToDecrypt" defaultMessage="Encrypted message. Tap to decrypt." />
@@ -506,7 +508,7 @@ function DmLegacyBadge() {
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="inline-flex items-center gap-0.5 clip-corner bg-muted/60 px-1.5 py-0.5 text-3xs font-medium leading-none text-muted-foreground/80 hover:text-foreground shrink-0 select-none"
+          className="inline-flex items-center gap-0.5 rounded-xl bg-muted/60 px-1.5 py-0.5 text-3xs font-medium leading-none text-muted-foreground/80 hover:text-foreground shrink-0 select-none"
           aria-label={intl.formatMessage({
             id: "dmsPage.legacyBadge.label",
             defaultMessage: "Older, less private encryption. Tap for details.",
@@ -543,7 +545,7 @@ function DmLegacyFallbackNotice({
   onEnable: () => void;
 }) {
   return (
-    <div className="mx-gutter mb-[max(0.75rem,var(--bottom-chrome-pad))] sidebar:mb-3 clip-hairline-lg [--fill:var(--muted)/0.4] [--fill-hover:var(--muted)/0.4] px-4 py-3 text-sm">
+    <div className="mx-gutter mb-[max(0.75rem,var(--bottom-chrome-pad))] sidebar:mb-3 rounded-2xl border border-border/70 bg-card/60 [--fill:var(--muted)/0.4] [--fill-hover:var(--muted)/0.4] px-4 py-3 text-sm">
       <div className="flex items-start gap-2.5">
         <Lock className="size-4 mt-0.5 shrink-0 text-muted-foreground" aria-hidden />
         <div className="min-w-0 space-y-2">
@@ -560,7 +562,7 @@ function DmLegacyFallbackNotice({
               }}
             />
           </p>
-          <Button size="sm" className="clip-corner-lg" onClick={onEnable}>
+          <Button size="sm" className="rounded-2xl" onClick={onEnable}>
             <FormattedMessage id="dmsPage.legacyFallback.enable" defaultMessage="Message with legacy encryption" />
           </Button>
         </div>
@@ -615,7 +617,7 @@ function DmRequestNotice({
   );
   return (
     // Action beside the text, not under it: this ADDS to the composer's height.
-    <div className="mx-gutter mb-3 clip-hairline-lg [--fill:var(--muted)/0.4] [--fill-hover:var(--muted)/0.4] px-4 py-2.5 text-sm">
+    <div className="mx-gutter mb-3 rounded-2xl border border-border/70 bg-card/60 [--fill:var(--muted)/0.4] [--fill-hover:var(--muted)/0.4] px-4 py-2.5 text-sm">
       <div className="flex items-center gap-3">
         <Inbox className="size-4 shrink-0 text-muted-foreground" aria-hidden />
         <div className="min-w-0 flex-1">
@@ -1001,7 +1003,7 @@ const Conversation = memo(function Conversation({
     <div className="flex flex-col flex-1 min-h-0">
       {/* Keyed by CONVERSATION, matching the launch card's `ChatScopeContext`. */}
       <AppStageSlot scope={{ kind: "dm", conversation }} />
-      <header className="relative h-12 touch:h-[3.25rem] mx-gutter mt-1 sidebar:mt-3 px-2 sidebar:px-3 flex items-center gap-2 shrink-0 clip-corner-lg bg-chrome">
+      <header className="relative h-12 touch:h-[3.25rem] mx-gutter mt-1 sidebar:mt-3 px-2 sidebar:px-3 flex items-center gap-2 shrink-0 rounded-2xl bg-chrome">
         <Button
           variant="ghost"
           size="icon"
@@ -1506,7 +1508,7 @@ const Conversation = memo(function Conversation({
             }}
           >
             <div className="flex flex-col items-center gap-2 text-center">
-              <div className="flex size-12 items-center justify-center clip-corner-lg bg-warning/15 text-warning">
+              <div className="flex size-12 items-center justify-center rounded-2xl bg-warning/15 text-warning">
                 <PhoneOff className="size-6" />
               </div>
               <h2 className="chrome-dialog-title font-mono font-bold lowercase tracking-tight text-foreground">
@@ -1524,7 +1526,7 @@ const Conversation = memo(function Conversation({
               <Button
                 type="button"
                 variant="ghost"
-                className="flex-1 clip-corner-lg"
+                className="flex-1 rounded-2xl"
                 onClick={() => {
                   setCallWarnOpen(false);
                   void startCall(peer);
@@ -1535,7 +1537,7 @@ const Conversation = memo(function Conversation({
               </Button>
               <Button
                 type="button"
-                className="flex-1 clip-corner-lg"
+                className="flex-1 rounded-2xl"
                 onClick={() => {
                   callWarnToComposer.current = true;
                   setCallWarnOpen(false);
@@ -1633,7 +1635,7 @@ function RecipientSuggestion({
       onClick={onSelect}
       data-active={active}
       className={cn(
-        "flex w-full items-center gap-3 clip-corner p-2.5 text-left transition-colors",
+        "flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition-colors",
         active ? "bg-secondary" : "hover:bg-secondary/60",
       )}
     >
@@ -1710,7 +1712,7 @@ function RecipientChip({ pubkey, onRemove }: { pubkey: string; onRemove: () => v
         type="button"
         onClick={onRemove}
         aria-label={intl.formatMessage({ id: "dmsPage.recipient.remove", defaultMessage: "Remove {name}" }, { name })}
-        className="shrink-0 clip-corner text-muted-foreground hover:text-foreground"
+        className="shrink-0 rounded-xl text-muted-foreground hover:text-foreground"
       >
         <X className="size-3.5" />
       </button>
@@ -1805,7 +1807,7 @@ function NewDMPane({
 
   return (
     <div className="flex h-full min-h-0 flex-col safe-area-top">
-      <header className="h-12 touch:h-[3.25rem] mx-gutter mt-1 sidebar:mt-3 px-2 sidebar:px-3 flex items-center gap-2 shrink-0 clip-corner-lg bg-chrome">
+      <header className="h-12 touch:h-[3.25rem] mx-gutter mt-1 sidebar:mt-3 px-2 sidebar:px-3 flex items-center gap-2 shrink-0 rounded-2xl bg-chrome">
         <Button
           variant="ghost"
           size="icon"
@@ -1830,7 +1832,7 @@ function NewDMPane({
         {group && (
           <Button
             size="sm"
-            className="shrink-0 clip-corner-lg"
+            className="shrink-0 rounded-2xl"
             disabled={!canStart}
             onClick={() => onSelectRecipients(groupPeers)}
           >
@@ -1884,7 +1886,7 @@ function NewDMPane({
           <button
             type="button"
             onClick={() => setGroup(true)}
-            className="flex w-full items-center gap-3 clip-corner p-2.5 text-left transition-colors hover:bg-secondary/60"
+            className="flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition-colors hover:bg-secondary/60"
           >
             <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary">
               <Users className="size-4" aria-hidden />
@@ -2081,7 +2083,7 @@ function RequestsEntryRow({ count, onClick }: { count: number; onClick: () => vo
       type="button"
       onClick={onClick}
       // Phones: 4px up, keeping pace with the rail's tighter mobile spacing.
-      className="flex items-center gap-3 w-full px-2 py-2.5 max-sidebar:-mt-1 clip-corner text-left transition-colors hover:bg-secondary/60"
+      className="flex items-center gap-3 w-full px-2 py-2.5 max-sidebar:-mt-1 rounded-xl text-left transition-colors hover:bg-secondary/60"
     >
       <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
         <Inbox className="size-5" aria-hidden />
@@ -2230,7 +2232,7 @@ export function ConversationList({
   // Back clears the search before leaving the list, but only while the list is
   // on screen; behind an open chat, back is the chat's.
   const isDesktop = useIsDesktop();
-  const listShowing = useListShowing();
+  const listShowing = !activePeer;
   useAndroidBack(() => {
     closeSearch();
     return true;
@@ -2750,45 +2752,8 @@ export function DMsPage() {
   // its `enqueueRoomMessage` key: `dm:<conversationKey>`.
   useActiveRoom(activePeer ? `dm:${activePeer}` : undefined);
 
-  // The last thread opened, which Android back from the list returns to; unlike
-  // `renderedPeer` it outlives the slid-out thread's unmount.
-  const [returnPeer, setReturnPeer] = useState(activePeer);
-  if (activePeer && returnPeer !== activePeer) setReturnPeer(activePeer);
-
-  // Lags `activePeer` so the thread stays mounted while sliding out on mobile.
-  // Under the revealed mobile list it stays on `returnPeer`, so a swipe back
-  // drags in the thread itself rather than the empty state.
-  const swipeLayout = useSwipeLayout();
-  const [renderedPeer, setRenderedPeer] = useState(activePeer);
-  useEffect(() => {
-    if (activePeer) {
-      setRenderedPeer(activePeer);
-      return;
-    }
-    if (swipeLayout && !composing) {
-      setRenderedPeer(returnPeer);
-      return;
-    }
-    // Drop the slid-out thread at IDLE (bounded by a timeout): its unmount is a
-    // big synchronous commit that would stutter the end of the settle transition.
-    let idleId: number | undefined;
-    const timer = setTimeout(() => {
-      if (typeof requestIdleCallback === "function") {
-        idleId = requestIdleCallback(() => setRenderedPeer(undefined), { timeout: 1000 });
-      } else {
-        setRenderedPeer(undefined);
-      }
-    }, 300);
-    return () => {
-      clearTimeout(timer);
-      if (idleId !== undefined) cancelIdleCallback(idleId);
-    };
-  }, [activePeer, swipeLayout, composing, returnPeer]);
-
-  // Composing takes over the thread column; drop any lingering thread.
-  useEffect(() => {
-    if (composing) setRenderedPeer(undefined);
-  }, [composing]);
+  const isDesktop = useIsDesktop();
+  const renderedPeer = composing ? undefined : activePeer;
 
   // Merge kind-4 and NIP-17 rows per conversation (newest wins), then split by
   // `isKnown` into inbox and requests. Index-only hints enter the inbox only
@@ -2917,12 +2882,10 @@ export function DMsPage() {
   const dismissRequests = useCallback(() => {
     closeManyDms(visibleRequestRows.map((row) => ({ peer: row.conversation, latest: dmListRowLatestMarker(row) })));
     const dismissed = (peer: string | undefined) => !!peer && visibleRequestRows.some((row) => row.conversation === peer);
-    if (dismissed(returnPeer)) setReturnPeer(undefined);
     if (dismissed(activePeer)) {
-      setRenderedPeer(undefined);
       navigate("/dm");
     }
-  }, [closeManyDms, visibleRequestRows, activePeer, returnPeer, navigate]);
+  }, [closeManyDms, visibleRequestRows, activePeer, navigate]);
 
   // Opening a request switches the list INTO the request view (never out of it mid-thread).
   useEffect(() => {
@@ -3036,8 +2999,6 @@ export function DMsPage() {
   const openPeer = useCallback(
     (conversation: string) => {
       setComposing(false);
-      // Mount synchronously so the empty state doesn't flash between compose and thread.
-      setRenderedPeer(conversation);
       navigate(chatRoute({ kind: "dm", peer: dmRouteParam(conversation) }));
     },
     [navigate],
@@ -3067,13 +3028,11 @@ export function DMsPage() {
   const closePeer = useCallback(
     (conversation: string, latest: DmLatestMarker | undefined) => {
       closeDm(conversation, latest);
-      if (returnPeer === conversation) setReturnPeer(undefined);
       if (activePeer === conversation) {
-        setRenderedPeer(undefined);
         navigate("/dm");
       }
     },
-    [closeDm, activePeer, returnPeer, navigate],
+    [closeDm, activePeer, navigate],
   );
 
   // Mark conversations read where the peer sent the latest (both planes; stamps are monotonic).
@@ -3099,6 +3058,20 @@ export function DMsPage() {
     setComposing(false);
     stableNavigate("/dm");
   }, [stableNavigate]);
+
+  // Mobile hardware Back: return from thread/compose to list, or leave app from root inbox.
+  useAndroidBack(() => {
+    if (activePeer || composing) {
+      revealList();
+      return true;
+    }
+    if (listView === "inbox") {
+      leaveApp();
+      return true;
+    }
+    return false;
+  }, !isDesktop);
+
   const renderedPeers = useMemo(
     () => (renderedPeer ? dmConvPeers(renderedPeer) : []),
     [renderedPeer],
@@ -3106,13 +3079,14 @@ export function DMsPage() {
   const acceptRendered = useCallback(() => {
     if (renderedPeer) acceptConversation(renderedPeer);
   }, [acceptConversation, renderedPeer]);
+  const stableScope = useMemo<AppScope | undefined>(
+    () => (renderedPeer ? { kind: "dm", conversation: renderedPeer } : undefined),
+    [renderedPeer],
+  );
 
   if (!user) {
     return <Navigate to="/" replace />;
   }
-  const returnToThread = () => {
-    if (returnPeer) navigate(chatRoute({ kind: "dm", peer: dmRouteParam(returnPeer) }));
-  };
   const startComposing = () => {
     navigate("/dm");
     setComposing(true);
@@ -3122,71 +3096,75 @@ export function DMsPage() {
   const listRevealed = !activePeer && !composing;
 
   return (
-    <ChatShell
-      scope={renderedPeer ? { kind: "dm", conversation: renderedPeer } : undefined}
-      reveal={{
-        open: listRevealed,
-        onReveal: revealList,
-        onClose: returnToThread,
-        canClose: !!returnPeer,
-        underlay: (
-          <ConversationList
-            rows={displayRows}
-            requestRows={visibleRequestRows}
-            view={listView}
-            onViewChange={setListView}
-            previews={previews}
-            events={events}
-            activePeer={activePeer}
-            dmSupported={dmSupported || dm17Supported}
-            isLoading={showSkeletons}
-            hasUnread={hasUnreadDms}
-            onMarkAllRead={markAllDmsRead}
-            onCompose={startComposing}
-            openPeer={openPeer}
-            startDm={startDm}
-            closePeer={closePeer}
-            dismissRequests={dismissRequests}
-            loadMore={loadMore}
-            hasMore={hasMore}
-            isLoadingMore={isLoadingMore}
-            onOpenWallet={() => navigate("/wallet")}
-            meshPeers={meshCtx?.mesh.peers}
-            meshAvailable={meshCtx?.mesh.available}
-            isOffline={!online}
-            onOpenMeshPeer={() => navigate("/mesh")}
-            // Full width on mobile (Signal style), sidebar width on desktop.
-            className="w-72 xl:w-80 touch:max-sidebar:flex-1"
-          />
-        ),
-      }}
-    >
-      {/* A new-DM recipient picker takes this column in place of the empty state. */}
-        {renderedPeer ? (
-            <Conversation
-              key={renderedPeer}
-              conversation={renderedPeer}
-              peers={renderedPeers}
-              isRequest={requestRows.some((c) => c.conversation === renderedPeer)}
-              onAccept={acceptRendered}
-              onBack={revealList}
-            />
-        ) : composing ? (
-          <NewDMPane onSelectRecipients={openNewRecipients} onCancel={revealList} />
-        ) : (
-          <div className="flex flex-1 items-center justify-center text-muted-foreground p-8 text-center">
-            <div className="flex flex-col items-center gap-3 max-w-sm">
-              <MessageSquare className="size-12 opacity-30" />
-              <p className="text-sm">
-                <FormattedMessage id="dmsPage.selectConversation" defaultMessage="Select a conversation" />
-              </p>
-              <Button className="mt-1 clip-corner-lg" onClick={startComposing}>
-                <PenSquare className="size-4" />
-                <FormattedMessage id="dmsPage.newMessage" defaultMessage="New message" />
-              </Button>
-            </div>
-          </div>
+    <div className="flex flex-1 min-w-0 min-h-0 h-full bg-background">
+      <ConversationList
+        rows={displayRows}
+        requestRows={visibleRequestRows}
+        view={listView}
+        onViewChange={setListView}
+        previews={previews}
+        events={events}
+        activePeer={activePeer}
+        dmSupported={dmSupported || dm17Supported}
+        isLoading={showSkeletons}
+        hasUnread={hasUnreadDms}
+        onMarkAllRead={markAllDmsRead}
+        onCompose={startComposing}
+        openPeer={openPeer}
+        startDm={startDm}
+        closePeer={closePeer}
+        dismissRequests={dismissRequests}
+        loadMore={loadMore}
+        hasMore={hasMore}
+        isLoadingMore={isLoadingMore}
+        onOpenWallet={() => navigate("/wallet")}
+        meshPeers={meshCtx?.mesh.peers}
+        meshAvailable={meshCtx?.mesh.available}
+        isOffline={!online}
+        onOpenMeshPeer={() => navigate("/mesh")}
+        className={cn(
+          "w-full sidebar:w-72 xl:sidebar:w-80 shrink-0 sidebar:border-r sidebar:border-border h-full",
+          !listRevealed && "hidden sidebar:flex",
         )}
-    </ChatShell>
+      />
+      <PaneCoveredContext.Provider value={!isDesktop && listRevealed}>
+        <main
+          className={cn(
+            "flex flex-col flex-1 min-w-0 min-h-0 safe-area-top bg-background h-full",
+            listRevealed && "hidden sidebar:flex",
+          )}
+        >
+          <ChatScopeContext.Provider value={stableScope}>
+            <CustomEmojisProvider>
+              {renderedPeer ? (
+                <Conversation
+                  key={renderedPeer}
+                  conversation={renderedPeer}
+                  peers={renderedPeers}
+                  isRequest={requestRows.some((c) => c.conversation === renderedPeer)}
+                  onAccept={acceptRendered}
+                  onBack={revealList}
+                />
+              ) : composing ? (
+                <NewDMPane onSelectRecipients={openNewRecipients} onCancel={revealList} />
+              ) : (
+                <div className="flex flex-1 items-center justify-center text-muted-foreground p-8 text-center">
+                  <div className="flex flex-col items-center gap-3 max-w-sm">
+                    <MessageSquare className="size-12 opacity-30" />
+                    <p className="text-sm">
+                      <FormattedMessage id="dmsPage.selectConversation" defaultMessage="Select a conversation" />
+                    </p>
+                    <Button className="mt-1 rounded-full" onClick={startComposing}>
+                      <PenSquare className="size-4" />
+                      <FormattedMessage id="dmsPage.newMessage" defaultMessage="New message" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CustomEmojisProvider>
+          </ChatScopeContext.Provider>
+        </main>
+      </PaneCoveredContext.Provider>
+    </div>
   );
 }

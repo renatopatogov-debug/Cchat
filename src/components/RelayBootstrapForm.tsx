@@ -212,7 +212,7 @@ export function RelayBootstrapForm({
         {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
         <Button
           type="button"
-          className="h-11 w-full clip-corner-lg touch:h-12"
+          className="h-11 w-full rounded-2xl touch:h-12"
           onClick={() => void saveExisting()}
           disabled={busy || editedRelays.length === 0}
         >
@@ -234,7 +234,7 @@ export function RelayBootstrapForm({
               <button
                 type="button"
                 aria-label={intl.formatMessage({ id: "relayBootstrapForm.whatIsRelay", defaultMessage: "What is a relay address?" })}
-                className="-m-1.5 flex size-7 items-center justify-center clip-corner-lg p-1.5 text-muted-foreground/60 hover:text-muted-foreground touch:size-11"
+                className="-m-1.5 flex size-7 items-center justify-center rounded-2xl p-1.5 text-muted-foreground/60 hover:text-muted-foreground touch:size-11"
               >
                 <HelpCircle className="size-3.5" />
               </button>
@@ -269,7 +269,7 @@ export function RelayBootstrapForm({
       </div>
 
       {checkedRelay && (
-        <div className="clip-corner-lg bg-secondary/50 p-3 text-xs leading-relaxed text-muted-foreground">
+        <div className="rounded-2xl bg-secondary/50 p-3 text-xs leading-relaxed text-muted-foreground">
           <FormattedMessage
             id="relayBootstrapForm.notFound"
             defaultMessage="We didn't find a saved setup on that relay. You can start fresh here. Armada will remember <b>{relay}</b> as your account's home so your servers and settings follow you to your other devices. Nothing is saved until you confirm."
@@ -284,7 +284,7 @@ export function RelayBootstrapForm({
         <Button
           type="button"
           size="lg"
-          className="h-12 w-full clip-corner-lg text-base font-medium"
+          className="h-12 w-full rounded-2xl text-base font-medium"
           onClick={() => void create([checkedRelay])}
           disabled={busy}
         >
@@ -294,7 +294,7 @@ export function RelayBootstrapForm({
         <Button
           type="button"
           size="lg"
-          className="h-12 w-full clip-corner-lg text-base font-medium"
+          className="h-12 w-full rounded-2xl text-base font-medium"
           onClick={find}
           disabled={busy || !value.trim()}
         >
@@ -311,7 +311,7 @@ export function RelayBootstrapForm({
           <Button
             type="button"
             variant="secondary"
-            className="h-11 w-full clip-corner-lg touch:h-12"
+            className="h-11 w-full rounded-2xl touch:h-12"
             onClick={() => void chooseAppRelays()}
             disabled={busy}
           >

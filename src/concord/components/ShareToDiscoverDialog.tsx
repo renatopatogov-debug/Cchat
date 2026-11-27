@@ -150,7 +150,7 @@ function CommunityOption({
     <button
       type="button"
       onClick={() => onSelect(idHex)}
-      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors clip-corner-lg hover:bg-foreground/10"
+      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors rounded-2xl hover:bg-foreground/10"
     >
       <OptionIcon icon={folded?.metadata?.icon} name={name} />
       <span className="min-w-0 flex-1 truncate font-medium">{name}</span>
@@ -190,7 +190,7 @@ function CommunityPicker({ onSelect }: { onSelect: (idHex: string) => void }) {
         <Megaphone className="size-3.5" />
         <FormattedMessage id="shareToDiscoverDialog.pick" defaultMessage="Pick a community you own or admin" />
       </div>
-      <div className="max-h-64 space-y-0.5 overflow-y-auto p-1 clip-corner-lg bg-secondary">
+      <div className="max-h-64 space-y-0.5 overflow-y-auto p-1 rounded-2xl bg-secondary">
         {!inviteList.isLoading &&
           candidates.map((e) => (
             <CommunityOption
@@ -365,7 +365,7 @@ function ShareForm({ idHex, onDone }: { idHex: string; onDone: () => void }) {
 
   return (
     <div className="w-full space-y-3">
-      <div className="flex items-center gap-3 px-3 py-2.5 clip-corner-lg bg-secondary">
+      <div className="flex items-center gap-3 px-3 py-2.5 rounded-2xl bg-secondary">
         <OptionIcon icon={folded?.metadata?.icon} name={name} className="size-10" />
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium leading-tight">{name}</p>
@@ -417,7 +417,7 @@ function ShareForm({ idHex, onDone }: { idHex: string; onDone: () => void }) {
         // `reusable` is blind until the Invite List loads; sharing early would mint a duplicate.
         disabled={busy || linksLoading || myAnnouncements.isLoading}
         variant={listed ? "secondary" : "default"}
-        className="w-full clip-corner-lg"
+        className="w-full rounded-2xl"
       >
         {busy ? (
           <>
@@ -436,7 +436,7 @@ function ShareForm({ idHex, onDone }: { idHex: string; onDone: () => void }) {
           variant="ghost"
           onClick={handleUnpublish}
           disabled={busy}
-          className="w-full clip-corner-lg text-destructive hover:text-destructive"
+          className="w-full rounded-2xl text-destructive hover:text-destructive"
         >
           <FormattedMessage id="shareToDiscoverDialog.unpublish" defaultMessage="Unpublish from Discover" />
         </Button>

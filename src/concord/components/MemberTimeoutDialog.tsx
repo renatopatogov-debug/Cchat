@@ -45,7 +45,7 @@ export function MemberTimeoutDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <ChromeDialogContent title={intl.formatMessage({ id: "memberTimeoutDialog.title", defaultMessage: "Time out member" })}>
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="flex size-12 items-center justify-center clip-corner-lg bg-primary/15 text-primary">
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
             <Timer className="size-6" />
           </div>
           <h2 className="chrome-dialog-title font-mono font-bold lowercase tracking-tight text-foreground">
@@ -64,7 +64,7 @@ export function MemberTimeoutDialog({
               role="radio"
               aria-checked={secs === l.secs}
               variant={secs === l.secs ? "default" : "secondary"}
-              className="clip-corner-lg touch:h-11"
+              className="rounded-2xl touch:h-11"
               onClick={() => setSecs(l.secs)}
             >
               {intl.formatMessage(l.label)}
@@ -74,12 +74,12 @@ export function MemberTimeoutDialog({
         {error && <p className="mt-3 text-xs text-destructive">{error}</p>}
 
         <div className="mt-5 flex items-center gap-2">
-          <Button type="button" variant="ghost" className="flex-1 clip-corner-lg" onClick={() => onOpenChange(false)}>
+          <Button type="button" variant="ghost" className="flex-1 rounded-2xl" onClick={() => onOpenChange(false)}>
             <FormattedMessage {...common.cancel} />
           </Button>
           <Button
             type="button"
-            className="flex-1 clip-corner-lg"
+            className="flex-1 rounded-2xl"
             disabled={saving}
             onClick={() => {
               setSaving(true);

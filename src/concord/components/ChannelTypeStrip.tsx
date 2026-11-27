@@ -19,7 +19,7 @@ export function ChannelTypeStrip({ value, onChange, disabled, className }: {
     <div
       role="radiogroup"
       aria-label={intl.formatMessage({ id: "newChannelDialog.channelType", defaultMessage: "Channel type" })}
-      className={cn("flex items-center gap-0.5 clip-corner-lg p-1", className)}
+      className={cn("flex items-center gap-0.5 rounded-2xl p-1", className)}
     >
       {CHANNEL_VIEW_OPTIONS.map((option) => {
         const selected = option.view === value;
@@ -33,7 +33,7 @@ export function ChannelTypeStrip({ value, onChange, disabled, className }: {
             disabled={disabled}
             onClick={() => onChange(option.view)}
             className={cn(
-              "flex h-9 flex-1 items-center justify-center gap-1.5 clip-corner-lg text-sm font-medium transition-colors disabled:opacity-50 touch:h-11",
+              "flex h-9 flex-1 items-center justify-center gap-1.5 rounded-2xl text-sm font-medium transition-colors disabled:opacity-50 touch:h-11",
               selected ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground",
             )}
           >

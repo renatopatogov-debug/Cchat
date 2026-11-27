@@ -35,7 +35,7 @@ function PinnedRow({
   const preview = event ? previewText(event.content) : intl.formatMessage({ id: "pinnedMessagesBar.pinnedMessage", defaultMessage: "Pinned message" });
 
   return (
-    <div className="group/pin flex items-start gap-2 min-w-0 clip-corner px-2 py-1.5 hover:bg-secondary/60">
+    <div className="group/pin flex items-start gap-2 min-w-0 rounded-xl px-2 py-1.5 hover:bg-secondary/60">
       <button
         type="button"
         onClick={() => onJump(eventId)}
@@ -123,7 +123,7 @@ function PinnedAddrRow({
   const preview = event ? title || previewText(event.content) : intl.formatMessage({ id: "pinnedMessagesBar.pinnedEvent", defaultMessage: "Pinned event" });
 
   return (
-    <div className="group/pin flex items-start gap-2 min-w-0 clip-corner px-2 py-1.5 hover:bg-secondary/60">
+    <div className="group/pin flex items-start gap-2 min-w-0 rounded-xl px-2 py-1.5 hover:bg-secondary/60">
       <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
         <span className="flex max-w-full items-center gap-1.5">
           <span className="shrink-0 text-3xs font-semibold uppercase tracking-wide text-amber-500/90">
@@ -185,7 +185,7 @@ export function PinnedMessagesBar({
       )}
       aria-hidden={!expanded}
     >
-      <div className="clip-corner-lg bg-chrome px-3 py-2.5">
+      <div className="rounded-2xl bg-chrome px-3 py-2.5">
         <div className="flex items-center justify-between gap-2 mb-1.5">
           <span className="flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-wide text-muted-foreground/80">
             <Pin className="size-3 text-amber-500" />

@@ -94,7 +94,7 @@ export function ScreenShareDiagnosticsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <ChromeDialogContent title={intl.formatMessage({ id: "screenShareDiagnosticsDialog.title", defaultMessage: "Stream details" })} portalContainer={portalContainer}>
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="flex size-12 items-center justify-center clip-corner-lg bg-primary/15 text-primary">
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
             <Activity className="size-6" />
           </div>
           <h2 className="chrome-dialog-title font-mono font-bold lowercase tracking-tight text-foreground">
@@ -120,7 +120,7 @@ export function ScreenShareDiagnosticsDialog({
           </DialogDescription>
         </div>
 
-        <dl className="mt-6 clip-corner-lg bg-background/40 px-3 text-sm">
+        <dl className="mt-6 rounded-2xl bg-background/40 px-3 text-sm">
           <Detail label={intl.formatMessage({ id: "screenShareDiagnosticsDialog.label.direction", defaultMessage: "Direction" })} value={local ? intl.formatMessage({ id: "screenShareDiagnosticsDialog.sending", defaultMessage: "Sending" }) : intl.formatMessage({ id: "screenShareDiagnosticsDialog.receiving", defaultMessage: "Receiving" })} />
           <Detail label={intl.formatMessage({ id: "screenShareDiagnosticsDialog.label.mediaSecurity", defaultMessage: "Media security" })} value={encrypted
             ? intl.formatMessage({ id: "screenShareDiagnosticsDialog.e2ee", defaultMessage: "End-to-end encrypted" })

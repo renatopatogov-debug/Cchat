@@ -223,7 +223,7 @@ const ContextMenuSubTrigger = React.forwardRef<
     <ContextMenuPrimitive.SubTrigger
       ref={ref}
       className={cn(
-        "relative flex cursor-default select-none items-center gap-2 menu-row clip-corner px-2 py-1.5 touch:py-3 text-sm outline-none focus:bg-foreground/[0.08] data-[state=open]:bg-foreground/[0.08]",
+        "relative flex cursor-default select-none items-center gap-2 menu-row rounded-xl px-2 py-1.5 touch:py-3 text-sm outline-none focus:bg-foreground/[0.08] data-[state=open]:bg-foreground/[0.08]",
         inset && "pl-8",
         className
       )}
@@ -311,7 +311,7 @@ const ContextMenuItem = React.forwardRef<
     <ContextMenuPrimitive.Item
       ref={ref}
       className={cn(
-        "relative flex cursor-default select-none items-center gap-2 menu-row clip-corner px-2 py-1.5 touch:py-3 text-sm outline-none focus:bg-foreground/[0.08] data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+        "relative flex cursor-default select-none items-center gap-2 menu-row rounded-xl px-2 py-1.5 touch:py-3 text-sm outline-none focus:bg-foreground/[0.08] data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
         inset && "pl-8",
         className
       )}
@@ -343,7 +343,7 @@ const ContextMenuCheckboxItem = React.forwardRef<
     <ContextMenuPrimitive.CheckboxItem
       ref={ref}
       className={cn(
-        "relative flex cursor-default select-none items-center gap-2 menu-row clip-corner px-2 py-1.5 touch:py-3 text-sm outline-none focus:bg-foreground/[0.08] data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+        "relative flex cursor-default select-none items-center gap-2 menu-row rounded-xl px-2 py-1.5 touch:py-3 text-sm outline-none focus:bg-foreground/[0.08] data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
         className
       )}
       checked={checked}
@@ -382,7 +382,7 @@ const ContextMenuRadioItem = React.forwardRef<
     <ContextMenuPrimitive.RadioItem
       ref={ref}
       className={cn(
-        "relative flex cursor-default select-none items-center gap-2 menu-row clip-corner px-2 py-1.5 touch:py-3 text-sm outline-none focus:bg-foreground/[0.08] data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+        "relative flex cursor-default select-none items-center gap-2 menu-row rounded-xl px-2 py-1.5 touch:py-3 text-sm outline-none focus:bg-foreground/[0.08] data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
         className
       )}
       {...props}

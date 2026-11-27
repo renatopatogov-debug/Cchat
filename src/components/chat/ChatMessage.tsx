@@ -266,7 +266,7 @@ function ThreadBadge({
     <button
       type="button"
       onClick={onClick}
-      className="mt-1 inline-flex max-w-full items-center gap-2 clip-corner bg-primary/[0.07] py-1 pl-1 pr-2.5 touch:py-2 touch:pr-3.5 text-left transition-colors hover:bg-primary/[0.12]"
+      className="mt-1 inline-flex max-w-full items-center gap-2 rounded-xl bg-primary/[0.07] py-1 pl-1 pr-2.5 touch:py-2 touch:pr-3.5 text-left transition-colors hover:bg-primary/[0.12]"
     >
       <span className="flex shrink-0 -space-x-1.5">
         {shown.map((pk) => (

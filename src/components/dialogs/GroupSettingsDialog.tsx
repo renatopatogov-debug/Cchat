@@ -120,7 +120,7 @@ export function GroupSettingsDialog({ relayUrl, group, open, onOpenChange }: Gro
         )}
       >
         <div className="flex flex-col items-center gap-3 text-center">
-          <div className="flex size-12 items-center justify-center clip-corner-lg bg-primary/15 text-primary">
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
             <Hash className="size-6" />
           </div>
           <h2 className="chrome-dialog-title font-mono font-bold lowercase tracking-tight text-foreground truncate max-w-full">
@@ -149,12 +149,12 @@ export function GroupSettingsDialog({ relayUrl, group, open, onOpenChange }: Gro
             {inviteCode ? (
               <div className="flex gap-2">
                 <Input readOnly value={inviteCode} className="font-mono bg-background/40 border-transparent" />
-                <Button variant="outline" size="icon" className="clip-corner-lg shrink-0" aria-label={intl.formatMessage({ id: "groupSettingsDialog.copyInviteCode", defaultMessage: "Copy invite code" })} onClick={copyInvite}>
+                <Button variant="outline" size="icon" className="rounded-2xl shrink-0" aria-label={intl.formatMessage({ id: "groupSettingsDialog.copyInviteCode", defaultMessage: "Copy invite code" })} onClick={copyInvite}>
                   {copied ? <Check className="size-4 text-primary" /> : <Copy className="size-4" />}
                 </Button>
               </div>
             ) : (
-              <Button className="w-full clip-corner-lg" onClick={handleInvite} disabled={createInvite.isPending}>
+              <Button className="w-full rounded-2xl" onClick={handleInvite} disabled={createInvite.isPending}>
                 {createInvite.isPending
                   ? <><Loader2 className="size-4 mr-2 animate-spin" /> <FormattedMessage id="groupSettingsDialog.creating" defaultMessage="Creating…" /></>
                   : <><TicketPlus className="size-4 mr-2" /> <FormattedMessage id="groupSettingsDialog.createInviteCode" defaultMessage="Create invite code" /></>}
@@ -222,10 +222,10 @@ export function GroupSettingsDialog({ relayUrl, group, open, onOpenChange }: Gro
         </div>
 
         <div className="flex gap-2 pt-6">
-          <Button variant="ghost" className="flex-1 clip-corner-lg" onClick={() => onOpenChange(false)}>
+          <Button variant="ghost" className="flex-1 rounded-2xl" onClick={() => onOpenChange(false)}>
             <FormattedMessage {...common.cancel} />
           </Button>
-          <Button className="flex-1 clip-corner-lg" onClick={handleSave} disabled={editMetadata.isPending}>
+          <Button className="flex-1 rounded-2xl" onClick={handleSave} disabled={editMetadata.isPending}>
             {editMetadata.isPending ? (
               <>
                 <Loader2 className="size-4 mr-2 animate-spin" /> <FormattedMessage {...common.saving} />

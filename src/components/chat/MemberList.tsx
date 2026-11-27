@@ -279,7 +279,7 @@ const MemberRow = memo(function MemberRow({
     <>
     <ContextMenu>
     <ContextMenuTrigger className="block">
-    <div className="member-row gutter-tick group flex items-center gap-2.5 pl-3 pr-2 py-2 clip-corner-lg transition-colors hover:bg-accent/50 hover:text-foreground">
+    <div className="member-row gutter-tick group flex items-center gap-2.5 pl-3 pr-2 py-2 rounded-2xl transition-colors hover:bg-accent/50 hover:text-foreground">
       <ProfilePreviewCard pubkey={pubkey}>
         <button type="button" className="relative shrink-0 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={frameStyle}>
           <Avatar shape={getAvatarShape(metadata)} className="size-8 cursor-pointer transition-opacity hover:opacity-90">
@@ -566,7 +566,7 @@ export const MemberList = memo(function MemberList({
     <aside
       className={cn(
         "flex flex-col flex-1 min-w-0 overflow-hidden",
-        "mt-stack mb-2 sidebar:mb-3 mx-gutter sidebar:ml-0 p-1.5 clip-corner-lg bg-chrome",
+        "mt-stack mb-2 sidebar:mb-3 mx-gutter sidebar:ml-0 p-1.5 rounded-2xl bg-chrome",
         className,
       )}
     >
@@ -584,7 +584,7 @@ export const MemberList = memo(function MemberList({
         <button
           type="button"
           onClick={onAddMembers}
-          className="flex w-full shrink-0 items-center gap-2.5 pl-3 pr-2 py-2 mb-1 clip-corner-lg text-left text-sm text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+          className="flex w-full shrink-0 items-center gap-2.5 pl-3 pr-2 py-2 mb-1 rounded-2xl text-left text-sm text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
         >
           <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
             <UserPlus className="size-4" aria-hidden />

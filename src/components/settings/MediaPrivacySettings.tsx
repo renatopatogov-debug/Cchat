@@ -148,7 +148,7 @@ function TrustedHostListEditor({ hosts, onChange }: { hosts: string[]; onChange:
   return (
     <div className="space-y-1.5">
       {hosts.map((host) => (
-        <div key={host} className="flex items-center gap-2 clip-corner bg-background/40 px-3 py-2.5">
+        <div key={host} className="flex items-center gap-2 rounded-xl bg-background/40 px-3 py-2.5">
           <div className="flex-1 min-w-0">
             <HostIdentity host={host} />
           </div>
@@ -181,7 +181,7 @@ function TrustedHostListEditor({ hosts, onChange }: { hosts: string[]; onChange:
           spellCheck={false}
           className="text-base md:text-sm bg-background/40 border-transparent"
         />
-        <Button type="submit" disabled={!draft.trim()} className="clip-corner-lg shrink-0">
+        <Button type="submit" disabled={!draft.trim()} className="rounded-2xl shrink-0">
           <Plus className="size-4 mr-1.5" /> <FormattedMessage {...common.add} />
         </Button>
       </form>
@@ -243,7 +243,7 @@ function MediaProxyListEditor({ proxies, onChange, onReset }: MediaProxyListEdit
   return (
     <div className="space-y-1.5">
       {proxies.map((proxy) => (
-        <div key={proxy} className="flex items-center gap-2 clip-corner bg-background/40 px-3 py-2.5">
+        <div key={proxy} className="flex items-center gap-2 rounded-xl bg-background/40 px-3 py-2.5">
           <div className="flex-1 min-w-0">
             <ProxyIdentity proxy={proxy} />
           </div>
@@ -275,7 +275,7 @@ function MediaProxyListEditor({ proxies, onChange, onReset }: MediaProxyListEdit
           spellCheck={false}
           className="font-mono text-base md:text-sm bg-background/40 border-transparent"
         />
-        <Button type="submit" disabled={!draft.trim()} className="clip-corner-lg shrink-0">
+        <Button type="submit" disabled={!draft.trim()} className="rounded-2xl shrink-0">
           <Plus className="size-4 mr-1.5" /> <FormattedMessage {...common.add} />
         </Button>
       </form>

@@ -291,7 +291,7 @@ export function SlashCommandAutocomplete({
                     data-highlighted={index === selectedIndex || undefined}
                     className={cn(
                       // scroll-mt clears the sticky header when arrowing.
-                      "relative w-full flex items-baseline gap-2 scroll-mt-8 menu-row clip-corner px-2 py-1.5 text-left transition-colors cursor-pointer",
+                      "relative w-full flex items-baseline gap-2 scroll-mt-8 menu-row rounded-xl px-2 py-1.5 text-left transition-colors cursor-pointer",
                       index === selectedIndex ? "bg-foreground/[0.08]" : "hover:bg-foreground/[0.05]",
                     )}
                     {...menuPickHandlers(() => selectRow(row))}

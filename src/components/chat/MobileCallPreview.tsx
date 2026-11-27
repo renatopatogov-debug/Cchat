@@ -349,7 +349,7 @@ export function MobileCallPreview({
       onClickCapture={swallowClick}
       className={cn(
         "fixed z-40 flex flex-col overflow-hidden select-none touch-none",
-        "clip-corner-lg bg-chrome-deep shadow-2xl ring-1 ring-white/10",
+        "rounded-2xl bg-chrome-deep shadow-2xl ring-1 ring-white/10",
         // See FloatingCallStage: `duration-200` would otherwise tween `left`/`top`.
         "transition-none",
         // Invisible until placed, so it never flashes at the origin.

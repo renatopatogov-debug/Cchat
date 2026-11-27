@@ -44,7 +44,7 @@ function PinRow({
   const jumpable = Boolean(onJump);
 
   return (
-    <div className="group/pin flex items-start gap-2 min-w-0 clip-corner px-2 py-1.5 hover:bg-secondary/60">
+    <div className="group/pin flex items-start gap-2 min-w-0 rounded-xl px-2 py-1.5 hover:bg-secondary/60">
       <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
       <button
         type="button"
@@ -179,7 +179,7 @@ export function PinnedBar({
       )}
       aria-hidden={!expanded}
     >
-      <div className="clip-corner-lg bg-chrome px-3 py-2.5">
+      <div className="rounded-2xl bg-chrome px-3 py-2.5">
         <div className="flex items-center justify-between gap-2 mb-1.5">
           <span className="flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-wide text-muted-foreground/80">
             <Pin className="size-3 text-amber-500" />
@@ -202,7 +202,7 @@ export function PinnedBar({
             type="button"
             disabled={isRefreshingEdits}
             onClick={onRefreshEdits}
-            className="mb-1.5 flex w-full items-center gap-2 clip-corner-lg bg-foreground/5 px-2 py-1.5 text-left text-2xs text-muted-foreground disabled:opacity-60"
+            className="mb-1.5 flex w-full items-center gap-2 rounded-2xl bg-foreground/5 px-2 py-1.5 text-left text-2xs text-muted-foreground disabled:opacity-60"
           >
             <Loader2 className={cn("size-3 shrink-0", isRefreshingEdits && "animate-spin")} />
             {isRefreshingEdits ? (

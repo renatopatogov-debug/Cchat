@@ -97,7 +97,7 @@ export function ThemeDiscoverCard({ event, className }: ThemeDiscoverCardProps) 
   return (
     <div
       className={cn(
-        "flex flex-col w-full p-px clip-hairline-lg [--fill:var(--card)] [--fill-hover:var(--card)] overflow-hidden",
+        "flex flex-col w-full p-px rounded-2xl border border-border/70 bg-card/60 [--fill:var(--card)] [--fill-hover:var(--card)] overflow-hidden",
         className,
       )}
       onClick={(e) => e.stopPropagation()}
@@ -120,7 +120,7 @@ export function ThemeDiscoverCard({ event, className }: ThemeDiscoverCardProps) 
         <span className="relative size-6 rounded-full" style={{ backgroundColor: `hsl(${tokens.secondary})` }} />
         <span className="relative flex-1 h-2 rounded-full" style={{ backgroundColor: `hsl(${tokens.muted})` }} />
         <span
-          className="relative clip-corner-lg px-2 py-1 text-xs font-medium"
+          className="relative rounded-2xl px-2 py-1 text-xs font-medium"
           style={{ backgroundColor: `hsl(${tokens.primary})`, color: `hsl(${tokens.primaryForeground})` }}
         >
           Aa
@@ -177,12 +177,12 @@ export function ThemeDiscoverCard({ event, className }: ThemeDiscoverCardProps) 
 
         <div className="mt-auto flex items-center gap-2">
           {isActive ? (
-            <Button variant="secondary" className="flex-1 clip-corner-lg" disabled>
+            <Button variant="secondary" className="flex-1 rounded-2xl" disabled>
               <Check className="size-4" />
               <FormattedMessage id="themeDiscoverCard.applied" defaultMessage="Applied" />
             </Button>
           ) : (
-            <Button className="flex-1 clip-corner-lg" onClick={onTry}>
+            <Button className="flex-1 rounded-2xl" onClick={onTry}>
               <Palette className="size-4" />
               <FormattedMessage id="themeDiscoverCard.tryTheme" defaultMessage="Try this theme" />
             </Button>
@@ -190,7 +190,7 @@ export function ThemeDiscoverCard({ event, className }: ThemeDiscoverCardProps) 
           {isOwn ? (
             <Button
               variant="secondary"
-              className="shrink-0 clip-corner-lg"
+              className="shrink-0 rounded-2xl"
               onClick={() => setEditOpen(true)}
               aria-label={intl.formatMessage({ id: "themeDiscoverCard.editTheme", defaultMessage: "Edit theme" })}
               title={intl.formatMessage({ id: "themeDiscoverCard.editTheme", defaultMessage: "Edit theme" })}
@@ -200,7 +200,7 @@ export function ThemeDiscoverCard({ event, className }: ThemeDiscoverCardProps) 
           ) : user && (
             <Button
               variant="secondary"
-              className="shrink-0 clip-corner-lg"
+              className="shrink-0 rounded-2xl"
               onClick={onSave}
               disabled={saving || saved}
               aria-label={saved ? intl.formatMessage({ id: "themeDiscoverCard.inYourThemes", defaultMessage: "In your themes" }) : intl.formatMessage({ id: "themeDiscoverCard.saveToMyThemes", defaultMessage: "Save to my themes" })}
@@ -218,7 +218,7 @@ export function ThemeDiscoverCard({ event, className }: ThemeDiscoverCardProps) 
           {naddr && (
             <Button
               variant="secondary"
-              className="shrink-0 clip-corner-lg"
+              className="shrink-0 rounded-2xl"
               onClick={copy}
               aria-label={intl.formatMessage({ id: "themeDiscoverCard.copyThemeLink", defaultMessage: "Copy theme link" })}
               title={intl.formatMessage({ id: "themeDiscoverCard.copyThemeLink", defaultMessage: "Copy theme link" })}

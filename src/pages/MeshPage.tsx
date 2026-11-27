@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import {
   Bluetooth,
   BluetoothOff,
@@ -19,14 +19,9 @@ import { MeshMessage } from "@/components/chat/MeshMessage";
 import { MeshMentionAutocomplete } from "@/components/chat/MeshMentionAutocomplete";
 import { MessageTimeline } from "@/components/chat/MessageTimeline";
 import { SlashCommandAutocomplete } from "@/components/chat/SlashCommandAutocomplete";
-import { LoginArea } from "@/components/auth/LoginArea";
-import { ChannelSidebarView } from "@/components/layout/ChannelSidebarView";
-import { PaneResizeHandle } from "@/components/layout/PaneResizeHandle";
-import { ServerRail } from "@/components/layout/ServerRail";
-import { SwipeReveal } from "@/components/layout/SwipeReveal";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useOverlayBack } from "@/hooks/useAndroidBack";
+import { useAndroidBack, useOverlayBack } from "@/hooks/useAndroidBack";
 import { useAppContext } from "@/hooks/useAppContext";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useIsTouch } from "@/hooks/useIsMobile";
@@ -94,11 +89,16 @@ export function MeshPage() {
   const [membersOpen, setMembersOpen] = useState(false);
   // On mobile the roster covers the room, so back closes it before revealing the list.
   const isDesktop = useIsDesktop();
+  const navigate = useNavigate();
   useOverlayBack(() => {
     setMembersOpen(false);
     setMembersVisible(false);
     return true;
   }, membersOpen && view?.type === "broadcast" && !isDesktop);
+  useAndroidBack(() => {
+    setView(null);
+    return true;
+  }, view !== null && !isDesktop);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { insertAtCursor } = useInsertText(textareaRef, draft, setDraft);
 
@@ -234,31 +234,31 @@ export function MeshPage() {
   };
 
   return (
-    <SwipeReveal
-      open={view === null}
-      onReveal={() => setView(null)}
-      onClose={() => setView((v) => v ?? { type: "broadcast" })}
-      underlay={
-        <>
-          <ServerRail onNavigate={() => setView(null)} />
-          <MeshSidebar
-            view={view}
-            available={mesh.available}
-            enabled={mesh.enabled}
-            started={mesh.started}
-            error={mesh.error}
-            peers={mesh.peers}
-            peerCount={mesh.peers.length}
-            onRetry={() => void mesh.start()}
-            onSetEnabled={(enabled) => mesh.setEnabled(enabled)}
-            onOpenBroadcast={() => setView({ type: "broadcast" })}
-            onOpenDM={(peerID) => setView({ type: "dm", peerID })}
-            className="touch:max-sidebar:flex-1"
-          />
-        </>
-      }
-    >
-      <main className="flex flex-col flex-1 min-w-0 safe-area-top bg-background h-full">
+    <div className="flex flex-1 min-w-0 min-h-0 h-full bg-background">
+      <MeshSidebar
+        view={view}
+        available={mesh.available}
+        enabled={mesh.enabled}
+        started={mesh.started}
+        error={mesh.error}
+        peers={mesh.peers}
+        peerCount={mesh.peers.length}
+        onBackHome={() => navigate("/dm")}
+        onRetry={() => void mesh.start()}
+        onSetEnabled={(enabled) => mesh.setEnabled(enabled)}
+        onOpenBroadcast={() => setView({ type: "broadcast" })}
+        onOpenDM={(peerID) => setView({ type: "dm", peerID })}
+        className={cn(
+          "w-full sidebar:w-72 shrink-0 sidebar:border-r sidebar:border-border h-full",
+          view !== null && "hidden sidebar:flex",
+        )}
+      />
+      <main
+        className={cn(
+          "flex flex-col flex-1 min-w-0 min-h-0 safe-area-top bg-background h-full",
+          view === null && "hidden sidebar:flex",
+        )}
+      >
         {!mesh.available ? (
           <UnavailableState />
         ) : !mesh.enabled ? (
@@ -377,11 +377,11 @@ export function MeshPage() {
           </>
         )}
       </main>
-    </SwipeReveal>
+    </div>
   );
 }
 
-/** The mesh "server" sidebar, on the shared {@link ChannelSidebarView}. */
+/** Signal-style Bluetooth Mesh sidebar. */
 function MeshSidebar({
   view,
   available,
@@ -390,6 +390,7 @@ function MeshSidebar({
   error,
   peers,
   peerCount,
+  onBackHome,
   onRetry,
   onSetEnabled,
   onOpenBroadcast,
@@ -403,6 +404,7 @@ function MeshSidebar({
   error: string | null;
   peers: MeshPeer[];
   peerCount: number;
+  onBackHome: () => void;
   onRetry: () => void;
   onSetEnabled: (enabled: boolean) => void;
   onOpenBroadcast: () => void;
@@ -411,89 +413,102 @@ function MeshSidebar({
 }) {
   const intl = useIntl();
   return (
-    <ChannelSidebarView
-      className={className}
-      title={intl.formatMessage({ id: "meshPage.title", defaultMessage: "Mesh" })}
-      addChannelDisabled
-      footer={
-        <div className="px-3 pb-safe shrink-0 space-y-2">
-          {available && (
-            enabled ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full clip-corner-lg justify-start text-muted-foreground hover:text-destructive"
-                onClick={() => onSetEnabled(false)}
-              >
-                <Power className="size-4" />
-                <FormattedMessage id="meshPage.turnOff" defaultMessage="Turn off mesh chat" />
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                className="w-full clip-corner-lg"
-                onClick={() => onSetEnabled(true)}
-              >
-                <Bluetooth className="size-4" />
-                <FormattedMessage {...m.turnOn} />
-              </Button>
-            )
+    <aside className={cn("flex flex-col min-w-0 bg-background", className)}>
+      <header className="px-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] pb-3 border-b border-border flex items-center gap-2 shrink-0">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="rounded-full shrink-0 sidebar:hidden"
+          aria-label={intl.formatMessage(common.back)}
+          onClick={onBackHome}
+        >
+          <ChevronLeft className="size-5" />
+        </Button>
+        <Bluetooth className="size-5 text-primary shrink-0" />
+        <h2 className="text-base font-bold truncate">
+          {intl.formatMessage({ id: "meshPage.title", defaultMessage: "Mesh" })}
+        </h2>
+      </header>
+
+      <div className="flex-1 min-h-0 overflow-y-auto p-2.5 space-y-1">
+        <ChannelRow
+          icon={<Hash className="size-4 shrink-0" />}
+          label={intl.formatMessage(m.nearbyMesh)}
+          active={view?.type === "broadcast"}
+          onClick={onOpenBroadcast}
+          trailing={
+            <span className="flex items-center gap-0.5 text-xs">
+              <Users className="size-3.5" />
+              {peerCount}
+            </span>
+          }
+        />
+
+        {enabled && error && (
+          <div className="px-3 py-2 text-xs text-destructive">
+            {error}{" "}
+            <button className="underline" onClick={onRetry}>
+              <FormattedMessage {...common.retry} />
+            </button>
+          </div>
+        )}
+
+        <h3 className="px-3 pt-3 pb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <NearbyHeading count={peers.length} />
+        </h3>
+        {peers.length === 0 ? (
+          <p className="px-3 py-1 text-xs text-muted-foreground/70">
+            {available
+              ? enabled
+                ? started
+                  ? <FormattedMessage {...m.noDevices} />
+                  : <FormattedMessage {...m.starting} />
+                : (
+                  <FormattedMessage
+                    id="meshPage.offHint"
+                    defaultMessage="Mesh chat is off. Turn it on to find nearby devices."
+                  />
+                )
+              : <FormattedMessage {...m.androidOnly} />}
+          </p>
+        ) : (
+          peers.map((peer) => (
+            <MemberRow
+              key={peer.peerID}
+              peer={peer}
+              active={view?.type === "dm" && view.peerID === peer.peerID}
+              onClick={() => onOpenDM(peer.peerID)}
+            />
+          ))
+        )}
+      </div>
+
+      {available && (
+        <div className="p-3 border-t border-border pb-safe shrink-0">
+          {enabled ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full rounded-xl justify-start text-muted-foreground hover:text-destructive"
+              onClick={() => onSetEnabled(false)}
+            >
+              <Power className="size-4" />
+              <FormattedMessage id="meshPage.turnOff" defaultMessage="Turn off mesh chat" />
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              className="w-full rounded-xl"
+              onClick={() => onSetEnabled(true)}
+            >
+              <Bluetooth className="size-4" />
+              <FormattedMessage {...m.turnOn} />
+            </Button>
           )}
-          <LoginArea className="w-full flex" />
-        </div>
-      }
-    >
-      <ChannelRow
-        icon={<Hash className="size-4 shrink-0" />}
-        label={intl.formatMessage(m.nearbyMesh)}
-        active={view?.type === "broadcast"}
-        onClick={onOpenBroadcast}
-        trailing={
-          <span className="flex items-center gap-0.5 text-xs">
-            <Users className="size-3.5" />
-            {peerCount}
-          </span>
-        }
-      />
-
-      {enabled && error && (
-        <div className="px-4 py-2 text-xs text-destructive">
-          {error}{" "}
-          <button className="underline" onClick={onRetry}>
-            <FormattedMessage {...common.retry} />
-          </button>
         </div>
       )}
-
-      <h3 className="px-4 pt-3 pb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        <NearbyHeading count={peers.length} />
-      </h3>
-      {peers.length === 0 ? (
-        <p className="px-4 py-1 text-xs text-muted-foreground/70">
-          {available
-            ? enabled
-              ? started
-                ? <FormattedMessage {...m.noDevices} />
-                : <FormattedMessage {...m.starting} />
-              : (
-                <FormattedMessage
-                  id="meshPage.offHint"
-                  defaultMessage="Mesh chat is off. Turn it on to find nearby devices."
-                />
-              )
-            : <FormattedMessage {...m.androidOnly} />}
-        </p>
-      ) : (
-        peers.map((peer) => (
-          <MemberRow
-            key={peer.peerID}
-            peer={peer}
-            active={view?.type === "dm" && view.peerID === peer.peerID}
-            onClick={() => onOpenDM(peer.peerID)}
-          />
-        ))
-      )}
-    </ChannelSidebarView>
+    </aside>
   );
 }
 
@@ -516,8 +531,8 @@ function ChannelRow({
       onClick={onClick}
       className={cn(
         "w-full flex items-center gap-2 px-2 py-1.5 text-sm transition-colors text-left",
-        !active && "text-muted-foreground hover:text-foreground hover:bg-foreground/5 clip-corner-lg",
-        active && "clip-corner-lg bg-primary text-primary-foreground font-medium",
+        !active && "text-muted-foreground hover:text-foreground hover:bg-foreground/5 rounded-2xl",
+        active && "rounded-2xl bg-primary text-primary-foreground font-medium",
       )}
     >
       {icon}
@@ -543,8 +558,8 @@ function MemberRow({
       onClick={onClick}
       className={cn(
         "w-full flex items-center gap-2 px-2 py-1.5 text-sm transition-colors text-left",
-        !active && "text-muted-foreground hover:text-foreground hover:bg-foreground/5 clip-corner-lg",
-        active && "clip-corner-lg bg-primary text-primary-foreground font-medium",
+        !active && "text-muted-foreground hover:text-foreground hover:bg-foreground/5 rounded-2xl",
+        active && "rounded-2xl bg-primary text-primary-foreground font-medium",
       )}
     >
       <span
@@ -591,7 +606,7 @@ function ChatHeader({
   const membersShown = membersVisible || membersOpen;
 
   return (
-    <header className="relative h-12 mx-gutter mt-1 sidebar:mt-3 px-2 sidebar:px-3 flex items-center gap-2 shrink-0 clip-corner-lg bg-chrome">
+    <header className="relative h-12 mx-gutter mt-1 sidebar:mt-3 px-2 sidebar:px-3 flex items-center gap-2 shrink-0 rounded-2xl bg-chrome">
       <Button
         variant="ghost"
         size="icon"
@@ -722,8 +737,7 @@ function MeshMemberPanel({
         )}
       >
         <div aria-hidden className="absolute inset-0 -z-10 bg-background sidebar:hidden" />
-        {visible && <PaneResizeHandle pane="member" />}
-        <aside className="flex flex-col h-full w-full sidebar:w-[var(--member-list-w,16.5rem)] mx-gutter mt-3 mb-2 clip-corner-lg bg-chrome overflow-hidden">
+        <aside className="flex flex-col h-full w-full sidebar:w-[var(--member-list-w,16.5rem)] mx-gutter mt-3 mb-2 rounded-2xl bg-chrome overflow-hidden">
           <div className="flex items-center justify-between px-4 h-12 shrink-0 sidebar:hidden">
             <span className="text-sm font-semibold">
               <FormattedMessage id="meshPage.nearby" defaultMessage="Nearby" />
@@ -825,7 +839,7 @@ function DisabledState({ onEnable }: { onEnable: () => void }) {
             defaultMessage="Chat with nearby Armada and bitchat devices over Bluetooth, without the internet. Turning it on asks for Bluetooth permission and keeps a background connection (with a persistent notification) while active."
           />
         </p>
-        <Button className="mt-2 clip-corner-lg" onClick={onEnable}>
+        <Button className="mt-2 rounded-2xl" onClick={onEnable}>
           <Bluetooth className="size-4" />
           <FormattedMessage {...m.turnOn} />
         </Button>

@@ -352,7 +352,7 @@ function RecordCallDialog({
         className="sm:max-w-lg"
       >
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="flex size-12 items-center justify-center clip-corner-lg bg-destructive/15 text-destructive">
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-destructive/15 text-destructive">
             <Disc className="size-6" />
           </div>
           <h2 className="chrome-dialog-title font-mono font-bold lowercase tracking-tight text-foreground">
@@ -507,7 +507,7 @@ function RecordCallDialog({
           )}
         </div>
 
-        <div className="mt-6 flex items-center gap-2 [&>*]:flex-1 [&>*]:clip-corner-lg">
+        <div className="mt-6 flex items-center gap-2 [&>*]:flex-1 [&>*]:rounded-2xl">
           {status === "recording" || status === "saving" ? (
             <Button type="button" variant="secondary" disabled={status === "saving"} onClick={onStop}>
               {status === "saving" ? <Loader2 className="size-4 animate-spin" /> : <Square className="size-4" />}

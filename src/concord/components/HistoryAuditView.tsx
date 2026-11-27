@@ -117,13 +117,13 @@ export function HistoryAuditView({ community, onClose }: HistoryAuditViewProps) 
         </p>
 
         {error && (
-          <div className="clip-hairline-lg [--edge:var(--destructive)/0.4] [--fill:var(--destructive)/0.1] [--fill-hover:var(--destructive)/0.1] p-3 text-sm text-destructive">
+          <div className="rounded-2xl border border-border/70 bg-card/60 [--edge:var(--destructive)/0.4] [--fill:var(--destructive)/0.1] [--fill-hover:var(--destructive)/0.1] p-3 text-sm text-destructive">
             {error}
           </div>
         )}
 
         {busy ? (
-          <div className="space-y-3 clip-hairline-lg [--edge:var(--border)/0.5] [--fill:var(--secondary)/0.4] [--fill-hover:var(--secondary)/0.4] p-4">
+          <div className="space-y-3 rounded-2xl border border-border/70 bg-card/60 [--edge:var(--border)/0.5] [--fill:var(--secondary)/0.4] [--fill-hover:var(--secondary)/0.4] p-4">
             <div className="flex items-center gap-2.5 text-sm">
               <Loader2 className="size-4 animate-spin text-primary" />
               <span>
@@ -164,7 +164,7 @@ export function HistoryAuditView({ community, onClose }: HistoryAuditViewProps) 
             )}
 
             <div className="flex gap-2">
-              <Button type="button" className="h-11 flex-1 clip-corner-lg" onClick={() => download(result.model)}>
+              <Button type="button" className="h-11 flex-1 rounded-2xl" onClick={() => download(result.model)}>
                 <FileCode className="size-4" />
                 <FormattedMessage id="historyAuditView.downloadHtml" defaultMessage="Download HTML" />
               </Button>
@@ -172,7 +172,7 @@ export function HistoryAuditView({ community, onClose }: HistoryAuditViewProps) 
                 <Button
                   type="button"
                   variant="secondary"
-                  className="h-11 clip-corner-lg"
+                  className="h-11 rounded-2xl"
                   onClick={startRun}
                 >
                   <FormattedMessage id="historyAuditView.runAgain" defaultMessage="Run again" />
@@ -200,7 +200,7 @@ export function HistoryAuditView({ community, onClose }: HistoryAuditViewProps) 
                     type="button"
                     size="sm"
                     variant={rangeHours === r.hours ? "default" : "secondary"}
-                    className="clip-corner-lg"
+                    className="rounded-2xl"
                     onClick={() => setRangeHours(r.hours)}
                   >
                     <FormattedMessage {...r.label} />
@@ -226,7 +226,7 @@ export function HistoryAuditView({ community, onClose }: HistoryAuditViewProps) 
                   <ChevronDown className={cn("size-3.5 transition-transform", channelsOpen && "rotate-180")} />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
-                  <div className="mt-2 max-h-52 space-y-0.5 overflow-y-auto clip-hairline-lg [--edge:var(--border)/0.5] [--fill:var(--secondary)/0.3] [--fill-hover:var(--secondary)/0.3] p-2">
+                  <div className="mt-2 max-h-52 space-y-0.5 overflow-y-auto rounded-2xl border border-border/70 bg-card/60 [--edge:var(--border)/0.5] [--fill:var(--secondary)/0.3] [--fill-hover:var(--secondary)/0.3] p-2">
                     {channels.map((c) => (
                       <label
                         key={c.idHex}
@@ -250,14 +250,14 @@ export function HistoryAuditView({ community, onClose }: HistoryAuditViewProps) 
         )}
 
         {busy ? (
-          <Button type="button" size="lg" variant="secondary" className="h-12 w-full clip-corner-lg" onClick={cancel}>
+          <Button type="button" size="lg" variant="secondary" className="h-12 w-full rounded-2xl" onClick={cancel}>
             <FormattedMessage {...common.cancel} />
           </Button>
         ) : !result ? (
           <Button
             type="button"
             size="lg"
-            className="h-12 w-full clip-corner-lg text-base"
+            className="h-12 w-full rounded-2xl text-base"
             disabled={!canRun || noneSelected}
             onClick={startRun}
           >

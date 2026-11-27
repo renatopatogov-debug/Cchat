@@ -116,7 +116,7 @@ export function FileAttachment({ url, mime, name, size, encryption, fallbacks, t
   if (format) {
     return (
       <div
-        className={cn("my-1.5 w-full max-w-md overflow-hidden clip-hairline-lg [--edge:var(--border)/0.5] [--fill:var(--secondary)/0.3] [--fill-hover:var(--secondary)/0.3]", className)}
+        className={cn("my-1.5 w-full max-w-md overflow-hidden rounded-2xl border border-border/70 bg-card/60 [--edge:var(--border)/0.5] [--fill:var(--secondary)/0.3] [--fill-hover:var(--secondary)/0.3]", className)}
         onClick={(e) => e.stopPropagation()}
       >
         {viewing3d ? (
@@ -138,7 +138,7 @@ export function FileAttachment({ url, mime, name, size, encryption, fallbacks, t
                 { id: "fileAttachment.downloadName", defaultMessage: "Download {name}" },
                 { name: displayName },
               )}
-              className="absolute right-3 top-3 z-10 flex size-10 touch:size-11 items-center justify-center clip-corner-lg bg-background/90 text-foreground shadow-sm backdrop-blur transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+              className="absolute right-3 top-3 z-10 flex size-10 touch:size-11 items-center justify-center rounded-2xl bg-background/90 text-foreground shadow-sm backdrop-blur transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
             >
               {status === "loading" ? <Loader2 className="size-5 animate-spin" /> : <Download className="size-5" />}
             </button>
@@ -159,7 +159,7 @@ export function FileAttachment({ url, mime, name, size, encryption, fallbacks, t
               <ModelPlaceholder />
             )}
             <span className="absolute inset-x-0 bottom-0 flex justify-center p-4">
-              <span className="inline-flex items-center gap-2 clip-corner-lg bg-background/90 px-4 py-2 text-sm font-medium shadow-sm backdrop-blur transition-colors hover:bg-background">
+              <span className="inline-flex items-center gap-2 rounded-2xl bg-background/90 px-4 py-2 text-sm font-medium shadow-sm backdrop-blur transition-colors hover:bg-background">
                 <Rotate3d className="size-4" />
                 <FormattedMessage id="fileAttachment.view3d" defaultMessage="View in 3D" />
                 {size ? <span className="text-muted-foreground tabular-nums">· {formatBytes(size)}</span> : null}
@@ -179,11 +179,11 @@ export function FileAttachment({ url, mime, name, size, encryption, fallbacks, t
         void download();
       }}
       className={cn(
-        "group my-1.5 flex w-full items-center gap-3 max-w-sm clip-hairline-lg [--edge:var(--border)/0.5] [--fill:var(--secondary)/0.3] [--fill-hover:var(--secondary)/0.5] px-3 py-2.5 text-left",
+        "group my-1.5 flex w-full items-center gap-3 max-w-sm rounded-2xl border border-border/70 bg-card/60 [--edge:var(--border)/0.5] [--fill:var(--secondary)/0.3] [--fill-hover:var(--secondary)/0.5] px-3 py-2.5 text-left",
         className,
       )}
     >
-      <span className="size-10 shrink-0 clip-corner-lg bg-primary/10 text-primary flex items-center justify-center">
+      <span className="size-10 shrink-0 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
         <Icon className="size-5" />
       </span>
       <span className="min-w-0 flex-1">

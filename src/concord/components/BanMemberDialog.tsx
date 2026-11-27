@@ -122,7 +122,7 @@ export function BanMemberDialog({ targets, ineligible, willRotate, onClose, onCo
         }}
       >
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="flex size-12 items-center justify-center clip-corner-lg bg-destructive/15 text-destructive">
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-destructive/15 text-destructive">
             <Ban className="size-6" />
           </div>
           <h2 className="chrome-dialog-title font-mono font-bold lowercase tracking-tight text-foreground">
@@ -197,13 +197,13 @@ export function BanMemberDialog({ targets, ineligible, willRotate, onClose, onCo
           <Button
             type="button"
             variant="ghost"
-            className="flex-1 clip-corner-lg"
+            className="flex-1 rounded-2xl"
             onClick={close}
             disabled={busy && !stuck}
           >
             {busy && stuck ? <FormattedMessage {...common.close} /> : <FormattedMessage {...common.cancel} />}
           </Button>
-          <Button type="button" variant="destructive" className="flex-1 clip-corner-lg" onClick={run} disabled={busy}>
+          <Button type="button" variant="destructive" className="flex-1 rounded-2xl" onClick={run} disabled={busy}>
             {busy ? <Loader2 className="size-4 animate-spin" /> : <Ban className="size-4" />}
             {busy
               ? <FormattedMessage id="banMemberDialog.banning" defaultMessage="Banning" />

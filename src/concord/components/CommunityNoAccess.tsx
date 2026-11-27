@@ -55,7 +55,7 @@ export function CommunityNoAccess({ communityId }: { communityId: string }) {
             <button
               key={user.id}
               onClick={() => switchTo(user.id)}
-              className="flex items-center gap-2 clip-corner-lg p-2 text-left hover:bg-accent touch:min-h-11"
+              className="flex items-center gap-2 rounded-2xl p-2 text-left hover:bg-accent touch:min-h-11"
             >
               <Avatar shape={getAvatarShape(user.metadata)} className="size-8 shrink-0">
                 <AvatarImage src={user.metadata.picture} imeta={user.imeta?.picture} alt={displayName(user.metadata)} />

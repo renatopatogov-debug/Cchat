@@ -530,7 +530,7 @@ function LegacyRolesBody({ community }: { community: Community }) {
           <Button
             type="button"
             variant="destructive"
-            className="flex-1 clip-corner-lg"
+            className="flex-1 rounded-2xl"
             onClick={() => void revokeRole(confirmRevoke)}
             disabled={busy}
           >
@@ -733,7 +733,7 @@ function LegacyRolesBody({ community }: { community: Community }) {
       <Button
         type="button"
         variant="secondary"
-        className="w-full clip-corner-lg"
+        className="w-full rounded-2xl"
         disabled={!folded || busy || roles.length >= MAX_ROLES_PER_COMMUNITY}
         onClick={() => {
           setError(null);
@@ -1006,7 +1006,7 @@ export function RoleEditor({
         <Button type="button" variant="ghost" className="flex-1" onClick={onCancel} disabled={saving}>
           <FormattedMessage {...common.cancel} />
         </Button>
-        <Button type="submit" className={cn("flex-1 clip-corner-lg")} disabled={saving}>
+        <Button type="submit" className={cn("flex-1 rounded-2xl")} disabled={saving}>
           {saving ? (
             <>
               <Loader2 className="size-4 mr-2 animate-spin" />{" "}

@@ -163,7 +163,7 @@ export function CommunityDiscoverDialog({
               ) : (
                 <div className="space-y-1.5">
                   <Button
-                    className={cn("h-11 w-full clip-corner-lg text-base font-bold text-white shadow-lg shadow-[#ff73fa]/25 hover:opacity-90", BOOST_GRADIENT)}
+                    className={cn("h-11 w-full rounded-2xl text-base font-bold text-white shadow-lg shadow-[#ff73fa]/25 hover:opacity-90", BOOST_GRADIENT)}
                     disabled={busy}
                     onClick={() => void onBoost()}
                   >
@@ -200,7 +200,7 @@ export function CommunityDiscoverDialog({
 function CommunityGem({ iconUrl, name }: { iconUrl: string | null; name: string }) {
   return (
     <span className="relative">
-      <span className="flex size-24 items-center justify-center overflow-hidden clip-corner-lg bg-secondary shadow-[0_0_40px_-4px_#ff73fa]">
+      <span className="flex size-24 items-center justify-center overflow-hidden rounded-2xl bg-secondary shadow-[0_0_40px_-4px_#ff73fa]">
         {iconUrl ? (
           <img src={iconUrl} alt="" className="size-full object-cover" />
         ) : (

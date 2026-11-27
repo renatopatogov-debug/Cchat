@@ -1401,7 +1401,7 @@ export function MessageTimeline({
               <button
                 type="button"
                 onClick={jumpToUnread}
-                className="pointer-events-auto inline-flex items-center gap-2 clip-corner-lg bg-primary/90 backdrop-blur px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-lg hover:bg-primary transition-colors"
+                className="pointer-events-auto inline-flex items-center gap-2 rounded-2xl bg-primary/90 backdrop-blur px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-lg hover:bg-primary transition-colors"
               >
                 <ChevronUp className="size-4" />
                 <FormattedMessage id="messageTimeline.jumpToUnread" defaultMessage="Jump to unread" />
@@ -1418,7 +1418,7 @@ export function MessageTimeline({
                 onFocus={holdJumpPill}
                 onBlur={wakeJumpPill}
                 data-idle={jumpPillIdle || undefined}
-                className="pointer-events-auto inline-flex items-center gap-2 clip-corner-lg bg-secondary/90 backdrop-blur px-5 py-2.5 text-sm font-medium text-foreground shadow-lg hover:bg-secondary transition-[color,background-color,opacity] duration-300 data-[idle]:opacity-0 data-[idle]:pointer-events-none"
+                className="pointer-events-auto inline-flex items-center gap-2 rounded-2xl bg-secondary/90 backdrop-blur px-5 py-2.5 text-sm font-medium text-foreground shadow-lg hover:bg-secondary transition-[color,background-color,opacity] duration-300 data-[idle]:opacity-0 data-[idle]:pointer-events-none"
                 aria-label={intl.formatMessage({
                   id: "messageTimeline.jumpToLatest",
                   defaultMessage: "Jump to the latest messages",

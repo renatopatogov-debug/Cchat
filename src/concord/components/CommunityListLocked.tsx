@@ -28,7 +28,7 @@ export function CommunityListLocked() {
           variant="secondary"
           size="icon"
           aria-label={intl.formatMessage({ id: "communityListLocked.title", defaultMessage: "Your communities couldn't be decrypted" })}
-          className="size-12 shrink-0 clip-corner-lg text-destructive"
+          className="size-12 shrink-0 rounded-2xl text-destructive"
         >
           <KeyRound className="size-5" />
         </Button>

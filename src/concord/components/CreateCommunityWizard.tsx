@@ -1,8 +1,7 @@
-import { ImagePlus, Loader2, Pencil, Plus, ShieldCheck, X } from "lucide-react";
+import { ImagePlus, Loader2, Pencil, Plus, ShieldCheck, Users, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { ArmadaCrest } from "@/components/brand/ArmadaCrest";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
 import { RelayListEditor } from "@/components/RelayListEditor";
@@ -197,7 +196,9 @@ export function CreateCommunityWizard({ onClose }: { onClose: () => void }) {
     >
       {step === "name" && (
         <div className="flex flex-col items-center gap-8 text-center">
-          <ArmadaCrest size={84} />
+          <div className="size-16 rounded-2xl bg-primary/15 text-primary flex items-center justify-center">
+            <Users className="size-8" />
+          </div>
 
           <StepHeading
             title={intl.formatMessage({ id: "createCommunityWizard.name.title", defaultMessage: "name your community" })}
@@ -237,7 +238,7 @@ export function CreateCommunityWizard({ onClose }: { onClose: () => void }) {
               size="lg"
               onClick={() => setStep("look")}
               disabled={!name.trim() || nameTooLong}
-              className="h-12 w-full clip-corner-lg text-base font-medium"
+              className="h-12 w-full rounded-2xl text-base font-medium"
             >
               <FormattedMessage {...common.continue} />
             </Button>
@@ -309,7 +310,7 @@ export function CreateCommunityWizard({ onClose }: { onClose: () => void }) {
             size="lg"
             onClick={() => setStep("relays")}
             disabled={uploading !== null || descriptionTooLong}
-            className="h-12 w-full clip-corner-lg text-base font-medium"
+            className="h-12 w-full rounded-2xl text-base font-medium"
           >
             {uploading ? (
               <>
@@ -368,7 +369,7 @@ export function CreateCommunityWizard({ onClose }: { onClose: () => void }) {
             size="lg"
             onClick={() => setStep("rules")}
             disabled={effectiveRelays.length === 0}
-            className="h-12 w-full clip-corner-lg text-base font-medium"
+            className="h-12 w-full rounded-2xl text-base font-medium"
           >
             <FormattedMessage {...common.continue} />
           </Button>
@@ -409,7 +410,7 @@ export function CreateCommunityWizard({ onClose }: { onClose: () => void }) {
             size="lg"
             onClick={handleCreate}
             disabled={isCreating || effectiveRelays.length === 0}
-            className="h-12 w-full clip-corner-lg text-base font-medium"
+            className="h-12 w-full rounded-2xl text-base font-medium"
           >
             {isCreating ? (
               <>
@@ -532,7 +533,7 @@ function VoiceServerListEditor({
             autoComplete="off"
             className="bg-background/40 border-transparent text-base md:text-sm"
           />
-          <Button type="submit" disabled={!draft.trim()} className="clip-corner-lg shrink-0">
+          <Button type="submit" disabled={!draft.trim()} className="rounded-2xl shrink-0">
             <Plus className="size-4 mr-1.5" /> <FormattedMessage {...common.add} />
           </Button>
         </form>
@@ -544,7 +545,7 @@ function VoiceServerListEditor({
 function StepHeading({ title, description }: { title: string; description: string }) {
   return (
     <div className="space-y-2.5 text-center">
-      <h1 className="font-mono text-2xl font-bold lowercase tracking-tight text-foreground">
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">
         {title}
       </h1>
       <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>

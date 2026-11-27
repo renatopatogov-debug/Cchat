@@ -2,12 +2,14 @@ import {
   CheckCheck,
   ChevronLeft,
   Hash,
+  Headphones,
   Loader2,
   Lock,
   LogOut,
   MessageSquareText,
   MoreVertical,
   Pause,
+  Phone,
   Plus,
   RefreshCw,
   Search,
@@ -16,10 +18,12 @@ import {
   Trash2,
   UserPlus,
   Users,
+  Volume2,
 } from "lucide-react";
 import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 
+import { CallStageSlot } from "@/components/chat/CallStageSlot";
 import { ChatComposer } from "@/components/chat/ChatComposer";
 import { ChatMessage } from "@/components/chat/ChatMessage";
 import { ChatSearchBar } from "@/components/chat/ChatSearchBar";
@@ -68,7 +72,7 @@ import { useSendMessage } from "@/concord/hooks/useChannel";
 import { useCommunityManagement, useStrandedRecovery } from "@/concord/hooks/useCommunityActions";
 import { useCommunity, useCommunityList, useIsExcluded } from "@/concord/hooks/useCommunityList";
 import { useCommunityRumors } from "@/concord/hooks/useCommunityRumors";
-import { useConcordUnread } from "@/concord/hooks/useConcordUnread";
+import { useConcordUnread, type ConcordUnread } from "@/concord/hooks/useConcordUnread";
 import { useChannels, useControlFold, useDissolved } from "@/concord/hooks/useControlPlane";
 import { useGuestbook, useRestoreJoin } from "@/concord/hooks/useGuestbook";
 import { useActivePause } from "@/concord/hooks/usePause";
@@ -79,7 +83,9 @@ import { useStaffKeyWatch } from "@/concord/hooks/useRoles";
 import { useRegisterChannelStreamKeys } from "@/concord/hooks/useStreamAuth";
 import { useTransport } from "@/concord/hooks/useTransport";
 import { useTyping, useTypingPublisher } from "@/concord/hooks/useTyping";
+import { resolveVoiceBroker, useVoiceBroker, useVoicePresence } from "@/concord/hooks/useVoice";
 import { useCanPost, useWriterAccess } from "@/concord/hooks/useWriterAccess";
+import { mayConnect } from "@/concord/lib/callGate";
 import { channelDecodeDeadEnd } from "@/concord/lib/channelSync";
 import { communityTimerNotice, messageExpirationOf } from "@/concord/lib/disappearing";
 import { subjectOf } from "@/concord/lib/forum";
@@ -96,6 +102,7 @@ import {
 } from "@/concord/lib/roles";
 import { scheduleExpiredSweep } from "@/concord/lib/rumorStore";
 import type { Channel, Community } from "@/concord/lib/types";
+import { communityAvBrokers } from "@/concord/lib/voice";
 import { sendsIn } from "@/concord/lib/writerKeys";
 import type { AppScope } from "@/contexts/AppsContext";
 import { ChatScopeContext } from "@/contexts/ChatScopeContext";
@@ -104,6 +111,7 @@ import { ComposerBoundsProvider } from "@/contexts/ComposerBoundsContext";
 import { useAndroidBack } from "@/hooks/useAndroidBack";
 import { useAppContext } from "@/hooks/useAppContext";
 import { useAuthor } from "@/hooks/useAuthor";
+import { useCall } from "@/hooks/useCall";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { CustomEmojisProvider } from "@/hooks/useCustomEmojis";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
@@ -124,10 +132,10 @@ import { cn, pickDefaultChannel } from "@/lib/utils";
 import { useSyncTopicState } from "@/sync/useSyncTopic";
 import { activateScope, concordScope } from "@/wire/activation";
 
-const ROUTE_PREFIX = "/cc";
+const ROUTE_PREFIX = "/c";
 const EMPTY_REPLIES: ChatMsg[] = [];
 
-// Lazy-loaded dialogs keep the channel's first-paint import closure minimal.
+// Lazy-loaded dialogs keep the subgroup's first-paint import closure minimal.
 const InviteDialog = lazy(
   lazyWithReload(() =>
     import("@/concord/components/InviteDialog").then((m) => ({ default: m.InviteDialog })),
@@ -164,6 +172,135 @@ function TimerNotice({
       <span className="text-2xs text-muted-foreground/80 text-center">
         {communityTimerNotice(seconds, author === self, name)}
       </span>
+    </div>
+  );
+}
+
+function SubgroupRow({
+  community,
+  channel,
+  isSelected,
+  inThisVoice,
+  unread,
+  canJoinVoice,
+  onOpenChannel,
+  onJoinVoice,
+}: {
+  community: Community | undefined;
+  channel: Channel;
+  isSelected: boolean;
+  inThisVoice: boolean;
+  unread: ConcordUnread | undefined;
+  canJoinVoice: boolean;
+  onOpenChannel: () => void;
+  onJoinVoice: () => void;
+}) {
+  const presence = useVoicePresence(community, channel);
+  const voiceCount = presence.present.length + presence.otherTransport.length;
+  const isVoiceChannel = channel.view === "voice";
+  const occupied = voiceCount > 0 || inThisVoice;
+
+  const handlePrimaryClick = () => {
+    if (isVoiceChannel && canJoinVoice) {
+      onJoinVoice();
+      return;
+    }
+    onOpenChannel();
+  };
+
+  return (
+    <div
+      className={cn(
+        "w-full flex items-center gap-2 rounded-2xl px-2 py-1.5 transition-colors",
+        isSelected
+          ? "bg-primary/15 text-primary font-semibold"
+          : unread
+            ? "bg-card hover:bg-secondary/70 text-foreground font-semibold border border-border/60"
+            : "hover:bg-secondary/60 text-muted-foreground hover:text-foreground",
+      )}
+    >
+      <button
+        type="button"
+        onClick={handlePrimaryClick}
+        className="flex min-w-0 flex-1 items-center gap-3 px-1.5 py-1.5 text-left"
+      >
+        <span
+          className={cn(
+            "size-9 rounded-xl flex items-center justify-center shrink-0",
+            inThisVoice || (isVoiceChannel && occupied)
+              ? "bg-emerald-500/15 text-emerald-500"
+              : isSelected
+                ? "bg-primary/20 text-primary"
+                : "bg-secondary text-muted-foreground",
+          )}
+        >
+          {inThisVoice ? (
+            <Headphones className="size-4" />
+          ) : isVoiceChannel ? (
+            <Volume2 className="size-4" />
+          ) : channel.isPrivate ? (
+            <Lock className="size-4" />
+          ) : (
+            <Hash className="size-4" />
+          )}
+        </span>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className="truncate text-sm">{channel.name}</span>
+            {occupied && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-500 shrink-0">
+                <Headphones className="size-2.5" />
+                {Math.max(voiceCount, inThisVoice ? 1 : 0)}
+              </span>
+            )}
+          </div>
+          <p className="truncate text-xs text-muted-foreground font-normal">
+            {channel.topic ||
+              (isVoiceChannel ? "Canal de chamada de voz • Toque para entrar" : undefined)}
+          </p>
+        </div>
+      </button>
+
+      {isVoiceChannel && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="rounded-full size-8 shrink-0 text-muted-foreground hover:text-foreground"
+          aria-label={`Abrir chat de ${channel.name}`}
+          onClick={onOpenChannel}
+        >
+          <MessageSquareText className="size-4" />
+        </Button>
+      )}
+
+      {!isVoiceChannel && occupied && canJoinVoice && !inThisVoice && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="rounded-full size-8 shrink-0 text-emerald-500 hover:bg-emerald-500/15"
+          aria-label={`Entrar na chamada de ${channel.name}`}
+          onClick={onJoinVoice}
+        >
+          <Phone className="size-4" />
+        </Button>
+      )}
+
+      {unread && (
+        <span
+          className={cn(
+            "shrink-0 mr-1.5 rounded-full flex items-center justify-center",
+            unread.mention
+              ? "min-w-5 h-5 px-1.5 bg-primary text-primary-foreground text-[11px] font-bold"
+              : "size-2.5 bg-primary",
+          )}
+          aria-label="Mensagens não lidas"
+        >
+          {unread.mention ? "@" : null}
+        </span>
+      )}
     </div>
   );
 }
@@ -298,13 +435,13 @@ function CommunityBlockedNotice({ onBack }: { onBack: () => void }) {
         <ShieldAlert className="size-7" />
       </div>
       <div className="space-y-1.5 max-w-sm">
-        <h1 className="text-lg font-bold">Comunidade indisponível</h1>
+        <h1 className="text-lg font-bold">Grupo indisponível</h1>
         <p className="text-sm text-muted-foreground">
-          Esta comunidade está bloqueada e não pode ser aberta neste aplicativo.
+          Este grupo está bloqueado e não pode ser aberto neste aplicativo.
         </p>
       </div>
       <Button type="button" variant="outline" className="rounded-full" onClick={onBack}>
-        Voltar para Comunidades
+        Voltar para Grupos
       </Button>
     </div>
   );
@@ -345,11 +482,7 @@ function CommunityScreenContent({
     return { ...baseCommunity, name: folded.metadata.name || baseCommunity.name };
   }, [baseCommunity, folded]);
 
-  const allChannels = useChannels(baseCommunity);
-  const channels = useMemo(
-    () => allChannels.filter((c) => c.view !== "voice"),
-    [allChannels],
-  );
+  const channels = useChannels(baseCommunity);
 
   // Security, stream auth, and key-rotation watchers (mandatory for Concord E2EE)
   useRegisterChannelStreamKeys(communityId);
@@ -370,7 +503,7 @@ function CommunityScreenContent({
   useRestoreJoin(community);
   const activePause = useActivePause(community);
 
-  // Per-channel unread state
+  // Per-subgroup unread state
   const { byChannel: unreadByChannel, markRead: markChannelRead } = useConcordUnread(
     community,
     channels,
@@ -383,7 +516,7 @@ function CommunityScreenContent({
     }
   }, [unreadByChannel, markChannelRead]);
 
-  // Channel resolution: mobile shows channel list at `/cc/:communityId`; desktop auto-selects default channel
+  // Subgroup resolution: mobile shows subgroup list at `/cc/:communityId`; desktop auto-selects default subgroup
   const channelIdHex =
     routeChannelId ??
     (isDesktop ? config.lastChannelByServer[lastChannelKey] ?? null : null);
@@ -404,7 +537,7 @@ function CommunityScreenContent({
     );
   }, [channels, channelIdHex, folded, isDesktop, config.lastChannelByServer, lastChannelKey]);
 
-  // Persist last visited channel per community
+  // Persist last visited subgroup per group
   useEffect(() => {
     if (!channel?.idHex) return;
     if (config.lastChannelByServer[lastChannelKey] === channel.idHex) return;
@@ -416,6 +549,56 @@ function CommunityScreenContent({
       },
     }));
   }, [channel?.idHex, config.lastChannelByServer, lastChannelKey, updateConfig]);
+
+  // Voice & call channels integration (CORD-07)
+  const { joinConcordCall, activeCall } = useCall();
+  const avBrokers = useMemo(() => communityAvBrokers(folded?.metadata), [folded?.metadata]);
+  const { data: activeBroker } = useVoiceBroker(channel, avBrokers);
+  const inThisVoice = Boolean(
+    activeCall?.concord && channel && activeCall.concord.channel.idHex === channel.idHex,
+  );
+
+  const handleJoinVoice = useCallback(
+    async (ch: Channel, broker: string | null) => {
+      if (!community || !user) return;
+      if (activeCall?.concord?.channel.idHex === ch.idHex) return;
+      if (!mayConnect(folded, ch.idHex, ch.isPrivate, user.pubkey)) {
+        toast({
+          title: t({
+            id: "concordPage.voice.cantConnect",
+            defaultMessage: "You can't connect to this channel",
+          }),
+          variant: "destructive",
+        });
+        return;
+      }
+      let resolved = broker;
+      if (!resolved) {
+        const roomHex = ch.voice.room.pk;
+        resolved = roomHex ? await resolveVoiceBroker(roomHex, avBrokers) : null;
+      }
+      if (!resolved) {
+        toast({
+          title: t({ id: "concordPage.voice.unavailable", defaultMessage: "Voice unavailable" }),
+          description: avBrokers.length > 0
+            ? t({
+                id: "concordPage.voice.communityServersDown",
+                defaultMessage:
+                  "None of this community's voice servers answered. Your own server isn't used here, because a community that sets voice servers uses only those.",
+              })
+            : t({
+                id: "concordPage.voice.noServer",
+                defaultMessage:
+                  "No reachable voice server. Add one to this community under Settings → Network, or set your own under Settings → Voice.",
+              }),
+          variant: "destructive",
+        });
+        return;
+      }
+      joinConcordCall({ community, channel: ch, broker: resolved });
+    },
+    [community, user, activeCall, joinConcordCall, avBrokers, folded],
+  );
 
   // Permissions & write guards
   const ownerHex = folded?.ownerHex ?? community?.owner ?? "";
@@ -464,6 +647,14 @@ function CommunityScreenContent({
   const canWrite = Boolean(
     user && channel && !dissolved && !excluded && !stranded && !timedOut && !communityPaused,
   );
+  const canOfferHeaderCall = Boolean(
+    user &&
+      channel &&
+      !dissolved &&
+      !excluded &&
+      !stranded &&
+      (!folded?.rankedRoster || channel.view === "voice" || inThisVoice),
+  );
 
   const focus = useMemo(
     () => (routeMessageId ? { messageId: routeMessageId } : undefined),
@@ -487,7 +678,7 @@ function CommunityScreenContent({
   const resolveMessageTimer = useCallback(async () => messageTimer, [messageTimer]);
 
   // Complete member list for the Members sheet & @-mentions
-  const channelIds = useMemo(() => allChannels.map((c) => c.idHex), [allChannels]);
+  const channelIds = useMemo(() => channels.map((c) => c.idHex), [channels]);
   const { byChannel: rumorsByChannel } = useCommunityRumors(community?.idHex, channelIds);
   const memberPubkeys = useMemo(() => {
     const obs = observedAuthors(rumorsByChannel, allMessages);
@@ -534,7 +725,7 @@ function CommunityScreenContent({
     transport.hasMore,
   );
 
-  // Mark active channel read when visible
+  // Mark active subgroup read when visible
   const unreadByChannelRef = useRef(unreadByChannel);
   unreadByChannelRef.current = unreadByChannel;
   useEffect(() => {
@@ -672,20 +863,21 @@ function CommunityScreenContent({
   );
   const noAccess = Boolean(!baseCommunity && membershipResolved);
 
-  // Ensure boot gate opens even when no channel timeline is mounted (e.g. mobile channel list)
+  // Ensure boot gate opens even when no subgroup timeline is mounted (e.g. mobile subgroup list)
   useEffect(() => {
     if (channel && (isDesktop || Boolean(routeChannelId))) return;
     const frame = requestAnimationFrame(() => markBootPainted());
     return () => cancelAnimationFrame(frame);
   }, [channel, isDesktop, routeChannelId]);
 
-  // Community actions: Leave, Invite, Members, Create Channel
+  // Group actions: Leave, Invite, Members, Create Subgroup / Voice Call Channel
   const { leave, isLeaving, createChannel, isAddingChannel } = useCommunityManagement(community);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [membersOpen, setMembersOpen] = useState(false);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const [newChannelOpen, setNewChannelOpen] = useState(false);
   const [newChannelName, setNewChannelName] = useState("");
+  const [newChannelKind, setNewChannelKind] = useState<"text" | "voice">("text");
 
   const handleLeave = async () => {
     try {
@@ -705,20 +897,24 @@ function CommunityScreenContent({
     const name = newChannelName.trim().replace(/^#+/, "");
     if (!name) return;
     try {
-      const { channelIdHex: createdId } = await createChannel({ name });
+      const { channelIdHex: createdId } = await createChannel({
+        name,
+        ...(newChannelKind === "voice" ? { view: "voice" } : {}),
+      });
       setNewChannelName("");
+      setNewChannelKind("text");
       setNewChannelOpen(false);
       navigateTo(buildCommunityPath(communityId, createdId));
     } catch (e) {
       toast({
-        title: "Não foi possível criar o canal",
+        title: "Não foi possível criar o subgrupo",
         description: e instanceof Error ? e.message : undefined,
         variant: "destructive",
       });
     }
   };
 
-  // Mobile hardware Back: channel -> channel list -> /communities
+  // Mobile hardware Back: subgroup -> subgroup list -> /communities
   const mobileInChannel = !isDesktop && Boolean(routeChannelId);
   useAndroidBack(() => {
     if (mobileInChannel) {
@@ -746,12 +942,12 @@ function CommunityScreenContent({
     return <CommunityNoAccess communityId={communityId} />;
   }
 
-  const communityLabel = community?.name || `Comunidade ${communityId.slice(0, 8)}`;
+  const groupLabel = community?.name || `Grupo ${communityId.slice(0, 8)}`;
   const hasAnyUnread = Object.keys(unreadByChannel).length > 0;
 
   const channelListPane = (
     <aside
-      aria-label="Canais da comunidade"
+      aria-label="Subgrupos e chamadas"
       className={cn(
         "flex flex-col min-h-0 bg-background sidebar:bg-chrome/40 sidebar:border-r sidebar:border-border",
         "w-full sidebar:w-72 xl:sidebar:w-80 shrink-0",
@@ -764,20 +960,20 @@ function CommunityScreenContent({
           variant="ghost"
           size="icon"
           className="rounded-full size-9 shrink-0"
-          aria-label="Voltar para Comunidades"
+          aria-label="Voltar para Grupos"
           onClick={() => navigateTo("/communities")}
         >
           <ChevronLeft className="size-5" />
         </Button>
 
         <span className="size-9 rounded-xl bg-primary text-primary-foreground font-bold text-xs flex items-center justify-center shrink-0">
-          {communityLabel.slice(0, 2).toUpperCase()}
+          {groupLabel.slice(0, 2).toUpperCase()}
         </span>
 
         <div className="min-w-0 flex-1">
-          <h1 className="text-sm font-bold truncate leading-tight">{communityLabel}</h1>
+          <h1 className="text-sm font-bold truncate leading-tight">{groupLabel}</h1>
           <p className="text-[11px] text-muted-foreground truncate">
-            {memberPubkeys.length > 0 ? `${memberPubkeys.length} membros` : "Criptografada ponta-a-ponta"}
+            {memberPubkeys.length > 0 ? `${memberPubkeys.length} membros` : "Grupo criptografado"}
           </p>
         </div>
 
@@ -786,7 +982,7 @@ function CommunityScreenContent({
           variant="ghost"
           size="icon"
           className="rounded-full size-9 shrink-0"
-          aria-label="Membros da comunidade"
+          aria-label="Membros do grupo"
           onClick={() => setMembersOpen(true)}
         >
           <Users className="size-4" />
@@ -812,7 +1008,7 @@ function CommunityScreenContent({
               variant="ghost"
               size="icon"
               className="rounded-full size-9 shrink-0"
-              aria-label="Mais opções da comunidade"
+              aria-label="Mais opções do grupo"
             >
               <MoreVertical className="size-4" />
             </Button>
@@ -827,7 +1023,7 @@ function CommunityScreenContent({
             {canManageChannels && !dissolved && (
               <DropdownMenuItem onClick={() => setNewChannelOpen(true)}>
                 <Plus className="size-4 mr-2" />
-                Novo canal
+                Novo subgrupo / chamada
               </DropdownMenuItem>
             )}
             {(hasAnyUnread || (canManageChannels && !dissolved)) && <DropdownMenuSeparator />}
@@ -836,7 +1032,7 @@ function CommunityScreenContent({
               onClick={() => setLeaveConfirmOpen(true)}
             >
               <LogOut className="size-4 mr-2" />
-              Sair da comunidade
+              Sair do grupo
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -851,64 +1047,36 @@ function CommunityScreenContent({
           </div>
         ) : channels.length === 0 ? (
           <div className="py-10 px-4 text-center space-y-2">
-            <p className="text-sm font-medium">Nenhum canal de texto disponível</p>
+            <p className="text-sm font-medium">Nenhum subgrupo disponível</p>
             <p className="text-xs text-muted-foreground">
-              Os canais aparecerão aqui assim que a sincronização criptografada terminar.
+              Os subgrupos e canais de chamada aparecerão aqui após a sincronização criptografada.
             </p>
           </div>
         ) : (
           channels.map((c) => {
             const unread = unreadByChannel[c.idHex];
             const isSelected = Boolean(channel?.idHex === c.idHex && (isDesktop || mobileInChannel));
+            const rowInCall = Boolean(activeCall?.concord?.channel.idHex === c.idHex);
+            const rowCanJoinVoice = Boolean(
+              user && !dissolved && !excluded && !stranded && (!folded?.rankedRoster || c.view === "voice"),
+            );
             return (
-              <button
+              <SubgroupRow
                 key={c.idHex}
-                type="button"
-                onClick={() => {
+                community={community}
+                channel={c}
+                isSelected={isSelected}
+                inThisVoice={rowInCall}
+                unread={unread}
+                canJoinVoice={rowCanJoinVoice}
+                onOpenChannel={() => {
                   const to = buildCommunityPath(communityId, c.idHex);
                   navigateTo(to, { replace: isDesktop && Boolean(routeChannelId) });
                 }}
-                className={cn(
-                  "w-full flex items-center gap-3 rounded-2xl px-3.5 py-3 text-left transition-colors",
-                  isSelected
-                    ? "bg-primary/15 text-primary font-semibold"
-                    : unread
-                      ? "bg-card hover:bg-secondary/70 text-foreground font-semibold border border-border/60"
-                      : "hover:bg-secondary/60 text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <span
-                  className={cn(
-                    "size-9 rounded-xl flex items-center justify-center shrink-0",
-                    isSelected ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground",
-                  )}
-                >
-                  {c.isPrivate ? <Lock className="size-4" /> : <Hash className="size-4" />}
-                </span>
-
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="truncate text-sm">{c.name}</span>
-                  </div>
-                  {c.topic && (
-                    <p className="truncate text-xs text-muted-foreground font-normal">{c.topic}</p>
-                  )}
-                </div>
-
-                {unread && (
-                  <span
-                    className={cn(
-                      "shrink-0 rounded-full flex items-center justify-center",
-                      unread.mention
-                        ? "min-w-5 h-5 px-1.5 bg-primary text-primary-foreground text-[11px] font-bold"
-                        : "size-2.5 bg-primary",
-                    )}
-                    aria-label="Mensagens não lidas"
-                  >
-                    {unread.mention ? "@" : null}
-                  </span>
-                )}
-              </button>
+                onJoinVoice={() => {
+                  void handleJoinVoice(c, null);
+                }}
+              />
             );
           })
         )}
@@ -934,14 +1102,29 @@ function CommunityScreenContent({
               variant="ghost"
               size="icon"
               className="rounded-full size-9 shrink-0 sidebar:hidden"
-              aria-label="Voltar aos canais"
+              aria-label="Voltar aos subgrupos"
               onClick={() => navigateTo(buildCommunityPath(communityId))}
             >
               <ChevronLeft className="size-5" />
             </Button>
 
-            <span className="size-8 rounded-xl bg-secondary text-muted-foreground flex items-center justify-center shrink-0">
-              {channel.isPrivate ? <Lock className="size-4" /> : <Hash className="size-4" />}
+            <span
+              className={cn(
+                "size-8 rounded-xl flex items-center justify-center shrink-0",
+                inThisVoice || channel.view === "voice"
+                  ? "bg-emerald-500/15 text-emerald-500"
+                  : "bg-secondary text-muted-foreground",
+              )}
+            >
+              {inThisVoice ? (
+                <Headphones className="size-4" />
+              ) : channel.view === "voice" ? (
+                <Volume2 className="size-4" />
+              ) : channel.isPrivate ? (
+                <Lock className="size-4" />
+              ) : (
+                <Hash className="size-4" />
+              )}
             </span>
 
             <div className="min-w-0 flex-1">
@@ -950,9 +1133,23 @@ function CommunityScreenContent({
                 <SyncStatusIndicator priorityScope={channelScope} />
               </div>
               <p className="text-[11px] text-muted-foreground truncate">
-                {channel.topic || communityLabel}
+                {channel.topic || groupLabel}
               </p>
             </div>
+
+            {canOfferHeaderCall && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                disabled={inThisVoice}
+                className={cn("rounded-full size-9 shrink-0", inThisVoice && "text-emerald-500")}
+                aria-label={inThisVoice ? "Na chamada de voz" : "Entrar na chamada de voz"}
+                onClick={() => void handleJoinVoice(channel, activeBroker ?? null)}
+              >
+                {inThisVoice ? <Headphones className="size-4" /> : <Phone className="size-4" />}
+              </Button>
+            )}
 
             <Button
               type="button"
@@ -1013,7 +1210,7 @@ function CommunityScreenContent({
                   onClick={() => setLeaveConfirmOpen(true)}
                 >
                   <LogOut className="size-4 mr-2" />
-                  Sair da comunidade
+                  Sair do grupo
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -1029,6 +1226,8 @@ function CommunityScreenContent({
               placeholder={`Buscar em #${channel.name}…`}
             />
           </header>
+
+          <CallStageSlot active={inThisVoice} />
 
           {searchOpen && searchQuery.trim().length > 0 ? (
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
@@ -1304,7 +1503,7 @@ function CommunityScreenContent({
                   ? `Mensagem em #${channel.name} (restrito)`
                   : `Mensagem em #${channel.name}`
               }
-              shareLabel={`${communityLabel} #${channel.name}`}
+              shareLabel={`${groupLabel} #${channel.name}`}
               sendOverride={handleSend}
               canSend={composerCanSend}
               onPollSubmit={transport.sendPoll}
@@ -1324,7 +1523,9 @@ function CommunityScreenContent({
         <div className="flex flex-1 flex-col items-center justify-center p-8 text-center text-muted-foreground gap-2">
           <Hash className="size-10 opacity-30" />
           <p className="text-sm font-medium">
-            {gateResolving ? "Sincronizando canais criptografados…" : "Selecione um canal para conversar"}
+            {gateResolving
+              ? "Sincronizando subgrupos criptografados…"
+              : "Selecione um subgrupo ou canal de chamada"}
           </p>
         </div>
       )}
@@ -1368,11 +1569,45 @@ function CommunityScreenContent({
 
               <Dialog open={newChannelOpen} onOpenChange={setNewChannelOpen}>
                 <DialogContent className="max-w-sm rounded-2xl space-y-4">
-                  <DialogTitle className="text-base font-bold">Novo canal</DialogTitle>
+                  <DialogTitle className="text-base font-bold">Novo subgrupo</DialogTitle>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setNewChannelKind("text")}
+                      className={cn(
+                        "flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-medium transition-colors",
+                        newChannelKind === "text"
+                          ? "border-primary bg-primary/15 text-primary"
+                          : "border-border text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      <Hash className="size-4" />
+                      Subgrupo (Texto)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewChannelKind("voice")}
+                      className={cn(
+                        "flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-medium transition-colors",
+                        newChannelKind === "voice"
+                          ? "border-emerald-500 bg-emerald-500/15 text-emerald-500"
+                          : "border-border text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      <Volume2 className="size-4" />
+                      Canal de Chamada
+                    </button>
+                  </div>
+
                   <Input
                     value={newChannelName}
                     onChange={(e) => setNewChannelName(e.target.value)}
-                    placeholder="ex: avisos, vendas, entregas"
+                    placeholder={
+                      newChannelKind === "voice"
+                        ? "ex: chamada-geral, reuniao"
+                        : "ex: avisos, vendas, entregas"
+                    }
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -1395,7 +1630,7 @@ function CommunityScreenContent({
                       disabled={!newChannelName.trim() || isAddingChannel}
                       onClick={() => void handleCreateChannel()}
                     >
-                      {isAddingChannel ? <Loader2 className="size-4 animate-spin" /> : "Criar canal"}
+                      {isAddingChannel ? <Loader2 className="size-4 animate-spin" /> : "Criar"}
                     </Button>
                   </div>
                 </DialogContent>
@@ -1404,9 +1639,9 @@ function CommunityScreenContent({
               <AlertDialog open={leaveConfirmOpen} onOpenChange={setLeaveConfirmOpen}>
                 <AlertDialogContent className="rounded-2xl">
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Sair de {communityLabel}?</AlertDialogTitle>
+                    <AlertDialogTitle>Sair de {groupLabel}?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      A comunidade será removida da sua lista. Para voltar no futuro em comunidades privadas, será necessário um novo convite.
+                      O grupo será removido da sua lista. Para voltar no futuro em grupos privados, será necessário um novo convite.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -1430,7 +1665,8 @@ function CommunityScreenContent({
 }
 
 /**
- * Clean Signal-style Concord E2EE community view (`/cc/:communityId/:channelId?`).
+ * Clean Signal/Telegram-style private encrypted group view (`/cc/:communityId/:channelId?`)
+ * with nested text subgroups and voice/call channels.
  * Checks blocklist before mounting any community sync/stream hooks.
  */
 export function CommunityScreen() {

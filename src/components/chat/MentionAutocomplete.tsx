@@ -289,7 +289,7 @@ function RoleMentionItem({
       data-mention-item
       data-highlighted={isSelected || undefined}
       className={cn(
-        "relative w-full flex items-center gap-3 menu-row clip-corner px-2 py-1.5 text-left transition-colors cursor-pointer",
+        "relative w-full flex items-center gap-3 menu-row rounded-xl px-2 py-1.5 text-left transition-colors cursor-pointer",
         isSelected ? "bg-foreground/[0.08]" : "hover:bg-foreground/[0.05]",
       )}
       {...menuPickHandlers(onSelect)}
@@ -319,7 +319,7 @@ function EveryoneMentionItem({
       data-mention-item
       data-highlighted={isSelected || undefined}
       className={cn(
-        "relative w-full flex items-center gap-3 menu-row clip-corner px-2 py-1.5 text-left transition-colors cursor-pointer",
+        "relative w-full flex items-center gap-3 menu-row rounded-xl px-2 py-1.5 text-left transition-colors cursor-pointer",
         isSelected ? "bg-foreground/[0.08]" : "hover:bg-foreground/[0.05]",
       )}
       {...menuPickHandlers(onSelect)}
@@ -357,7 +357,7 @@ function MentionItem({
       data-mention-item
       data-highlighted={isSelected || undefined}
       className={cn(
-        "relative w-full flex items-center gap-3 menu-row clip-corner px-2 py-1.5 text-left transition-colors cursor-pointer",
+        "relative w-full flex items-center gap-3 menu-row rounded-xl px-2 py-1.5 text-left transition-colors cursor-pointer",
         isSelected ? "bg-foreground/[0.08]" : "hover:bg-foreground/[0.05]",
       )}
       {...menuPickHandlers(onSelect)}

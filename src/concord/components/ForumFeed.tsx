@@ -305,7 +305,7 @@ function PostGroup({
           {eyebrow}
         </div>
       )}
-      <div className="clip-corner-lg bg-card divide-y divide-border/60">{children}</div>
+      <div className="rounded-2xl bg-card divide-y divide-border/60">{children}</div>
     </div>
   );
 }
@@ -397,7 +397,7 @@ export function ForumFeed({
           <div className="mt-0.5 mb-[18px] flex flex-wrap items-center gap-2">
             <PillTabs tabs={sortTabs} value={sort} onChange={onSortChange} className="w-auto" />
             {onNewPost && (
-              <Button size="sm" className="ml-auto clip-corner-lg h-9 gap-1.5 touch:h-11" onClick={onNewPost}>
+              <Button size="sm" className="ml-auto rounded-2xl h-9 gap-1.5 touch:h-11" onClick={onNewPost}>
                 <Plus className="size-4" />
                 <FormattedMessage id="forumFeed.newPost" defaultMessage="New post" />
               </Button>
@@ -405,7 +405,7 @@ export function ForumFeed({
           </div>
 
           {isLoading ? (
-            <div className="clip-corner-lg bg-card divide-y divide-border/60">
+            <div className="rounded-2xl bg-card divide-y divide-border/60">
               {[0, 1, 2, 3].map((i) => (
                 <div key={i} className="flex items-center gap-3 p-3">
                   <Skeleton className="size-8 rounded-full" />
@@ -419,14 +419,14 @@ export function ForumFeed({
             </div>
           ) : empty ? (
             <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
-              <div className="flex size-14 items-center justify-center clip-corner-lg bg-primary/10 text-primary">
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                 {syncing ? <Loader2 className="size-6 animate-spin" /> : <MessageSquareText className="size-6" />}
               </div>
               <p className="font-medium">{syncing
                 ? <FormattedMessage id="forumFeed.catchingUp" defaultMessage="Catching up" />
                 : <FormattedMessage id="forumFeed.empty" defaultMessage="No posts yet" />}</p>
               {onNewPost && !syncing && (
-                <Button className="clip-corner-lg gap-1.5" onClick={onNewPost}>
+                <Button className="rounded-2xl gap-1.5" onClick={onNewPost}>
                   <Plus className="size-4" />
                   <FormattedMessage id="forumFeed.writeFirst" defaultMessage="Write the first post" />
                 </Button>

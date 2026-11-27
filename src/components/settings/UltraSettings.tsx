@@ -133,7 +133,7 @@ export function UltraSettings() {
 
 export function UltraHero({ children }: { children: ReactNode }) {
   return (
-    <div className="relative overflow-hidden clip-corner-lg px-6 py-8 text-center">
+    <div className="relative overflow-hidden rounded-2xl px-6 py-8 text-center">
       <GiftStage />
       <div className="relative space-y-3">{children}</div>
     </div>
@@ -142,7 +142,7 @@ export function UltraHero({ children }: { children: ReactNode }) {
 
 function HeroGem() {
   return (
-    <span className="mx-auto flex size-16 items-center justify-center clip-corner-lg bg-gradient-to-br from-primary to-accent2 text-primary-foreground shadow-lg">
+    <span className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent2 text-primary-foreground shadow-lg">
       <Gem className="size-8" />
     </span>
   );
@@ -151,7 +151,7 @@ function HeroGem() {
 /** One perk: a live mock-up on top, what it is underneath. */
 function FeatureCard({ art, title, body, wide }: { art: ReactNode; title: string; body: string; wide?: boolean }) {
   return (
-    <div className={cn("overflow-hidden clip-corner-lg bg-chrome", wide && "sm:col-span-2")}>
+    <div className={cn("overflow-hidden rounded-2xl bg-chrome", wide && "sm:col-span-2")}>
       <div className="relative flex h-36 items-center justify-center overflow-hidden bg-gradient-to-br from-primary/15 via-transparent to-accent2/15 px-4">
         {art}
       </div>
@@ -293,7 +293,7 @@ export function OptionTile({ active, label, onClick, children }: { active: boole
       aria-label={label}
       onClick={onClick}
       className={cn(
-        "flex min-h-16 min-w-0 flex-col items-center justify-center gap-1.5 clip-corner-lg px-2 py-2.5 text-xs transition-colors",
+        "flex min-h-16 min-w-0 flex-col items-center justify-center gap-1.5 rounded-2xl px-2 py-2.5 text-xs transition-colors",
         active ? "bg-primary/20 text-foreground" : "bg-secondary/60 text-muted-foreground hover:bg-secondary",
       )}
     >

@@ -37,14 +37,14 @@ export function LegacyControlBanner({ communityIdHex, onUpgrade }: { communityId
   return (
     <div
       className={cn(
-        "flex w-full items-center gap-1 text-sm clip-corner-lg",
+        "flex w-full items-center gap-1 text-sm rounded-2xl",
         "bg-warning/15 text-warning font-semibold",
       )}
     >
       <button
         type="button"
         onClick={onUpgrade}
-        className="flex flex-1 min-w-0 items-center gap-2 px-2 py-1.5 touch:py-3 text-left transition-colors hover:bg-warning/10 clip-corner-lg"
+        className="flex flex-1 min-w-0 items-center gap-2 px-2 py-1.5 touch:py-3 text-left transition-colors hover:bg-warning/10 rounded-2xl"
       >
         <ShieldAlert className="size-4 shrink-0" />
         <span className="truncate flex-1 min-w-0">
@@ -55,7 +55,7 @@ export function LegacyControlBanner({ communityIdHex, onUpgrade }: { communityId
         type="button"
         onClick={dismiss}
         aria-label={intl.formatMessage({ id: "legacyControlBanner.dismiss", defaultMessage: "Dismiss" })}
-        className="flex shrink-0 items-center justify-center size-7 touch:size-11 transition-colors hover:bg-warning/10 clip-corner-lg"
+        className="flex shrink-0 items-center justify-center size-7 touch:size-11 transition-colors hover:bg-warning/10 rounded-2xl"
       >
         <X className="size-3.5" />
       </button>

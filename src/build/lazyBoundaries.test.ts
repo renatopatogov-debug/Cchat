@@ -55,7 +55,7 @@ function pathTo(closure: Map<string, string | null>, target: string): string | u
 }
 
 describe("a community channel's first paint", () => {
-  const closure = staticClosure("src/concord/pages/ConcordPage.tsx");
+  const closure = staticClosure("src/pages/CommunityScreen.tsx");
 
   it.each([
     "npm:@scure/btc-signer",
@@ -63,7 +63,6 @@ describe("a community channel's first paint", () => {
     "npm:react-day-picker",
     "src/components/brand/GameOverScreen.tsx",
     "src/concord/components/CommunitySettingsView.tsx",
-    "src/components/projects/ProjectsView.tsx",
   ])("doesn't statically import %s", (target) => {
     expect(pathTo(closure, target)).toBeUndefined();
   });

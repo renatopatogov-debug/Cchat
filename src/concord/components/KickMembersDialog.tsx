@@ -85,7 +85,7 @@ export function KickMembersDialog({ targets, ineligible, onClose, onConfirm }: K
         }}
       >
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="flex size-12 items-center justify-center clip-corner-lg bg-destructive/15 text-destructive">
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-destructive/15 text-destructive">
             <UserMinus className="size-6" />
           </div>
           <h2 className="chrome-dialog-title font-mono font-bold lowercase tracking-tight text-foreground">
@@ -158,10 +158,10 @@ export function KickMembersDialog({ targets, ineligible, onClose, onConfirm }: K
         {error && <p className="mt-4 text-center text-sm text-destructive">{error}</p>}
 
         <div className="mt-6 flex items-center gap-2">
-          <Button type="button" variant="ghost" className="flex-1 clip-corner-lg" onClick={close} disabled={busy}>
+          <Button type="button" variant="ghost" className="flex-1 rounded-2xl" onClick={close} disabled={busy}>
             {failures.length > 0 ? <FormattedMessage {...common.close} /> : <FormattedMessage {...common.cancel} />}
           </Button>
-          <Button type="button" variant="destructive" className="flex-1 clip-corner-lg" onClick={run} disabled={busy}>
+          <Button type="button" variant="destructive" className="flex-1 rounded-2xl" onClick={run} disabled={busy}>
             {busy ? <Loader2 className="size-4 animate-spin" /> : <UserMinus className="size-4" />}
             {busy ? (
               <FormattedMessage id="kickMembersDialog.kicking" defaultMessage="Kicking" />

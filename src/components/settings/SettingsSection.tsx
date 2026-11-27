@@ -30,7 +30,7 @@ const TONE_CLASS: Record<SettingsTone, string> = {
 
 export function SettingsIcon({ icon: Icon, tone = "muted", className }: { icon: LucideIcon; tone?: SettingsTone; className?: string }) {
   return (
-    <span className={cn("flex size-8 shrink-0 items-center justify-center clip-corner", TONE_CLASS[tone], className)}>
+    <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-xl", TONE_CLASS[tone], className)}>
       <Icon className="size-[1.125rem]" />
     </span>
   );
@@ -101,7 +101,7 @@ export function SettingsGroup({ id, title, footer, info, bare, children, classNa
       )}
       <div
         data-settings-body
-        className={bare ? undefined : "bg-chrome clip-corner-lg overflow-hidden [&>*]:border-chrome [&>*:not(:first-child)]:border-t"}
+        className={bare ? undefined : "bg-chrome rounded-2xl overflow-hidden [&>*]:border-chrome [&>*:not(:first-child)]:border-t"}
       >
         {children}
       </div>

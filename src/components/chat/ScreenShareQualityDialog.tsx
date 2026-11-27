@@ -288,7 +288,7 @@ export function ScreenShareQualityDialog({
         portalContainer={portalContainer}
       >
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="flex size-12 items-center justify-center clip-corner-lg bg-primary/15 text-primary">
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
             <MonitorUp className="size-6" />
           </div>
           <h2 className="chrome-dialog-title font-mono font-bold lowercase tracking-tight text-foreground">
@@ -533,7 +533,7 @@ export function ScreenShareQualityDialog({
           </div>
 
           {active && senderStats && (
-            <div className="clip-corner-lg bg-background/40 p-3 text-xs">
+            <div className="rounded-2xl bg-background/40 p-3 text-xs">
               <p className="font-medium text-foreground">
                 <FormattedMessage id="screenShareQualityDialog.activeSender" defaultMessage="Active sender" />
               </p>
@@ -544,7 +544,7 @@ export function ScreenShareQualityDialog({
           )}
 
           {active && nativeHevcStatus?.active && (
-            <div className="clip-corner-lg bg-background/40 p-3 text-xs">
+            <div className="rounded-2xl bg-background/40 p-3 text-xs">
               <p className="font-medium text-foreground">
                 <FormattedMessage id="screenShareQualityDialog.activeNativeSender" defaultMessage="Active native sender" />
               </p>
@@ -568,7 +568,7 @@ export function ScreenShareQualityDialog({
             <Button
               type="button"
               variant="ghost"
-              className="flex-1 clip-corner-lg"
+              className="flex-1 rounded-2xl"
               onClick={reset}
             >
               <FormattedMessage id="screenShareQualityDialog.resetDefaults" defaultMessage="Reset defaults" />
@@ -576,14 +576,14 @@ export function ScreenShareQualityDialog({
             <Button
               type="button"
               variant="ghost"
-              className="flex-1 clip-corner-lg"
+              className="flex-1 rounded-2xl"
               onClick={() => onOpenChange(false)}
             >
               <FormattedMessage {...common.cancel} />
             </Button>
             <Button
               type="submit"
-              className="flex-1 clip-corner-lg"
+              className="flex-1 rounded-2xl"
               disabled={h264BlockedByHardware}
             >
               {active ? intl.formatMessage({ id: "screenShareQualityDialog.apply", defaultMessage: "Apply" }) : intl.formatMessage({ id: "screenShareQualityDialog.shareScreen", defaultMessage: "Share screen" })}

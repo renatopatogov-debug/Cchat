@@ -214,7 +214,7 @@ function ComposerSkeleton() {
       aria-hidden
     >
       <div className="px-2 pt-1.5 sidebar:py-2">
-        <div className="flex items-end gap-0.5 clip-corner-lg bg-secondary/60 px-1.5 py-1.5 touch:p-1">
+        <div className="flex items-end gap-0.5 rounded-2xl bg-secondary/60 px-1.5 py-1.5 touch:p-1">
           <Skeleton className="size-9 touch:size-11 shrink-0 rounded-full" />
           <div className="flex-1 min-w-0 px-1.5 py-2">
             <Skeleton className="h-5 w-40 max-w-full rounded" />
@@ -690,7 +690,7 @@ export function GroupChat({ relayUrl, groupId, canWrite, membershipPending = fal
                       <Button
                         size="sm"
                         onClick={() => setJoinDialogOpen(true)}
-                        className="clip-corner-lg h-7 touch:h-10 px-4"
+                        className="rounded-2xl h-7 touch:h-10 px-4"
                       >
                         {chunks}
                       </Button>

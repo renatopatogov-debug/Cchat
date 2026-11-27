@@ -56,27 +56,15 @@ const LazySignedInRouterServices = lazy(() =>
   import("@/components/SignedInServices").then((m) => ({ default: m.SignedInRouterServices })),
 );
 
-const ConcordPage = lazy(lazyWithReload(() => import("@/concord/pages/ConcordPage").then((m) => ({ default: m.ConcordPage }))));
 const CreateCommunityPage = lazy(lazyWithReload(() => import("@/pages/CreateCommunityPage").then((m) => ({ default: m.CreateCommunityPage }))));
-const DiscordImportPage = lazy(lazyWithReload(() => import("@/pages/DiscordImportPage").then((m) => ({ default: m.DiscordImportPage }))));
-const HistoryAuditPage = lazy(lazyWithReload(() => import("@/pages/HistoryAuditPage").then((m) => ({ default: m.HistoryAuditPage }))));
-const DiscoverPage = lazy(lazyWithReload(() => import("@/pages/DiscoverPage").then((m) => ({ default: m.DiscoverPage }))));
 const DMsPage = lazy(lazyWithReload(() => import("@/pages/DMsPage").then((m) => ({ default: m.DMsPage }))));
-const DownloadsPage = lazy(lazyWithReload(() => import("@/pages/DownloadsPage").then((m) => ({ default: m.DownloadsPage }))));
-const GroupPage = lazy(lazyWithReload(() => import("@/pages/GroupPage").then((m) => ({ default: m.GroupPage }))));
-const InboxPage = lazy(lazyWithReload(() => import("@/pages/InboxPage").then((m) => ({ default: m.InboxPage }))));
-const GiftPage = lazy(lazyWithReload(() => import("@/pages/GiftPage")));
 const InvitePage = lazy(lazyWithReload(() => import("@/concord/pages/InvitePage")));
 const InvitesPage = lazy(lazyWithReload(() => import("@/concord/pages/InvitesPage").then((m) => ({ default: m.InvitesPage }))));
-const BuzzInvitePage = lazy(lazyWithReload(() => import("@/buzz/BuzzInvitePage")));
 const MeshPage = lazy(lazyWithReload(() => import("@/pages/MeshPage")));
-const ChangelogPage = lazy(lazyWithReload(() => import("@/pages/ChangelogPage").then((m) => ({ default: m.ChangelogPage }))));
 const NotificationsPage = lazy(lazyWithReload(() => import("@/pages/NotificationsPage").then((m) => ({ default: m.NotificationsPage }))));
 const NotFound = lazy(lazyWithReload(() => import("@/pages/NotFound").then((m) => ({ default: m.NotFound }))));
 const PrivacyPolicyPage = lazy(lazyWithReload(() => import("@/pages/PrivacyPolicyPage").then((m) => ({ default: m.PrivacyPolicyPage }))));
-const ProjectsPage = lazy(lazyWithReload(() => import("@/pages/ProjectsPage").then((m) => ({ default: m.ProjectsPage }))));
 const RemoteLoginSuccessPage = lazy(lazyWithReload(() => import("@/pages/RemoteLoginSuccessPage").then((m) => ({ default: m.RemoteLoginSuccessPage }))));
-const ServerPage = lazy(lazyWithReload(() => import("@/pages/ServerPage").then((m) => ({ default: m.ServerPage }))));
 const SettingsPage = lazy(lazyWithReload(() => import("@/pages/SettingsPage").then((m) => ({ default: m.SettingsPage }))));
 const SharePage = lazy(lazyWithReload(() => import("@/pages/SharePage").then((m) => ({ default: m.SharePage }))));
 const SupportPage = lazy(lazyWithReload(() => import("@/pages/SupportPage").then((m) => ({ default: m.SupportPage }))));
@@ -85,11 +73,19 @@ const WalletPage = lazy(lazyWithReload(() => import("@/pages/WalletPage").then((
 const CommunitiesHubPage = lazy(lazyWithReload(() => import("@/pages/CommunitiesHubPage").then((m) => ({ default: m.CommunitiesHubPage }))));
 const CommunityScreen = lazy(lazyWithReload(() => import("@/pages/CommunityScreen").then((m) => ({ default: m.CommunityScreen }))));
 
-/** Dispatch `/invite/<segment>`: an naddr is a Concord invite, anything else a relay (Buzz) invite. */
+/** Dispatch `/invite/<segment>`: Concord group invites carry an `naddr1` code. */
 function InviteRoute() {
   const { naddr } = useParams<{ naddr: string }>();
-  const isBuzz = !!naddr && !/^naddr1/i.test(naddr);
-  return isBuzz ? <BuzzInvitePage /> : <InvitePage />;
+  const isConcord = Boolean(naddr && /^naddr1/i.test(naddr));
+  return isConcord ? <InvitePage /> : <Navigate to="/communities" replace />;
+}
+
+/** Redirect legacy `/cc/*` or sub-pane/thread paths to canonical `/c/*`. */
+function LegacyCommunityRedirect() {
+  const { communityId, channelId } = useParams<{ communityId: string; channelId?: string }>();
+  if (!communityId) return <Navigate to="/communities" replace />;
+  const base = `/c/${encodeURIComponent(communityId)}`;
+  return <Navigate to={channelId ? `${base}/${encodeURIComponent(channelId)}` : base} replace />;
 }
 
 /**
@@ -201,12 +197,11 @@ function useWarmRouteChunks() {
     if (isDesktop() || isNativeRuntime()) return;
     const timer = setTimeout(() => {
       for (const load of [
-        () => import("@/pages/GroupPage"),
-        () => import("@/concord/pages/ConcordPage"),
+        () => import("@/pages/CommunityScreen"),
+        () => import("@/pages/CommunitiesHubPage"),
         () => import("@/pages/DMsPage"),
+        () => import("@/pages/WalletPage"),
         () => import("@/pages/NotificationsPage"),
-        () => import("@/pages/ServerPage"),
-        () => import("@/pages/DiscoverPage"),
         // The profile overlay opens over a page, so nothing else would warm it.
         () => import("@/components/profile/ProfileDialog"),
         () => import("@/pages/SettingsPage"),
@@ -296,41 +291,37 @@ function AppRoutes() {
           <Route path="/welcome" element={<Navigate to="/" replace />} />
           <Route path="/join" element={<JoinRoute />} />
           <Route element={<AppShell />}>
-            <Route path="/s/:server" element={<ServerPage />} />
-            <Route path="/s/:server/projects" element={<ProjectsPage />} />
-            <Route path="/s/:server/inbox" element={<RequireAuth><InboxPage /></RequireAuth>} />
-            {/* `/t/` and `/m/` markers keep a thread root's two identities distinct (see `lib/routes.ts`). */}
-            <Route path="/s/:server/:groupId" element={<GroupPage />} />
-            <Route path="/s/:server/:groupId/m/:messageId" element={<GroupPage />} />
-            <Route path="/s/:server/:groupId/t/:threadRoot" element={<GroupPage />} />
-            <Route path="/s/:server/:groupId/t/:threadRoot/m/:messageId" element={<GroupPage />} />
-            {/* Membership is a key the account holds, so there's no signed-out view. */}
-            <Route path="/c/:communityId" element={<RequireAuth><ConcordPage /></RequireAuth>} />
-            <Route path="/c/:communityId/history" element={<RequireAuth><HistoryAuditPage /></RequireAuth>} />
+            {/* Cut NIP-29 / legacy Armada routes redirect cleanly to home or groups. */}
+            <Route path="/s/*" element={<Navigate to="/" replace />} />
+            <Route path="/discover" element={<Navigate to="/communities" replace />} />
+            <Route path="/import/discord" element={<Navigate to="/communities" replace />} />
+            <Route path="/gift/:from" element={<Navigate to="/" replace />} />
+            <Route path="/changelog" element={<Navigate to="/" replace />} />
+            <Route path="/downloads" element={<Navigate to="/" replace />} />
+
+            {/* Encrypted Groups (Concord E2EE with subgroups & voice calls). */}
+            <Route path="/c/:communityId" element={<RequireAuth><CommunityScreen /></RequireAuth>} />
+            <Route path="/c/:communityId/history" element={<LegacyCommunityRedirect />} />
             {CONCORD2_PANES.map((pane) => (
-              <Route key={pane} path={`/c/:communityId/${pane}`} element={<RequireAuth><ConcordPage /></RequireAuth>} />
+              <Route key={pane} path={`/c/:communityId/${pane}`} element={<LegacyCommunityRedirect />} />
             ))}
-            <Route path="/c/:communityId/:channelId" element={<RequireAuth><ConcordPage /></RequireAuth>} />
-            <Route path="/c/:communityId/:channelId/m/:messageId" element={<RequireAuth><ConcordPage /></RequireAuth>} />
-            <Route path="/c/:communityId/:channelId/t/:threadRoot" element={<RequireAuth><ConcordPage /></RequireAuth>} />
-            <Route path="/c/:communityId/:channelId/t/:threadRoot/m/:messageId" element={<RequireAuth><ConcordPage /></RequireAuth>} />
-            {/* Concord invites carry an naddr (CORD-05); Buzz invite codes never do. */}
+            <Route path="/c/:communityId/:channelId" element={<RequireAuth><CommunityScreen /></RequireAuth>} />
+            <Route path="/c/:communityId/:channelId/m/:messageId" element={<RequireAuth><CommunityScreen /></RequireAuth>} />
+            <Route path="/c/:communityId/:channelId/t/*" element={<LegacyCommunityRedirect />} />
+
+            {/* Legacy /cc/* aliases redirect to /c/*. */}
+            <Route path="/cc/:communityId" element={<LegacyCommunityRedirect />} />
+            <Route path="/cc/:communityId/:channelId" element={<LegacyCommunityRedirect />} />
+            <Route path="/cc/:communityId/:channelId/*" element={<LegacyCommunityRedirect />} />
+
             <Route path="/invite/:naddr" element={<InviteRoute />} />
-            {/* Armada Ultra gifts; signed out too, so a gift doubles as an invite. */}
-            <Route path="/gift/:from" element={<GiftPage />} />
-            <Route path="/changelog" element={<ChangelogPage />} />
-            {/* Also a real directory on the hosted deployment (installers). */}
-            <Route path="/downloads" element={<DownloadsPage />} />
             <Route path="/privacy" element={<PrivacyPolicyPage />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/support" element={<SupportPage />} />
             <Route path="/share" element={<SharePage />} />
             {/* Callback target baked into nostrconnect:// URIs. */}
             <Route path="/remoteloginsuccess" element={<RemoteLoginSuccessPage />} />
-            <Route path="/discover" element={<DiscoverPage />} />
-            {/* Routes, not dialogs: they must outlive the Add dialog (see DiscordImportPage). */}
             <Route path="/create" element={<RequireAuth><CreateCommunityPage /></RequireAuth>} />
-            <Route path="/import/discord" element={<RequireAuth><DiscordImportPage /></RequireAuth>} />
             <Route path="/mesh" element={<RequireAuth><MeshPage /></RequireAuth>} />
             {/* Received direct invites (CORD-05 §6). */}
             <Route path="/invites" element={<RequireAuth><InvitesPage /></RequireAuth>} />
@@ -340,9 +331,6 @@ function AppRoutes() {
             <Route path="/dm/:peer/m/:messageId" element={<RequireDms><DMsPage /></RequireDms>} />
             <Route path="/wallet" element={<RequireAuth><WalletPage /></RequireAuth>} />
             <Route path="/communities" element={<RequireAuth><CommunitiesHubPage /></RequireAuth>} />
-            <Route path="/cc/:communityId" element={<RequireAuth><CommunityScreen /></RequireAuth>} />
-            <Route path="/cc/:communityId/:channelId" element={<RequireAuth><CommunityScreen /></RequireAuth>} />
-            <Route path="/cc/:communityId/:channelId/m/:messageId" element={<RequireAuth><CommunityScreen /></RequireAuth>} />
             {/* Must precede `/:user`, which would swallow `/dms`. */}
             <Route path="/dms" element={<LegacyDmRedirect />} />
             <Route path="/dms/:peer" element={<LegacyDmRedirect />} />

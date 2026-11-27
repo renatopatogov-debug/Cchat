@@ -337,7 +337,7 @@ function NotificationSoundSettings() {
               size="icon"
               variant="secondary"
               aria-label={intl.formatMessage({ id: "notificationSettings.previewSound", defaultMessage: "Preview sound" })}
-              className="size-10 shrink-0 clip-corner touch:size-11"
+              className="size-10 shrink-0 rounded-xl touch:size-11"
               onClick={() => playNotificationSound({ settings, preview: true })}
             >
               <Play className="size-4" />

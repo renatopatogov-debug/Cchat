@@ -98,7 +98,7 @@ function StickerSection({ section, onSelect }: { section: CustomEmojiSection; on
             type="button"
             title={emoji.shortcode}
             onClick={() => onSelect(emoji)}
-            className="aspect-square clip-corner-lg overflow-hidden hover:bg-muted transition-colors p-1 group"
+            className="aspect-square rounded-2xl overflow-hidden hover:bg-muted transition-colors p-1 group"
           >
             <CustomEmojiImg
               name={emoji.shortcode}

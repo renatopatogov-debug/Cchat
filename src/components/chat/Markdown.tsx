@@ -76,13 +76,13 @@ export function CodeBlock({ code, lang }: { code: string; lang?: string }) {
             () => undefined,
           );
         }}
-        className="absolute right-1 top-1 z-10 inline-flex size-7 touch:size-9 items-center justify-center clip-corner bg-background/70 text-muted-foreground opacity-0 backdrop-blur-sm transition-opacity hover:text-foreground focus-visible:opacity-100 group-hover/code:opacity-100 touch:opacity-100"
+        className="absolute right-1 top-1 z-10 inline-flex size-7 touch:size-9 items-center justify-center rounded-xl bg-background/70 text-muted-foreground opacity-0 backdrop-blur-sm transition-opacity hover:text-foreground focus-visible:opacity-100 group-hover/code:opacity-100 touch:opacity-100"
       >
         {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
       </button>
       <pre
         data-lang={lang}
-        className="max-w-full min-h-9 touch:min-h-11 overflow-x-auto clip-corner-lg bg-muted/50 py-2 pl-3 pr-10 touch:pr-11 font-mono text-[13px] leading-snug whitespace-pre-wrap break-words"
+        className="max-w-full min-h-9 touch:min-h-11 overflow-x-auto rounded-2xl bg-muted/50 py-2 pl-3 pr-10 touch:pr-11 font-mono text-[13px] leading-snug whitespace-pre-wrap break-words"
       >
         <code className={tree ? "hljs" : undefined}>{tree ? renderHast(tree.children) : code}</code>
       </pre>

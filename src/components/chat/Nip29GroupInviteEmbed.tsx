@@ -72,7 +72,7 @@ export function Nip29GroupInviteEmbed({ group, className }: Nip29GroupInviteEmbe
   return (
     <div
       className={cn(
-        "block max-w-sm w-full clip-hairline-lg [--edge:var(--border)/0.5] [--fill:var(--secondary)/0.3] [--fill-hover:var(--secondary)/0.3] overflow-hidden my-1.5",
+        "block max-w-sm w-full rounded-2xl border border-border/70 bg-card/60 [--edge:var(--border)/0.5] [--fill:var(--secondary)/0.3] [--fill-hover:var(--secondary)/0.3] overflow-hidden my-1.5",
         className,
       )}
       onClick={(e) => e.stopPropagation()}
@@ -85,9 +85,9 @@ export function Nip29GroupInviteEmbed({ group, className }: Nip29GroupInviteEmbe
         </p>
 
         <div className="flex items-center gap-3 min-w-0">
-          <Avatar className="size-11 clip-corner-lg shrink-0">
+          <Avatar className="size-11 rounded-2xl shrink-0">
             {iconUrl && <AvatarImage src={iconUrl} alt={name} className="object-cover" />}
-            <AvatarFallback className="clip-corner-lg bg-primary/20 text-primary font-semibold">
+            <AvatarFallback className="rounded-2xl bg-primary/20 text-primary font-semibold">
               {name.slice(0, 2).toUpperCase() || "??"}
             </AvatarFallback>
           </Avatar>
@@ -102,11 +102,11 @@ export function Nip29GroupInviteEmbed({ group, className }: Nip29GroupInviteEmbe
         </div>
 
         {inList || joined ? (
-          <Button variant="secondary" className="w-full clip-corner-lg" onClick={() => navigate(path)}>
+          <Button variant="secondary" className="w-full rounded-2xl" onClick={() => navigate(path)}>
             <FormattedMessage id="nip29GroupInviteEmbed.open" defaultMessage="Open" />
           </Button>
         ) : (
-          <Button className="w-full clip-corner-lg" onClick={doJoin} disabled={join.isPending}>
+          <Button className="w-full rounded-2xl" onClick={doJoin} disabled={join.isPending}>
             {join.isPending
               ? intl.formatMessage({ id: "nip29GroupInviteEmbed.joining", defaultMessage: "Joining…" })
               : intl.formatMessage({ id: "nip29GroupInviteEmbed.join", defaultMessage: "Join" })}

@@ -124,7 +124,7 @@ export function BlossomServerListEditor({
   return (
     <div className="space-y-1.5">
       {servers.map((url) => (
-        <div key={url} className="flex items-center gap-2 clip-corner bg-background/40 px-3 py-2.5">
+        <div key={url} className="flex items-center gap-2 rounded-xl bg-background/40 px-3 py-2.5">
           <div className="flex-1 min-w-0">
             <ServerIdentity url={url} />
           </div>
@@ -187,7 +187,7 @@ export function BlossomServerListEditor({
           autoComplete="off"
           className="text-base md:text-sm bg-background/40 border-transparent"
         />
-        <Button type="submit" disabled={!newUrl.trim()} className="clip-corner-lg shrink-0">
+        <Button type="submit" disabled={!newUrl.trim()} className="rounded-2xl shrink-0">
           <Plus className="size-4 mr-1.5" /> <FormattedMessage {...common.add} />
         </Button>
       </form>

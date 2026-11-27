@@ -116,17 +116,17 @@ export function ProfileShareDialog({ open, onOpenChange }: ProfileShareDialogPro
                 <img
                   src={qrDataUrl}
                   alt={intl.formatMessage({ id: "profileShareDialog.qrAlt", defaultMessage: "Profile QR code" })}
-                  className="mx-auto w-64 clip-corner-lg"
+                  className="mx-auto w-64 rounded-2xl"
                   decoding="async"
                 />
               ) : (
-                <div className="mx-auto size-64 clip-corner-lg bg-muted animate-pulse" />
+                <div className="mx-auto size-64 rounded-2xl bg-muted animate-pulse" />
               )}
 
               <button
                 type="button"
                 onClick={copy}
-                className="group w-full min-w-0 max-w-full overflow-hidden flex items-center gap-2 clip-corner-lg bg-background/40 px-3 py-3 text-left transition-colors hover:bg-background/70"
+                className="group w-full min-w-0 max-w-full overflow-hidden flex items-center gap-2 rounded-2xl bg-background/40 px-3 py-3 text-left transition-colors hover:bg-background/70"
               >
                 <Link2 className="size-4 shrink-0 text-muted-foreground" />
                 <span className="flex-1 min-w-0 truncate font-mono text-sm">{url}</span>
@@ -136,13 +136,13 @@ export function ProfileShareDialog({ open, onOpenChange }: ProfileShareDialogPro
               </button>
 
               <div className="flex gap-2">
-                <Button className="flex-1 clip-corner-lg" onClick={copy}>
+                <Button className="flex-1 rounded-2xl" onClick={copy}>
                   {copied
                     ? <><Check className="size-4 mr-2" /> <FormattedMessage {...common.copied} /></>
                     : <><Copy className="size-4 mr-2" /> <FormattedMessage {...common.copyLink} /></>}
                 </Button>
                 {showShare && (
-                  <Button variant="outline" className="clip-corner-lg" onClick={share} aria-label={intl.formatMessage(common.share)}>
+                  <Button variant="outline" className="rounded-2xl" onClick={share} aria-label={intl.formatMessage(common.share)}>
                     <Share2 className="size-4" />
                   </Button>
                 )}

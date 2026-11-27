@@ -44,7 +44,7 @@ export function ImportFromDiscordButton({
       type="button"
       size={size}
       className={cn(
-        "w-full clip-corner-lg border-0 bg-[#5865F2] text-white hover:bg-[#4752C4]",
+        "w-full rounded-2xl border-0 bg-[#5865F2] text-white hover:bg-[#4752C4]",
         className,
       )}
       onClick={() => {
@@ -82,7 +82,7 @@ export function DiscordBridgeSection({ canManage }: { canManage: boolean }) {
             defaultMessage="A bridged channel leaves end-to-end encryption: everything posted in it is readable in plaintext on Discord's servers. Unbridged channels are unaffected."
           />
         </p>
-        <Button asChild size="sm" className="clip-corner-lg">
+        <Button asChild size="sm" className="rounded-2xl">
           <a href={href} target="_blank" rel="noopener noreferrer">
             <DiscordMark className="size-4 shrink-0" />
             <FormattedMessage id="importFromDiscord.openPortal" defaultMessage="Open bridge portal" />

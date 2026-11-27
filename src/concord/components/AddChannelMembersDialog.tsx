@@ -124,7 +124,7 @@ export function AddChannelMembersDialog({
         />
 
         {!holdsKey && (
-          <p className="clip-corner-lg bg-warning/10 px-3 py-2 text-xs text-warning">
+          <p className="rounded-2xl bg-warning/10 px-3 py-2 text-xs text-warning">
             <FormattedMessage
               id="addChannelMembersDialog.noKey"
               defaultMessage="You don't hold this channel's key, so members you add get the role but a member who does hold it has to share it before they can read."

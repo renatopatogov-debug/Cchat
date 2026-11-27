@@ -378,7 +378,7 @@ export function MembersView({
         <button
           type="button"
           onClick={() => setOmittedOnly((v) => !v)}
-          className={`flex w-full items-center gap-2 clip-corner-lg px-3 py-2 text-left text-sm transition-colors ${
+          className={`flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-left text-sm transition-colors ${
             showOmitted ? "bg-warning/20 text-warning" : "bg-warning/10 text-warning"
           }`}
         >
@@ -402,7 +402,7 @@ export function MembersView({
         <button
           type="button"
           onClick={() => setSuspiciousOnly((v) => !v)}
-          className={`flex w-full items-center gap-2 clip-corner-lg px-3 py-2 text-left text-sm transition-colors ${
+          className={`flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-left text-sm transition-colors ${
             suspiciousOnly ? "bg-destructive/25 text-destructive" : "bg-destructive/10 text-destructive"
           }`}
         >
@@ -426,7 +426,7 @@ export function MembersView({
         <button
           type="button"
           onClick={() => setBehindOnly((v) => !v)}
-          className={`flex w-full items-center gap-2 clip-corner-lg px-3 py-2 text-left text-sm transition-colors ${
+          className={`flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-left text-sm transition-colors ${
             behindOnly ? "bg-warning/20 text-warning" : "bg-warning/10 text-warning"
           }`}
         >

@@ -135,7 +135,7 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
             // Toggle against the state at PRESS time: Radix already dismissed an open menu.
             setIsOpen(!press.wasOpen);
           }}
-          className='flex items-center gap-3 p-2 clip-corner-lg bg-accent/50 hover:bg-accent transition-all w-full text-foreground'
+          className='flex items-center gap-3 p-2 rounded-2xl bg-accent/50 hover:bg-accent transition-all w-full text-foreground'
         >
           {isLoading ? (
             <Skeleton className='w-8 h-8 rounded-full shrink-0' />
@@ -168,7 +168,7 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
         {backupPending && (
           <DropdownMenuItem
             onClick={() => { setIsOpen(false); setBackupOpen('backup'); }}
-            className='flex items-center gap-2 cursor-pointer p-2 clip-corner-lg text-primary focus:text-primary bg-primary/10'
+            className='flex items-center gap-2 cursor-pointer p-2 rounded-2xl text-primary focus:text-primary bg-primary/10'
           >
             <KeyRound className='w-4 h-4' />
             <span><FormattedMessage id="accountSwitcher.backUpKey" defaultMessage="Back up your secret key" /></span>
@@ -178,7 +178,7 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
         <DropdownMenuItem
           onClick={() => settings.show('profile')}
           className={cn(
-            'flex items-center gap-2 cursor-pointer p-2 clip-corner-lg',
+            'flex items-center gap-2 cursor-pointer p-2 rounded-2xl',
             profileIncomplete && 'text-primary focus:text-primary bg-primary/10',
           )}
         >
@@ -188,14 +188,14 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => setStatusOpen(true)}
-          className='flex items-center gap-2 cursor-pointer p-2 clip-corner-lg'
+          className='flex items-center gap-2 cursor-pointer p-2 rounded-2xl'
         >
           <Smile className='w-4 h-4' />
           <span><FormattedMessage id="accountSwitcher.setStatus" defaultMessage="Set status" /></span>
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => { setIsOpen(false); setShareProfileOpen(true); }}
-          className='flex items-center gap-2 cursor-pointer p-2 clip-corner-lg'
+          className='flex items-center gap-2 cursor-pointer p-2 rounded-2xl'
         >
           <QrCode className='w-4 h-4' />
           <span><FormattedMessage id="accountSwitcher.shareProfile" defaultMessage="Share your profile" /></span>
@@ -203,7 +203,7 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
         {serverScope && (
           <DropdownMenuItem
             onClick={() => setServerIdentityOpen(true)}
-            className='flex items-center gap-2 cursor-pointer p-2 clip-corner-lg'
+            className='flex items-center gap-2 cursor-pointer p-2 rounded-2xl'
           >
             <IdCard className='w-4 h-4' />
             <span><FormattedMessage id="accountSwitcher.serverIdentity" defaultMessage="Server identity" /></span>
@@ -212,7 +212,7 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
         {config.zapsEnabled && (
           <DropdownMenuItem
             onClick={() => { setIsOpen(false); setWalletOpen(true); }}
-            className='flex items-center gap-2 cursor-pointer p-2 clip-corner-lg'
+            className='flex items-center gap-2 cursor-pointer p-2 rounded-2xl'
           >
             <Wallet className='w-4 h-4' />
             <span><FormattedMessage id="accountSwitcher.wallet" defaultMessage="Wallet" /></span>
@@ -228,7 +228,7 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
           <DropdownMenuItem
             key={user.id}
             onClick={() => switchTo(user.id)}
-            className='flex items-center gap-2 cursor-pointer p-2 clip-corner-lg'
+            className='flex items-center gap-2 cursor-pointer p-2 rounded-2xl'
           >
             <Avatar shape={getAvatarShape(user.metadata)} className='w-8 h-8'>
               <AvatarImage src={user.metadata.picture} imeta={user.imeta?.picture} alt={getDisplayName(user, anonymous)} />
@@ -242,7 +242,7 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
         ))}
         <DropdownMenuItem
           onClick={onAddAccountClick}
-          className='flex items-center gap-2 cursor-pointer p-2 clip-corner-lg'
+          className='flex items-center gap-2 cursor-pointer p-2 rounded-2xl'
         >
           <UserPlus className='w-4 h-4' />
           <span><FormattedMessage id="accountSwitcher.addAccount" defaultMessage="Add another account" /></span>
@@ -250,7 +250,7 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={handleLogout}
-          className='flex items-center gap-2 cursor-pointer p-2 clip-corner-lg text-red-500'
+          className='flex items-center gap-2 cursor-pointer p-2 rounded-2xl text-red-500'
         >
           <LogOut className='w-4 h-4' />
           <span><FormattedMessage id="accountSwitcher.logOut" defaultMessage="Log out" /></span>

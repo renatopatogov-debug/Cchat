@@ -22,7 +22,7 @@ export function GiftEmbed({ from, className }: { from: string; className?: strin
   const own = user?.pubkey === from;
 
   return (
-    <div className={cn("relative w-full max-w-sm overflow-hidden clip-corner-lg shadow-lg shadow-primary/20", className)}>
+    <div className={cn("relative w-full max-w-sm overflow-hidden rounded-2xl shadow-lg shadow-primary/20", className)}>
       <GiftStage stars={false} />
       <div className="relative flex items-center gap-4 p-4">
         <GiftBox className="size-16" rays={false} />
@@ -36,7 +36,7 @@ export function GiftEmbed({ from, className }: { from: string; className?: strin
           {path && (
             <Button
               size="sm"
-              className="mt-2 h-8 bg-gradient-to-r from-primary via-fuchsia-500 to-accent2 font-semibold text-white clip-corner-lg hover:brightness-110 touch:h-11"
+              className="mt-2 h-8 bg-gradient-to-r from-primary via-fuchsia-500 to-accent2 font-semibold text-white rounded-2xl hover:brightness-110 touch:h-11"
               onClick={() => navigate(path)}
             >
               {own

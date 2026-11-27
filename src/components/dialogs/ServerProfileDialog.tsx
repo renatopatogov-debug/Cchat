@@ -90,7 +90,7 @@ export function ServerProfileDialog({ relayUrl, open, onOpenChange }: ServerProf
     <Dialog open={open} onOpenChange={onOpenChange}>
       <ChromeDialogContent title={intl.formatMessage({ id: "serverProfileDialog.title", defaultMessage: "Server identity" })}>
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="flex size-12 items-center justify-center clip-corner-lg bg-primary/15 text-primary">
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
             <UserCog className="size-6" />
           </div>
           <h2 className="chrome-dialog-title font-mono font-bold lowercase tracking-tight text-foreground">
@@ -105,7 +105,7 @@ export function ServerProfileDialog({ relayUrl, open, onOpenChange }: ServerProf
           <div className="text-2xs font-medium uppercase tracking-wider text-muted-foreground/70 mb-2">
             <FormattedMessage id="serverProfileDialog.preview" defaultMessage="Preview" />
           </div>
-          <div className="clip-corner-lg bg-background/40 p-3">
+          <div className="rounded-2xl bg-background/40 p-3">
             <div className="flex items-start gap-3">
               <Avatar shape={getAvatarShape(metadata)} className="size-10 shrink-0">
                 <AvatarImage src={metadata?.picture} imeta={imeta?.picture} alt={previewName} />
@@ -200,7 +200,7 @@ export function ServerProfileDialog({ relayUrl, open, onOpenChange }: ServerProf
             </div>
             <div className="flex items-center gap-2">
               <label
-                className="relative size-9 shrink-0 cursor-pointer clip-corner-lg overflow-hidden"
+                className="relative size-9 shrink-0 cursor-pointer rounded-2xl overflow-hidden"
                 style={{ backgroundColor: colorEnabled ? swatch : "hsl(var(--background) / 0.4)" }}
                 title={intl.formatMessage({ id: "serverProfileDialog.customColor", defaultMessage: "Custom color" })}
               >
@@ -236,10 +236,10 @@ export function ServerProfileDialog({ relayUrl, open, onOpenChange }: ServerProf
           </div>
 
           <div className="flex gap-2 pt-2">
-            <Button type="button" variant="ghost" className="flex-1 clip-corner-lg" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="ghost" className="flex-1 rounded-2xl" onClick={() => onOpenChange(false)}>
               <FormattedMessage {...common.cancel} />
             </Button>
-            <Button type="submit" className="flex-1 clip-corner-lg" disabled={isPending || isLoading}>
+            <Button type="submit" className="flex-1 rounded-2xl" disabled={isPending || isLoading}>
               {isPending ? (
                 <>
                   <Loader2 className="size-4 mr-2 animate-spin" /> <FormattedMessage {...common.saving} />

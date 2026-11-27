@@ -75,7 +75,7 @@ function RouteCardShell({
         if (e.key === "Enter") open(e);
       }}
       className={cn(
-        "block max-w-md w-full clip-hairline-lg [--edge:var(--border)/0.5] [--fill:var(--background)/0.4] [--fill-hover:var(--secondary)/0.4] overflow-hidden cursor-pointer my-1.5",
+        "block max-w-md w-full rounded-2xl border border-border/70 bg-card/60 [--edge:var(--border)/0.5] [--fill:var(--background)/0.4] [--fill-hover:var(--secondary)/0.4] overflow-hidden cursor-pointer my-1.5",
         "focus:outline-none focus-visible:[--edge:var(--primary)]",
         className,
       )}
@@ -111,9 +111,9 @@ function PlaceRow({
 }) {
   return (
     <div className="flex items-center gap-2 min-w-0">
-      <Avatar className="size-5 clip-corner shrink-0">
+      <Avatar className="size-5 rounded-xl shrink-0">
         {iconUrl && <AvatarImage src={iconUrl} alt="" className="object-cover" />}
-        <AvatarFallback className="clip-corner bg-primary/20 text-primary text-3xs">
+        <AvatarFallback className="rounded-xl bg-primary/20 text-primary text-3xs">
           {name.trim().charAt(0).toUpperCase() || "·"}
         </AvatarFallback>
       </Avatar>

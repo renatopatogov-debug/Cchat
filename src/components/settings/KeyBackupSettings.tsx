@@ -117,7 +117,7 @@ export function KeyBackupSettings({ nsec, pubkey }: KeyBackupSettingsProps) {
   return (
     <>
       <SettingsRow>
-        <div className="clip-corner-lg bg-warning/10 p-3">
+        <div className="rounded-2xl bg-warning/10 p-3">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xs font-semibold text-warning">
               <FormattedMessage id="keyBackupSettings.warningTitle" defaultMessage="Keep this key secret" />
@@ -164,7 +164,7 @@ export function KeyBackupSettings({ nsec, pubkey }: KeyBackupSettingsProps) {
           <div className="flex gap-2">
             <Button
               variant="secondary"
-              className="flex-1 clip-corner-lg"
+              className="flex-1 rounded-2xl"
               onClick={() => copy(nsec, "nsec")}
             >
               {copied === "nsec" ? (
@@ -174,7 +174,7 @@ export function KeyBackupSettings({ nsec, pubkey }: KeyBackupSettingsProps) {
               )}
               <FormattedMessage {...common.copy} />
             </Button>
-            <Button variant="secondary" className="flex-1 clip-corner-lg" onClick={backup}>
+            <Button variant="secondary" className="flex-1 rounded-2xl" onClick={backup}>
               {Capacitor.isNativePlatform() ? (
                 <Share2 className="size-4" />
               ) : (

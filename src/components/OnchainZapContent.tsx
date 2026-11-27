@@ -291,7 +291,7 @@ export function OnchainZapContent({ target, bitcoinTarget, sendOnchainZap, onSuc
           onClick={handleZap}
           disabled={isZapping || amountSats <= 0 || insufficient}
           variant={(insufficient || isLarge) && !isZapping ? 'destructive' : 'default'}
-          className="flex-1 clip-corner-lg"
+          className="flex-1 rounded-2xl"
         >
           {isZapping ? (
             <>
@@ -317,7 +317,7 @@ export function OnchainZapContent({ target, bitcoinTarget, sendOnchainZap, onSuc
           onClick={() => setShowComment((v) => !v)}
           aria-label={intl.formatMessage({ id: 'onchainZapContent.addComment', defaultMessage: 'Add a comment' })}
           aria-pressed={showComment}
-          className={`clip-corner-lg touch:size-11 ${comment.trim() ? 'text-primary' : 'text-muted-foreground'}`}
+          className={`rounded-2xl touch:size-11 ${comment.trim() ? 'text-primary' : 'text-muted-foreground'}`}
         >
           <MessageCircle className="size-4" />
         </Button>

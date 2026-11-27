@@ -185,7 +185,7 @@ function GallerySheet({ open, onOpenChange, actions, apps = [], gamePicker, onPi
                 <button
                   type="button"
                   onClick={() => setSelected([])}
-                  className="h-11 clip-corner-lg bg-secondary px-4 text-sm font-medium"
+                  className="h-11 rounded-2xl bg-secondary px-4 text-sm font-medium"
                 >
                   <FormattedMessage id="attachSheet.clear" defaultMessage="Clear" />
                 </button>
@@ -195,14 +195,14 @@ function GallerySheet({ open, onOpenChange, actions, apps = [], gamePicker, onPi
                   aria-label={intl.formatMessage({ id: "attachSheet.markSpoiler", defaultMessage: "Mark as spoiler" })}
                   onClick={() => setSpoiler((s) => !s)}
                   className={cn(
-                    "flex h-11 items-center gap-1.5 clip-corner-lg px-3 text-sm font-medium",
+                    "flex h-11 items-center gap-1.5 rounded-2xl px-3 text-sm font-medium",
                     spoiler ? "bg-primary text-primary-foreground" : "bg-secondary",
                   )}
                 >
                   <EyeOff className="size-4" />
                   <FormattedMessage id="attachSheet.spoiler" defaultMessage="Spoiler" />
                 </button>
-                <Button className="h-11 flex-1 clip-corner-lg font-semibold" onClick={pick}>
+                <Button className="h-11 flex-1 rounded-2xl font-semibold" onClick={pick}>
                   <FormattedMessage
                     id="attachSheet.addItems"
                     defaultMessage="Add {count} {count, plural, one {item} other {items}}"
@@ -215,7 +215,7 @@ function GallerySheet({ open, onOpenChange, actions, apps = [], gamePicker, onPi
                 drop-shadow filter (Android WebView drops it for a frame on re-layer). */}
             <div className="relative">
               <div aria-hidden className="absolute inset-0 rounded-[0.55rem] shadow-[0_6px_18px_rgba(0,0,0,0.5)]" />
-              <div className="pointer-events-auto relative clip-corner-lg bg-chrome p-2">
+              <div className="pointer-events-auto relative rounded-2xl bg-chrome p-2">
                 <Tiles tiles={tiles} onOpenChange={onOpenChange} cut />
               </div>
             </div>
@@ -269,7 +269,7 @@ function SheetHeader({ title, onBack }: { title?: string; onBack?: () => void })
             type="button"
             aria-label={intl.formatMessage(common.back)}
             onClick={onBack}
-            className="flex size-11 items-center justify-center clip-corner-lg text-muted-foreground active:bg-secondary"
+            className="flex size-11 items-center justify-center rounded-2xl text-muted-foreground active:bg-secondary"
           >
             <ChevronLeft className="size-5" />
           </button>
@@ -300,13 +300,13 @@ function Tiles({ tiles, onOpenChange, className, cut }: {
           }}
           className={cn(
             "flex flex-col items-center gap-1.5 py-1 text-xs font-medium text-muted-foreground disabled:opacity-40 active:bg-secondary/60",
-            "clip-corner-lg",
+            "rounded-2xl",
           )}
         >
           <span
             className={cn(
               "flex items-center justify-center",
-              cut ? "h-11 w-12 clip-corner-lg" : "size-14 clip-corner-lg",
+              cut ? "h-11 w-12 rounded-2xl" : "size-14 rounded-2xl",
               action.active ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground",
             )}
           >
@@ -341,9 +341,9 @@ function AppsPage({ apps, gamePicker, onOpenChange, scrollable }: {
                 onOpenChange(false);
                 app.onSelect();
               }}
-              className="flex min-h-11 w-full items-center gap-3 clip-corner px-3 py-2.5 text-left text-chat font-medium active:bg-secondary disabled:opacity-40"
+              className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-chat font-medium active:bg-secondary disabled:opacity-40"
             >
-              <span className="flex size-10 shrink-0 items-center justify-center clip-corner-lg bg-secondary">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-secondary">
                 <app.icon className="size-5" />
               </span>
               <span className="flex-1">{app.label}</span>
@@ -402,7 +402,7 @@ function TilesSheet({ open, onOpenChange, actions, apps = [], gamePicker }: Atta
                 type="button"
                 aria-label={intl.formatMessage(common.back)}
                 onClick={() => setPage("main")}
-                className="flex size-11 items-center justify-center clip-corner-lg text-muted-foreground active:bg-secondary"
+                className="flex size-11 items-center justify-center rounded-2xl text-muted-foreground active:bg-secondary"
               >
                 <ChevronLeft className="size-5" />
               </button>
@@ -558,7 +558,7 @@ function RecentMediaGrid({ expanded, selected, onToggle, onPreview, onResetSelec
     // Top-aligned: a centred prompt would sit under the tiles.
     return (
       <div className="flex min-h-0 flex-1 flex-col items-center gap-2 px-8 pt-6 text-center">
-        <span className="flex size-12 items-center justify-center clip-corner-lg bg-secondary">
+        <span className="flex size-12 items-center justify-center rounded-2xl bg-secondary">
           <ImageIcon className="size-6 text-muted-foreground" />
         </span>
         <p className="text-chat font-semibold">
@@ -576,7 +576,7 @@ function RecentMediaGrid({ expanded, selected, onToggle, onPreview, onResetSelec
         </p>
         <Button
           size="sm"
-          className="mt-2 clip-corner-lg px-5 touch:h-11"
+          className="mt-2 rounded-2xl px-5 touch:h-11"
           onClick={() => void (access === "denied" ? openMediaSettings().catch(() => undefined) : ask())}
         >
           {access === "denied" ? (
@@ -596,7 +596,7 @@ function RecentMediaGrid({ expanded, selected, onToggle, onPreview, onResetSelec
           <p className="flex-1 text-[13px] leading-snug text-muted-foreground">
             <FormattedMessage id="attachSheet.limitedAccess" defaultMessage="Armada can only see the photos and videos you chose." />
           </p>
-          <Button size="sm" variant="secondary" className="h-8 shrink-0 clip-corner-lg px-4 touch:h-11" onClick={() => void ask()}>
+          <Button size="sm" variant="secondary" className="h-8 shrink-0 rounded-2xl px-4 touch:h-11" onClick={() => void ask()}>
             <FormattedMessage id="attachSheet.manage" defaultMessage="Manage" />
           </Button>
         </div>
@@ -618,7 +618,7 @@ function RecentMediaGrid({ expanded, selected, onToggle, onPreview, onResetSelec
             ) : failed ? (
               <span className="flex flex-col items-center gap-2">
                 <FormattedMessage id="attachSheet.loadFailed" defaultMessage="Couldn't load your gallery." />
-                <Button size="sm" variant="secondary" className="clip-corner-lg px-4 touch:h-11" onClick={() => void load(0)}>
+                <Button size="sm" variant="secondary" className="rounded-2xl px-4 touch:h-11" onClick={() => void load(0)}>
                   <FormattedMessage {...common.retry} />
                 </Button>
               </span>
@@ -715,7 +715,7 @@ const GalleryTile = memo(function GalleryTile({ item, order, onToggle, onPreview
           draggable={false}
           loading="lazy"
           decoding="async"
-          className={cn("size-full object-cover transition-transform duration-150", picked && "scale-90 clip-corner-lg")}
+          className={cn("size-full object-cover transition-transform duration-150", picked && "scale-90 rounded-2xl")}
         />
       )}
       {item.video && (
@@ -760,7 +760,7 @@ function GalleryPreview({ item, order, onToggle, onClose }: {
           type="button"
           aria-label={intl.formatMessage({ id: "attachSheet.closePreview", defaultMessage: "Close preview" })}
           onClick={onClose}
-          className="flex size-11 items-center justify-center clip-corner-lg active:bg-white/10"
+          className="flex size-11 items-center justify-center rounded-2xl active:bg-white/10"
         >
           <X className="size-5" />
         </button>
@@ -773,7 +773,7 @@ function GalleryPreview({ item, order, onToggle, onClose }: {
               : intl.formatMessage(selectLabel)
           }
           onClick={() => onToggle(item)}
-          className="flex size-11 items-center justify-center clip-corner-lg active:bg-white/10"
+          className="flex size-11 items-center justify-center rounded-2xl active:bg-white/10"
         >
           <SelectBadge order={order} className="size-7" />
         </button>
@@ -788,7 +788,7 @@ function GalleryPreview({ item, order, onToggle, onClose }: {
       <div className="flex shrink-0 justify-center px-4 pt-3 pb-[var(--safe-area-pad-bottom,0.75rem)]">
         <Button
           variant={picked ? "secondary" : "default"}
-          className="h-11 w-full max-w-sm clip-corner-lg font-semibold"
+          className="h-11 w-full max-w-sm rounded-2xl font-semibold"
           onClick={() => {
             if (!picked) onToggle(item);
             onClose();

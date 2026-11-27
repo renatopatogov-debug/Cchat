@@ -139,7 +139,7 @@ export function BackupKeyDialog({ open, onOpenChange, nsec, pubkey, onLogout }: 
         />
 
         <div className="mt-5 space-y-4">
-          <div className="clip-corner-lg bg-destructive/10 p-3.5 text-left">
+          <div className="rounded-2xl bg-destructive/10 p-3.5 text-left">
             <div className="flex items-start gap-2.5">
               <AlertTriangle className="mt-px size-4 shrink-0 text-destructive" />
               <div className="space-y-1">
@@ -207,7 +207,7 @@ export function BackupKeyDialog({ open, onOpenChange, nsec, pubkey, onLogout }: 
             type="button"
             size="lg"
             variant={backedUp ? "secondary" : "default"}
-            className="h-12 w-full clip-corner-lg text-base font-medium"
+            className="h-12 w-full rounded-2xl text-base font-medium"
             onClick={saveKey}
             disabled={saving}
           >

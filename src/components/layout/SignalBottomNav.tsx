@@ -34,11 +34,11 @@ export function SignalBottomNav({
     },
     {
       to: "/communities",
-      label: "Comunidades",
+      label: "Grupos",
       icon: Users,
       active:
         pathname.startsWith("/communities") ||
-        pathname.startsWith("/discover") ||
+        pathname.startsWith("/create") ||
         pathname.startsWith("/c/") ||
         pathname.startsWith("/cc/") ||
         pathname.startsWith("/s/"),

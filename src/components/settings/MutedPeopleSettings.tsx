@@ -56,7 +56,7 @@ function MutedRow({ pubkey }: { pubkey: string }) {
       <Button
         size="sm"
         variant="secondary"
-        className="clip-corner-lg h-8 shrink-0"
+        className="rounded-2xl h-8 shrink-0"
         disabled={busy}
         onClick={onUnmute}
       >

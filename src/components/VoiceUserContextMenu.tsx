@@ -284,7 +284,7 @@ export function VoiceUserMenuButton({
           onClick={(e) => e.stopPropagation()}
           onContextMenu={(e) => e.stopPropagation()}
           className={cn(
-            "shrink-0 inline-flex items-center justify-center clip-corner-lg text-muted-foreground hover:text-foreground hover:bg-secondary data-[state=open]:text-foreground",
+            "shrink-0 inline-flex items-center justify-center rounded-2xl text-muted-foreground hover:text-foreground hover:bg-secondary data-[state=open]:text-foreground",
             className,
           )}
         >

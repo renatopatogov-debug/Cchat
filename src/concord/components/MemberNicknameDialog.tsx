@@ -45,7 +45,7 @@ export function MemberNicknameDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <ChromeDialogContent title={intl.formatMessage({ id: "memberNicknameDialog.title", defaultMessage: "Change nickname" })}>
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="flex size-12 items-center justify-center clip-corner-lg bg-primary/15 text-primary">
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
             <Tag className="size-6" />
           </div>
           <h2 className="chrome-dialog-title font-mono font-bold lowercase tracking-tight text-foreground">
@@ -97,10 +97,10 @@ export function MemberNicknameDialog({
           </div>
 
           <div className="flex items-center gap-2 pt-1">
-            <Button type="button" variant="ghost" className="flex-1 clip-corner-lg" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="ghost" className="flex-1 rounded-2xl" onClick={() => onOpenChange(false)}>
               <FormattedMessage {...common.cancel} />
             </Button>
-            <Button type="submit" className="flex-1 clip-corner-lg" disabled={clean === undefined || unchanged || saving}>
+            <Button type="submit" className="flex-1 rounded-2xl" disabled={clean === undefined || unchanged || saving}>
               <FormattedMessage {...common.save} />
             </Button>
           </div>

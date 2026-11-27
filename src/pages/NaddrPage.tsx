@@ -168,7 +168,7 @@ function ThemePreview({ title, tokens }: { title: string; tokens: ThemeTokens })
         <div className="p-3 flex items-center gap-2">
           <span className="flex-1 h-8 rounded-md" style={{ backgroundColor: hsl(tokens.input) }} />
           <span
-            className="clip-corner-lg px-3 py-1.5 text-xs font-medium"
+            className="rounded-2xl px-3 py-1.5 text-xs font-medium"
             style={{ backgroundColor: hsl(tokens.primary), color: hsl(tokens.primaryForeground) }}
           >
             <FormattedMessage {...common.send} />

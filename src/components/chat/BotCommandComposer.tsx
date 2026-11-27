@@ -327,7 +327,7 @@ export function BotCommandComposer({
           type="button"
           variant="ghost"
           size="icon"
-          className="ml-auto size-5 touch:size-11 shrink-0 clip-corner-lg"
+          className="ml-auto size-5 touch:size-11 shrink-0 rounded-2xl"
           aria-label={intl.formatMessage({ id: "botCommandComposer.cancel", defaultMessage: "Cancel command" })}
           onClick={onCancel}
         >
@@ -431,7 +431,7 @@ export function BotCommandComposer({
                       type="button"
                       data-highlighted={oi === menuIndex || undefined}
                       className={cn(
-                        "relative flex w-full items-center gap-1.5 menu-row clip-corner px-2 py-1.5 text-left text-sm",
+                        "relative flex w-full items-center gap-1.5 menu-row rounded-xl px-2 py-1.5 text-left text-sm",
                         oi === menuIndex ? "bg-foreground/[0.08]" : "hover:bg-foreground/[0.05]",
                         option.value === "" && "text-muted-foreground italic",
                       )}
@@ -459,7 +459,7 @@ export function BotCommandComposer({
           type="button"
           onClick={submit}
           aria-label={intl.formatMessage({ id: "botCommandComposer.send", defaultMessage: "Send command" })}
-          className="p-2 shrink-0 clip-corner-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity flex items-center justify-center size-9 touch:size-11"
+          className="p-2 shrink-0 rounded-2xl bg-primary text-primary-foreground hover:opacity-90 transition-opacity flex items-center justify-center size-9 touch:size-11"
         >
           <ArrowUpRight className="size-5" strokeWidth={2.5} />
         </button>

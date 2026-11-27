@@ -171,7 +171,7 @@ function ThemeCreatorForm({ editing, initial, onDone }: { editing?: UserTheme; i
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col items-center gap-2 text-center">
-        <div className="flex size-12 items-center justify-center clip-corner-lg bg-primary/15 text-primary">
+        <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
           <Palette className="size-6" />
         </div>
         <h2 className="chrome-dialog-title font-mono font-bold lowercase tracking-tight text-foreground">
@@ -208,7 +208,7 @@ function ThemeCreatorForm({ editing, initial, onDone }: { editing?: UserTheme; i
           />
           <FormattedMessage id="themeCreatorDialog.applyAsMine" defaultMessage="Apply as my theme" />
         </Label>
-        <Button className="w-full clip-corner-lg" onClick={publish} disabled={!canPublish}>
+        <Button className="w-full rounded-2xl" onClick={publish} disabled={!canPublish}>
           {publishing && <Loader2 className="size-4 animate-spin" />}
           {editing ? <FormattedMessage id="themeCreatorDialog.saveChanges" defaultMessage="Save changes" /> : <FormattedMessage id="themeCreatorDialog.publishTheme" defaultMessage="Publish theme" />}
         </Button>

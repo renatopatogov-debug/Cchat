@@ -94,7 +94,7 @@ export function StatusDialog({ open, onOpenChange }: StatusDialogProps) {
         }}
       >
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="flex size-12 items-center justify-center clip-corner-lg bg-primary/15 text-primary">
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
             <Smile className="size-6" />
           </div>
           <h2 className="chrome-dialog-title font-mono font-bold lowercase tracking-tight text-foreground">
@@ -181,7 +181,7 @@ export function StatusDialog({ open, onOpenChange }: StatusDialogProps) {
                     key={descriptor.id}
                     type="button"
                     onClick={() => setContent(preset)}
-                    className="clip-corner-lg bg-background/40 px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    className="rounded-2xl bg-background/40 px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                   >
                     {preset}
                   </button>
@@ -195,7 +195,7 @@ export function StatusDialog({ open, onOpenChange }: StatusDialogProps) {
               <Button
                 type="button"
                 variant="ghost"
-                className="mr-auto clip-corner-lg text-muted-foreground"
+                className="mr-auto rounded-2xl text-muted-foreground"
                 disabled={isPending}
                 onClick={() => save("")}
               >
@@ -205,12 +205,12 @@ export function StatusDialog({ open, onOpenChange }: StatusDialogProps) {
             <Button
               type="button"
               variant="ghost"
-              className="flex-1 clip-corner-lg"
+              className="flex-1 rounded-2xl"
               onClick={() => onOpenChange(false)}
             >
               <FormattedMessage {...common.cancel} />
             </Button>
-            <Button type="submit" className="flex-1 clip-corner-lg" disabled={isPending}>
+            <Button type="submit" className="flex-1 rounded-2xl" disabled={isPending}>
               {isPending ? (
                 <>
                   <Loader2 className="size-4 mr-2 animate-spin" /> <FormattedMessage {...common.saving} />

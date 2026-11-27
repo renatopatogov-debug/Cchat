@@ -207,7 +207,7 @@ export function SharePage() {
           </Button>
         </div>
 
-        <div className="bg-chrome clip-corner-lg p-3 space-y-2">
+        <div className="bg-chrome rounded-2xl p-3 space-y-2">
           {payload.text && (
             <p className="max-h-24 overflow-y-auto whitespace-pre-wrap break-words text-sm text-foreground/90 leading-relaxed">
               {payload.text}
@@ -229,7 +229,7 @@ export function SharePage() {
           )}
         </div>
 
-        <Command className="bg-chrome clip-corner-lg">
+        <Command className="bg-chrome rounded-2xl">
           <CommandInput placeholder={intl.formatMessage({ id: "sharePage.searchPlaceholder", defaultMessage: "Search conversations…" })} autoFocus />
           <CommandList className="max-h-none">
             <CommandEmpty>

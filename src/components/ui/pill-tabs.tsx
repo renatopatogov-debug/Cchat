@@ -34,7 +34,7 @@ export function PillTabs<T extends string>({
   return (
     <div
       className={cn(
-        "flex w-full items-center gap-1 p-1 clip-corner-lg bg-chrome",
+        "flex w-full items-center gap-1 p-1 rounded-2xl bg-chrome",
         !fill && "overflow-x-auto sm:w-auto sm:shrink-0",
         className,
       )}
@@ -51,7 +51,7 @@ export function PillTabs<T extends string>({
             aria-pressed={isActive}
             aria-label={t.label}
             className={cn(
-              "flex items-center justify-center overflow-hidden py-1.5 text-sm clip-corner-lg touch:py-2.5",
+              "flex items-center justify-center overflow-hidden py-1.5 text-sm rounded-2xl touch:py-2.5",
               fill ? "min-w-0 flex-1 px-3" : "px-2 sm:flex-none sm:px-3",
               // Fixed labels: nothing resizes, so only the colors change.
               fixed ? "transition-colors" : "transition-all duration-200 ease-out motion-reduce:transition-none",

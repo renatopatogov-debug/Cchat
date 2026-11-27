@@ -99,7 +99,7 @@ function RunningApp({
   const renderStage = (sync: AppSync) => {
     const stage = (
       <div className="mx-gutter mt-3">
-        <div className="clip-corner-lg bg-chrome overflow-hidden">
+        <div className="rounded-2xl bg-chrome overflow-hidden">
           {/* The pinned bar's header: an uppercase label, then compact ghost actions. */}
           <div className="flex items-center gap-1.5 pl-3 pr-1.5 py-1.5">
             {icon}

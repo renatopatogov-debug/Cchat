@@ -76,7 +76,7 @@ export function MediaFallback({
     return (
       <div
         className={cn(
-          "my-1.5 flex max-w-sm items-center gap-2.5 clip-hairline-lg [--edge:var(--border)/0.5] [--fill:var(--muted)/0.4] [--fill-hover:var(--muted)/0.4] px-3 py-2.5",
+          "my-1.5 flex max-w-sm items-center gap-2.5 rounded-2xl border border-border/70 bg-card/60 [--edge:var(--border)/0.5] [--fill:var(--muted)/0.4] [--fill-hover:var(--muted)/0.4] px-3 py-2.5",
           className,
         )}
         onClick={(e) => e.stopPropagation()}
@@ -92,7 +92,7 @@ export function MediaFallback({
         <button
           type="button"
           onClick={decrypt}
-          className="shrink-0 clip-corner-lg px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10 transition-colors touch:min-h-11"
+          className="shrink-0 rounded-2xl px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10 transition-colors touch:min-h-11"
         >
           <FormattedMessage id="mediaFallback.decryptAnyway" defaultMessage="Decrypt anyway" />
         </button>
@@ -127,7 +127,7 @@ export function MediaFallback({
   return (
     <div
       className={cn(
-        "my-1.5 flex max-w-sm items-center gap-2.5 clip-hairline-lg [--edge:var(--border)/0.5] [--fill:var(--muted)/0.4] [--fill-hover:var(--muted)/0.4] px-3 py-2.5",
+        "my-1.5 flex max-w-sm items-center gap-2.5 rounded-2xl border border-border/70 bg-card/60 [--edge:var(--border)/0.5] [--fill:var(--muted)/0.4] [--fill-hover:var(--muted)/0.4] px-3 py-2.5",
         className,
       )}
       onClick={(e) => e.stopPropagation()}

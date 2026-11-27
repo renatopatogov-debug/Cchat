@@ -403,7 +403,7 @@ const msg = defineMessages({
   file: { id: "chatComposer.file", defaultMessage: "File" },
 });
 
-const plusButtonClass = "p-2 shrink-0 clip-corner-lg transition-colors flex items-center justify-center size-9 touch:size-11";
+const plusButtonClass = "p-2 shrink-0 rounded-2xl transition-colors flex items-center justify-center size-9 touch:size-11";
 const preventCloseAutoFocus = (e: Event) => e.preventDefault();
 
 // The toolbar is memoized apart from the composer, which re-renders per keystroke:
@@ -487,7 +487,7 @@ const PickerToggleButton = memo(function PickerToggleButton({
           onClick={onClick}
           aria-label={label}
           className={cn(
-            "p-2 shrink-0 clip-corner-lg transition-colors flex items-center justify-center size-9 touch:size-11",
+            "p-2 shrink-0 rounded-2xl transition-colors flex items-center justify-center size-9 touch:size-11",
             active ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-secondary",
           )}
         >
@@ -2266,7 +2266,7 @@ function ChatComposerBody({ relayUrl, groupId, messages, replyTo, onCancelReply,
       onDrop={handleDrop}
     >
       {isDragging && (
-        <div className="absolute inset-0 z-30 m-1 flex items-center justify-center clip-hairline-lg [--edge:var(--primary)/0.6] [--fill:var(--primary)/0.1] [--fill-hover:var(--primary)/0.1] backdrop-blur-sm pointer-events-none animate-in fade-in-0 duration-150">
+        <div className="absolute inset-0 z-30 m-1 flex items-center justify-center rounded-2xl border border-border/70 bg-card/60 [--edge:var(--primary)/0.6] [--fill:var(--primary)/0.1] [--fill-hover:var(--primary)/0.1] backdrop-blur-sm pointer-events-none animate-in fade-in-0 duration-150">
           <div className="flex items-center gap-2 text-sm font-medium text-primary">
             <Paperclip className="size-4" />
             <FormattedMessage id="chatComposer.dropFiles" defaultMessage="Drop files to upload" />
@@ -2303,7 +2303,7 @@ function ChatComposerBody({ relayUrl, groupId, messages, replyTo, onCancelReply,
 
       <div className="px-gutter pt-1.5 sidebar:py-2">
         {voiceRecorder.isRecording || isPublishingVoice ? (
-          <div className="flex items-center gap-3 clip-hairline-lg [--edge:var(--destructive)/0.2] [--fill:var(--destructive)/0.05] [--fill-hover:var(--destructive)/0.05] px-3 py-2.5">
+          <div className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card/60 [--edge:var(--destructive)/0.2] [--fill:var(--destructive)/0.05] [--fill-hover:var(--destructive)/0.05] px-3 py-2.5">
             <div className="flex items-center gap-2 min-w-0">
               <div className="size-2.5 rounded-full bg-destructive animate-pulse shrink-0" />
               <span className="text-sm font-medium tabular-nums text-destructive">
@@ -2330,7 +2330,7 @@ function ChatComposerBody({ relayUrl, groupId, messages, replyTo, onCancelReply,
                   type="button"
                   onClick={voiceRecorder.cancelRecording}
                   disabled={isPublishingVoice}
-                  className="p-2 touch:p-3.5 clip-corner-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40"
+                  className="p-2 touch:p-3.5 rounded-2xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40"
                 >
                   <X className="size-[18px]" />
                 </button>
@@ -2343,7 +2343,7 @@ function ChatComposerBody({ relayUrl, groupId, messages, replyTo, onCancelReply,
             <Button
               onClick={handleStopAndSendVoice}
               disabled={isPublishingVoice || voiceRecorder.recordingDuration < 0.5}
-              className="clip-corner-lg px-4 font-bold"
+              className="rounded-2xl px-4 font-bold"
               size="sm"
             >
               {isPublishingVoice
@@ -2377,7 +2377,7 @@ function ChatComposerBody({ relayUrl, groupId, messages, replyTo, onCancelReply,
             <div
               className={cn(
                 // Touch: the 44px controls with an even 4px inset.
-                "clip-corner-lg bg-secondary/60 px-1.5 py-1.5 touch:p-1",
+                "rounded-2xl bg-secondary/60 px-1.5 py-1.5 touch:p-1",
                 isDocument ? "flex flex-wrap items-center gap-0.5 touch:gap-1.5" : "flex items-end gap-0.5 touch:gap-1.5",
               )}
             >
@@ -2529,7 +2529,7 @@ function ChatComposerBody({ relayUrl, groupId, messages, replyTo, onCancelReply,
                     onPointerDown={(e) => e.preventDefault()}
                     onClick={mode === "poll" ? handlePollSubmit : handleSend}
                     disabled={isUploading || (mode === "poll" ? !isPollValid || isSending : !hasContent)}
-                    className={cn("clip-corner-lg h-9 px-4 font-semibold touch:h-11", !onCancel && "ml-auto")}
+                    className={cn("rounded-2xl h-9 px-4 font-semibold touch:h-11", !onCancel && "ml-auto")}
                   >
                     {isUploading || (mode === "poll" && isSending) ? <Loader2 className="size-4 animate-spin" /> : null}
                     {mode === "poll" ? intl.formatMessage(msg.publishPoll) : (submitLabel ?? intl.formatMessage({ id: "chatComposer.post", defaultMessage: "Post" }))}
@@ -2542,7 +2542,7 @@ function ChatComposerBody({ relayUrl, groupId, messages, replyTo, onCancelReply,
                       type="button"
                       onClick={handleStartRecording}
                       aria-label={intl.formatMessage(msg.voiceMessage)}
-                      className="p-2 shrink-0 clip-corner-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors flex items-center justify-center size-9 touch:size-11"
+                      className="p-2 shrink-0 rounded-2xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors flex items-center justify-center size-9 touch:size-11"
                     >
                       <Mic className="size-5" />
                     </button>
@@ -2566,7 +2566,7 @@ function ChatComposerBody({ relayUrl, groupId, messages, replyTo, onCancelReply,
                         ? intl.formatMessage(msg.publishPoll)
                         : intl.formatMessage({ id: "chatComposer.sendMessage", defaultMessage: "Send message" })
                   }
-                  className="p-2 shrink-0 clip-corner-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-40 disabled:bg-transparent disabled:text-muted-foreground flex items-center justify-center size-9 touch:size-11"
+                  className="p-2 shrink-0 rounded-2xl bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-40 disabled:bg-transparent disabled:text-muted-foreground flex items-center justify-center size-9 touch:size-11"
                 >
                   {isUploading || (mode === "poll" && isSending)
                     ? <Loader2 className="size-4 animate-spin" />
@@ -2606,7 +2606,7 @@ function ChatComposerBody({ relayUrl, groupId, messages, replyTo, onCancelReply,
                       type="button"
                       aria-label={intl.formatMessage({ id: "chatComposer.closePoll", defaultMessage: "Close poll" })}
                       onClick={() => setMode("post")}
-                      className="p-1 touch:p-2.5 clip-corner-lg text-muted-foreground hover:text-foreground transition-colors"
+                      className="p-1 touch:p-2.5 rounded-2xl text-muted-foreground hover:text-foreground transition-colors"
                     >
                       <X className="size-3.5" />
                     </button>
@@ -2623,7 +2623,7 @@ function ChatComposerBody({ relayUrl, groupId, messages, replyTo, onCancelReply,
                           )}
                         placeholder={intl.formatMessage({ id: "chatComposer.optionN", defaultMessage: "Option {number}" }, { number: idx + 1 })}
                         maxLength={100}
-                        className="flex-1 bg-secondary/40 clip-corner-lg px-3 py-1.5 text-sm outline-none focus:bg-secondary/70 transition-colors placeholder:text-muted-foreground"
+                        className="flex-1 bg-secondary/40 rounded-2xl px-3 py-1.5 text-sm outline-none focus:bg-secondary/70 transition-colors placeholder:text-muted-foreground"
                       />
                       <button
                         type="button"
@@ -2634,7 +2634,7 @@ function ChatComposerBody({ relayUrl, groupId, messages, replyTo, onCancelReply,
                           }
                         }}
                         disabled={pollOptions.length <= 2}
-                        className="p-1 touch:p-2.5 clip-corner-lg text-muted-foreground hover:text-destructive transition-colors disabled:opacity-20"
+                        className="p-1 touch:p-2.5 rounded-2xl text-muted-foreground hover:text-destructive transition-colors disabled:opacity-20"
                       >
                         <X className="size-3.5" />
                       </button>
@@ -2660,7 +2660,7 @@ function ChatComposerBody({ relayUrl, groupId, messages, replyTo, onCancelReply,
                       type="button"
                       onClick={() => setPollType(t)}
                       className={cn(
-                        "text-xs px-2.5 py-1 touch:px-3.5 touch:py-2 clip-corner-lg transition-colors",
+                        "text-xs px-2.5 py-1 touch:px-3.5 touch:py-2 rounded-2xl transition-colors",
                         pollType === t
                           ? "bg-primary/10 text-primary font-medium"
                           : "bg-secondary text-muted-foreground hover:text-foreground",
@@ -2680,7 +2680,7 @@ function ChatComposerBody({ relayUrl, groupId, messages, replyTo, onCancelReply,
                       type="button"
                       onClick={() => setPollDuration(d)}
                       className={cn(
-                        "text-xs px-2.5 py-1 touch:px-3.5 touch:py-2 clip-corner-lg transition-colors",
+                        "text-xs px-2.5 py-1 touch:px-3.5 touch:py-2 rounded-2xl transition-colors",
                         pollDuration === d
                           ? "bg-primary/10 text-primary font-medium"
                           : "bg-secondary text-muted-foreground hover:text-foreground",
@@ -2802,7 +2802,7 @@ function ReplyBanner({ event, onCancel, onJump }: { event: NostrRumor; onCancel?
   const intl = useIntl();
 
   return (
-    <div className="flex items-center gap-2 clip-corner-lg bg-secondary/50 py-2 pl-2.5 pr-1 text-sm animate-in slide-in-from-top-2 fade-in-0 duration-200">
+    <div className="flex items-center gap-2 rounded-2xl bg-secondary/50 py-2 pl-2.5 pr-1 text-sm animate-in slide-in-from-top-2 fade-in-0 duration-200">
       <button
         type="button"
         disabled={!onJump}
@@ -2835,7 +2835,7 @@ function ReplyBanner({ event, onCancel, onJump }: { event: NostrRumor; onCancel?
         type="button"
         aria-label={intl.formatMessage({ id: "chatComposer.cancelReply", defaultMessage: "Cancel reply" })}
         onClick={onCancel}
-        className="-mr-0.5 flex size-8 touch:size-11 items-center justify-center clip-corner-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors shrink-0"
+        className="-mr-0.5 flex size-8 touch:size-11 items-center justify-center rounded-2xl text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors shrink-0"
       >
         <X className="size-4" />
       </button>
@@ -2857,7 +2857,7 @@ function QuoteBanner({ embed, onRemove }: { embed: DetectedEmbed; onRemove: () =
   const intl = useIntl();
 
   return (
-    <div className="flex items-center gap-2 clip-corner-lg bg-secondary/50 py-2 pl-2.5 pr-1 text-sm animate-in slide-in-from-top-2 fade-in-0 duration-200">
+    <div className="flex items-center gap-2 rounded-2xl bg-secondary/50 py-2 pl-2.5 pr-1 text-sm animate-in slide-in-from-top-2 fade-in-0 duration-200">
       <Quote className="size-4 text-muted-foreground shrink-0" />
       {event ? (
         <QuoteBannerBody event={event} />
@@ -2874,7 +2874,7 @@ function QuoteBanner({ embed, onRemove }: { embed: DetectedEmbed; onRemove: () =
         type="button"
         aria-label={intl.formatMessage({ id: "chatComposer.removeQuote", defaultMessage: "Remove quote" })}
         onClick={onRemove}
-        className="-mr-0.5 flex size-8 touch:size-11 items-center justify-center clip-corner-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors shrink-0"
+        className="-mr-0.5 flex size-8 touch:size-11 items-center justify-center rounded-2xl text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors shrink-0"
       >
         <X className="size-4" />
       </button>

@@ -444,14 +444,7 @@
 }
 
 /*
- * ── Armada "Corsair" — angular neon HUD primitives ───────────────────────
- * A duelist's deck under neon. These build on the runtime --primary token so
- * the glow / accents retint automatically with any selected theme.
- *
- *   .neon-glow / .neon-glow-strong  — rose-magenta halo for active/focus.
- *   .clip-corner / .clip-corner-lg  — cut-corner (beveled) dueling-HUD panels.
- *   .gutter-tick                    — glowing left tick for chart-rule nav,
- *                                     hidden until .is-active or :hover.
+ * ── Cchat Signal UI — rounded surfaces, popovers & reply connectors ─────────
  */
 @layer utilities {
   .neon-glow {
@@ -460,7 +453,6 @@
   .neon-glow-strong {
     box-shadow: 0 4px 16px -2px hsl(var(--primary) / 0.35);
   }
-  /* Clean text/icon accents (replaces neon halo). */
   .neon-text {
     color: hsl(var(--primary));
   }
@@ -471,134 +463,23 @@
     color: hsl(var(--accent2));
   }
 
-  /*
-   * Cut-corner panel — the single consistent "vessel" shape. The body is
-   * rounded (border-radius on the rounded corners) while two opposite corners
-   * are sliced into a flat diagonal chamfer. Achieved by rounding the whole
-   * element and then clipping the two cut corners with a polygon; the rounded
-   * corners survive because the polygon leaves them at full extent. Used for
-   * ALL chrome: server icons, the floating top bar, and the roster card.
-   * People (avatars) stay round; vessels and chrome are cut-square.
-   */
-  .clip-corner-lg {
-    border-radius: 1rem;
-  }
-  /* Soft Signal-style rounded pill/row scale (replaces octagon chamfers). */
-  .clip-corner {
-    border-radius: 0.75rem;
-  }
-
-  /*
-   * A floating cut-corner vessel with a hairline (menus, tooltips, toasts). The edge is
-   * an inset shadow plus a diagonal stroke painted into each chamfer, all
-   * BACKGROUND layers, so it stays put when the element scrolls — a
-   * pseudo-element frame (clip-hairline-lg) would scroll away with a long
-   * menu's content. clip-path cuts any shadow of its own; lift it with
-   * `.vessel-lift` on a parent.
-   */
+  /* Clean rounded floating surface (menus, tooltips, popovers, toasts). */
   .vessel {
-    --cut: var(--vessel-cut, 0.6rem);
-    border-radius: 0.5rem;
-    clip-path: polygon(
-      var(--cut) 0,
-      100% 0,
-      100% calc(100% - var(--cut)),
-      calc(100% - var(--cut)) 100%,
-      0 100%,
-      0 var(--cut)
-    );
-    background:
-      linear-gradient(135deg, transparent calc(50% - 1px), var(--vessel-edge, hsl(var(--border) / 0.45)) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px)) top left / var(--cut) var(--cut) no-repeat,
-      linear-gradient(135deg, transparent calc(50% - 1px), var(--vessel-edge, hsl(var(--border) / 0.45)) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px)) bottom right / var(--cut) var(--cut) no-repeat,
-      var(--vessel-fill, hsl(var(--popover)));
-    box-shadow: inset 0 0 0 1px var(--vessel-edge, hsl(var(--border) / 0.45));
-  }
-  /* A 2px edge for a `clip-corner-lg` tile, diagonals included (an inset ring alone
-     stops at the chamfers). Lay it over the tile as an overlay. */
-  .clip-corner-lg-ring {
-    border-radius: 1rem;
-    box-shadow: inset 0 0 0 2px var(--ring-edge);
+    border-radius: 0.875rem;
+    background: var(--vessel-fill, hsl(var(--popover)));
+    border: 1px solid var(--vessel-edge, hsl(var(--border) / 0.55));
   }
   .vessel-lift {
-    filter: drop-shadow(0 10px 22px rgb(0 0 0 / 0.32)) drop-shadow(0 2px 5px rgb(0 0 0 / 0.22));
+    filter: drop-shadow(0 10px 22px rgb(0 0 0 / 0.24)) drop-shadow(0 2px 5px rgb(0 0 0 / 0.14));
   }
   /* Radix positions menus inside a wrapper it renders itself. */
   [data-radix-popper-content-wrapper]:has(> .vessel) {
-    filter: drop-shadow(0 10px 22px rgb(0 0 0 / 0.32)) drop-shadow(0 2px 5px rgb(0 0 0 / 0.22));
+    filter: drop-shadow(0 10px 22px rgb(0 0 0 / 0.24)) drop-shadow(0 2px 5px rgb(0 0 0 / 0.14));
   }
 
-  /* Menu row: chamfered highlight plus the gutter tick, lit by Radix's
-     data-highlighted so keyboard focus shows it as well as hover. The cut and
-     radius sit concentric inside a `.vessel` at its 4px (`p-1`) padding: a 45°
-     chamfer inset by d shrinks by d·(2−√2). */
+  /* Menu row with soft rounded corners. */
   .menu-row {
-    --cut: calc(var(--vessel-cut, 0.6rem) - 0.15rem);
-    border-radius: 0.25rem;
-  }
-  .menu-row::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 50%;
-    width: 2px;
-    height: 0;
-    border-radius: 2px;
-    transform: translateY(-50%);
-    background: hsl(var(--primary));
-    box-shadow: 0 0 8px hsl(var(--primary) / 0.7);
-    opacity: 0;
-    transition: height 120ms ease, opacity 120ms ease;
-  }
-  .menu-row[data-highlighted]::before,
-  .menu-row[data-selected="true"]::before,
-  .menu-row[data-state="open"]::before {
-    height: 55%;
-    opacity: 1;
-  }
-
-  /*
-   * A hairline frame for a cut-corner vessel. A plain `border` CANNOT be used
-   * with clip-corner-*: clip-path slices the rectangular border off along the
-   * two chamfered corners, leaving them bare — the shorter the element, the
-   * more of it that is. This traces the chamfer instead. The element's own
-   * background is the frame colour and fills the whole clipped shape; an inset
-   * ::before, clipped to the SAME polygon on a 1px-smaller box, lays the
-   * translucent fill back over everything but a 1px edge that follows the cut.
-   * `--fill`/`--edge` are overridable; content stays above the fill (the pseudo
-   * is at z-index:-1 within the element's own isolated stacking context).
-   */
-  .clip-hairline-lg {
-    --fill: var(--background) / 0.4;
-    --fill-hover: var(--background) / 0.6;
-    --edge: var(--border) / 0.7;
-    --fill-base: var(--background);
-    isolation: isolate;
-    border-radius: 1rem;
-    background: hsl(var(--edge));
-  }
-  :where(.clip-hairline-lg) {
-    position: relative;
-  }
-  .clip-hairline-lg::before {
-    content: "";
-    position: absolute;
-    inset: 1px;
-    z-index: -1;
-    border-radius: calc(1rem - 1px);
-    background-color: hsl(var(--fill-base));
-    background-image: linear-gradient(hsl(var(--fill)), hsl(var(--fill)));
-  }
-  .clip-hairline-lg:hover::before {
-    background-image: linear-gradient(hsl(var(--fill-hover)), hsl(var(--fill-hover)));
-  }
-  :is(.bg-chrome, .chrome-dialog) .clip-hairline-lg {
-    --fill-base: var(--chrome);
-  }
-  .bg-chrome-deep .clip-hairline-lg {
-    --fill-base: var(--chrome-deep);
-  }
-  .vessel .clip-hairline-lg {
-    --fill-base: var(--popover);
+    border-radius: 0.5rem;
   }
 
   /*

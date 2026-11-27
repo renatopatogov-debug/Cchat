@@ -1637,7 +1637,7 @@ function CallHero({
         ref={boxRef}
         role="region"
         aria-label={intl.formatMessage(msg.call)}
-        className="relative clip-corner-lg overflow-hidden bg-chrome-deep shadow-lg"
+        className="relative rounded-2xl overflow-hidden bg-chrome-deep shadow-lg"
       >
         {backdrop}
         {theaterToggle}
@@ -2352,7 +2352,7 @@ export function CallStage({
       style={{ maxHeight: dockedHeight + 16 }}
     >
       <div
-        className="clip-corner-lg bg-chrome-deep shadow-lg flex flex-col"
+        className="rounded-2xl bg-chrome-deep shadow-lg flex flex-col"
         style={{ height: dockedHeight }}
       >
         {header}

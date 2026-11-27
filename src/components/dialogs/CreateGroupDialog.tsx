@@ -119,7 +119,7 @@ export function CreateGroupDialog({ relayUrl, open, onOpenChange }: CreateGroupD
     <Dialog open={open} onOpenChange={onOpenChange}>
       <ChromeDialogContent title={intl.formatMessage({ id: "createGroupDialog.title", defaultMessage: "Create a channel" })}>
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="flex size-12 items-center justify-center clip-corner-lg bg-primary/15 text-primary">
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
             <Hash className="size-6" />
           </div>
           <h2 className="chrome-dialog-title font-mono font-bold lowercase tracking-tight text-foreground">
@@ -232,10 +232,10 @@ export function CreateGroupDialog({ relayUrl, open, onOpenChange }: CreateGroupD
           )}
 
           <div className="flex gap-2 pt-1">
-            <Button type="button" variant="ghost" className="flex-1 clip-corner-lg" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="ghost" className="flex-1 rounded-2xl" onClick={() => onOpenChange(false)}>
               <FormattedMessage {...common.cancel} />
             </Button>
-            <Button type="submit" className="flex-1 clip-corner-lg" disabled={pending || !name.trim()}>
+            <Button type="submit" className="flex-1 rounded-2xl" disabled={pending || !name.trim()}>
               {pending ? (
                 <>
                   <Loader2 className="size-4 mr-2 animate-spin" /> <FormattedMessage id="createGroupDialog.creating" defaultMessage="Creating…" />
@@ -265,12 +265,12 @@ export function PrivacyToggle({ id, icon, title, description, checked, onChecked
     <label
       htmlFor={id}
       className={cn(
-        "flex items-center gap-3 clip-corner-lg p-3 cursor-pointer transition-colors",
+        "flex items-center gap-3 rounded-2xl p-3 cursor-pointer transition-colors",
         checked ? "bg-primary/10" : "bg-background/40 hover:bg-background/70",
       )}
     >
       <span className={cn(
-        "flex size-9 shrink-0 items-center justify-center clip-corner-lg transition-colors",
+        "flex size-9 shrink-0 items-center justify-center rounded-2xl transition-colors",
         checked ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground",
       )}>
         {icon}

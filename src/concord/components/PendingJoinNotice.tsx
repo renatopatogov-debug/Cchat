@@ -40,7 +40,7 @@ export function PendingJoinNotice({ state, onRetry }: { state: PendingJoinState 
         )}
       </span>
       {!signing && (
-        <Button variant="secondary" size="sm" className="h-7 px-2.5 shrink-0 clip-corner-lg" onClick={onRetry}>
+        <Button variant="secondary" size="sm" className="h-7 px-2.5 shrink-0 rounded-2xl" onClick={onRetry}>
           <RotateCw className="size-3.5" />
           <FormattedMessage {...common.retry} />
         </Button>

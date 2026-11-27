@@ -147,7 +147,7 @@ export function InvitePeopleDialog({ relayUrl, group, open, onOpenChange }: Invi
         )}
       >
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="flex size-12 items-center justify-center clip-corner-lg bg-primary/15 text-primary">
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
             <PartyPopper className="size-6" />
           </div>
           <h2 className="chrome-dialog-title font-mono font-bold lowercase tracking-tight text-foreground">
@@ -181,7 +181,7 @@ export function InvitePeopleDialog({ relayUrl, group, open, onOpenChange }: Invi
               <button
                 type="button"
                 onClick={copy}
-                className="group w-full min-w-0 max-w-full overflow-hidden flex items-center gap-2 clip-corner-lg bg-background/40 px-3 py-3 text-left transition-colors hover:bg-background/70"
+                className="group w-full min-w-0 max-w-full overflow-hidden flex items-center gap-2 rounded-2xl bg-background/40 px-3 py-3 text-left transition-colors hover:bg-background/70"
               >
                 <Link2 className="size-4 shrink-0 text-muted-foreground" />
                 <span className="flex-1 min-w-0 truncate font-mono text-sm">{url}</span>
@@ -191,13 +191,13 @@ export function InvitePeopleDialog({ relayUrl, group, open, onOpenChange }: Invi
               </button>
 
               <div className="flex gap-2">
-                <Button className="flex-1 clip-corner-lg" onClick={copy}>
+                <Button className="flex-1 rounded-2xl" onClick={copy}>
                   {copied
                     ? <><Check className="size-4 mr-2" /> <FormattedMessage {...common.copied} /></>
                     : <><Copy className="size-4 mr-2" /> <FormattedMessage {...common.copyLink} /></>}
                 </Button>
                 {showShare && (
-                  <Button variant="outline" className="clip-corner-lg" onClick={share} aria-label={intl.formatMessage(common.share)}>
+                  <Button variant="outline" className="rounded-2xl" onClick={share} aria-label={intl.formatMessage(common.share)}>
                     <Share2 className="size-4" />
                   </Button>
                 )}

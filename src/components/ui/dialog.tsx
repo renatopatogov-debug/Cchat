@@ -93,7 +93,7 @@ const ChromeDialogContent = React.forwardRef<
     {...props}
   >
     <DialogTitle className="sr-only">{title}</DialogTitle>
-    <div className={cn("chrome-dialog clip-corner-lg bg-chrome p-5 sm:p-7 relative", contentClassName)}>
+    <div className={cn("chrome-dialog rounded-2xl bg-chrome p-5 sm:p-7 relative", contentClassName)}>
       {children}
     </div>
   </DialogContent>
@@ -121,7 +121,7 @@ const ChromeDialogHeader = ({
   className?: string
 }) => (
   <div className={cn("flex flex-col items-center gap-2 text-center", className)}>
-    <div className={cn("flex size-12 items-center justify-center clip-corner-lg", CHROME_TONES[tone])}>
+    <div className={cn("flex size-12 items-center justify-center rounded-2xl", CHROME_TONES[tone])}>
       <Icon className="size-6" />
     </div>
     <h2 className="chrome-dialog-title font-mono font-bold lowercase tracking-tight text-foreground">
@@ -134,7 +134,7 @@ ChromeDialogHeader.displayName = "ChromeDialogHeader"
 
 /** Equal-width cut-corner actions under a chrome dialog body. */
 const ChromeDialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("mt-6 flex items-center gap-2 [&>*]:flex-1 [&>*]:clip-corner-lg", className)} {...props} />
+  <div className={cn("mt-6 flex items-center gap-2 [&>*]:flex-1 [&>*]:rounded-2xl", className)} {...props} />
 )
 ChromeDialogFooter.displayName = "ChromeDialogFooter"
 

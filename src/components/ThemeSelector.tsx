@@ -124,19 +124,19 @@ function ThemeTile({ label, active, onClick, preview, note, action }: TileProps)
         type="button"
         onClick={onClick}
         aria-pressed={active}
-        className="group/tile relative flex w-full flex-col items-stretch gap-1.5 clip-corner-lg p-1.5 text-left transition-colors hover:bg-secondary/60"
+        className="group/tile relative flex w-full flex-col items-stretch gap-1.5 rounded-2xl p-1.5 text-left transition-colors hover:bg-secondary/60"
       >
         {/* Drawn inside: an outer ring would be cut off by the tile's clip-path. */}
         <span
           aria-hidden
           className={cn(
-            "pointer-events-none absolute inset-0 z-[1] clip-corner-lg-ring transition-opacity",
+            "pointer-events-none absolute inset-0 z-[1] rounded-2xl ring-2 ring-[var(--ring-edge)] transition-opacity",
             active
               ? "[--ring-edge:hsl(var(--primary))]"
               : "opacity-0 [--ring-edge:hsl(var(--border))] group-hover/tile:opacity-100 group-focus-visible/tile:opacity-100",
           )}
         />
-        <div className="relative aspect-[4/3] w-full overflow-hidden clip-corner">
+        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl">
           {preview}
           {active && (
             <span className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-primary text-primary-foreground">
@@ -170,9 +170,9 @@ function NewThemeTile({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="group/tile flex w-full flex-col items-stretch gap-1.5 clip-corner-lg p-1.5 text-left transition-colors hover:bg-secondary/60"
+      className="group/tile flex w-full flex-col items-stretch gap-1.5 rounded-2xl p-1.5 text-left transition-colors hover:bg-secondary/60"
     >
-      <div className="flex aspect-[4/3] w-full items-center justify-center clip-corner bg-secondary/60 text-muted-foreground transition-colors group-hover/tile:text-primary">
+      <div className="flex aspect-[4/3] w-full items-center justify-center rounded-xl bg-secondary/60 text-muted-foreground transition-colors group-hover/tile:text-primary">
         <Plus className="size-6" />
       </div>
       <span className="truncate px-0.5 text-xs font-medium">
@@ -352,7 +352,7 @@ function LocalThemeBuilderDialog({
     <Dialog open onOpenChange={onOpenChange}>
       <ChromeDialogContent title={intl.formatMessage({ id: "themeSelector.builder.dialogTitle", defaultMessage: "Custom theme" })}>
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="flex size-12 items-center justify-center clip-corner-lg bg-primary/15 text-primary">
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
             <Palette className="size-6" />
           </div>
           <h2 className="chrome-dialog-title font-mono font-bold lowercase tracking-tight text-foreground">
@@ -385,11 +385,11 @@ function LocalThemeBuilderDialog({
           <ThemeBackgroundField value={background} onChange={setBackground} onUploadingChange={setUploading} />
 
           <div className="flex gap-2 pt-1">
-            <Button type="button" variant="ghost" className="flex-1 clip-corner-lg" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="ghost" className="flex-1 rounded-2xl" onClick={() => onOpenChange(false)}>
               <FormattedMessage {...common.cancel} />
             </Button>
             <Button
-              className="flex-1 clip-corner-lg"
+              className="flex-1 rounded-2xl"
               disabled={uploading}
               onClick={() => {
                 // The creator stays credited only while the theme is still their work.

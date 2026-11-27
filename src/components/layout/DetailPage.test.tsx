@@ -9,7 +9,6 @@ vi.mock("react-router-dom", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-router-dom")>()),
   useNavigate: () => h.navigate,
 }));
-vi.mock("@/components/layout/ServerRail", () => ({ ServerRail: () => null }));
 
 function clickBack(state: unknown) {
   window.history.replaceState(state, "");

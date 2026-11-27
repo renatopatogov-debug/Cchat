@@ -464,7 +464,7 @@ function EmojiPackForm({ editEvent, onDone }: { editEvent?: NostrRumor; onDone: 
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col items-center gap-2 text-center">
-        <div className="flex size-12 items-center justify-center clip-corner-lg bg-primary/15 text-primary">
+        <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
           <Smile className="size-6" />
         </div>
         <h2 className="chrome-dialog-title font-mono font-bold lowercase tracking-tight text-foreground">
@@ -493,7 +493,7 @@ function EmojiPackForm({ editEvent, onDone }: { editEvent?: NostrRumor; onDone: 
           disabled={busy}
           aria-label={intl.formatMessage({ id: "emojiPackDialog.packIcon", defaultMessage: "Pack icon" })}
           className={cn(
-            "flex size-14 shrink-0 items-center justify-center overflow-hidden clip-corner-lg transition-colors",
+            "flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl transition-colors",
             icon
               ? "bg-secondary/40"
               : "bg-secondary/40 text-muted-foreground hover:bg-secondary/70 hover:text-foreground",
@@ -600,7 +600,7 @@ function EmojiPackForm({ editEvent, onDone }: { editEvent?: NostrRumor; onDone: 
             onDrop={onDrop}
             disabled={busy}
             className={cn(
-              "flex w-full flex-col items-center gap-2 clip-corner-lg px-6 py-8 text-center transition-colors",
+              "flex w-full flex-col items-center gap-2 rounded-2xl px-6 py-8 text-center transition-colors",
               dragging
                 ? "bg-primary/15 text-foreground"
                 : "bg-secondary/40 text-muted-foreground hover:bg-secondary/70",
@@ -627,7 +627,7 @@ function EmojiPackForm({ editEvent, onDone }: { editEvent?: NostrRumor; onDone: 
             onDragLeave={() => setDragging(false)}
             onDrop={onDrop}
             className={cn(
-              "relative max-h-56 space-y-1.5 overflow-y-auto scrollbar-stable clip-corner-lg p-1.5 transition-colors",
+              "relative max-h-56 space-y-1.5 overflow-y-auto scrollbar-stable rounded-2xl p-1.5 transition-colors",
               dragging ? "bg-primary/10" : "bg-foreground/5",
             )}
           >
@@ -770,7 +770,7 @@ function EmojiPackForm({ editEvent, onDone }: { editEvent?: NostrRumor; onDone: 
             <FormattedMessage id="emojiPackDialog.addToMine" defaultMessage="Add to my emojis" />
           </Label>
         )}
-        <Button className="w-full clip-corner-lg" onClick={publish} disabled={!canPublish}>
+        <Button className="w-full rounded-2xl" onClick={publish} disabled={!canPublish}>
           {busy && <Loader2 className="size-4 animate-spin" />}
           {isEditMode ? <FormattedMessage id="emojiPackDialog.updatePack" defaultMessage="Update pack" /> : <FormattedMessage id="emojiPackDialog.publishPack" defaultMessage="Publish pack" />}
         </Button>

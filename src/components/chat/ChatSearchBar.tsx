@@ -50,7 +50,7 @@ export function ChatSearchBar({
     <div
       className={cn(
         "absolute inset-y-0 right-0 left-10 sidebar:left-0 z-10 flex items-center gap-1.5 px-2 sidebar:px-3",
-        "bg-chrome clip-corner-lg overflow-hidden",
+        "bg-chrome rounded-2xl overflow-hidden",
         "transition-transform duration-300 ease-in-out",
         open ? "transform-none pointer-events-auto" : "translate-x-full pointer-events-none",
       )}

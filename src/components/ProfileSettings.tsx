@@ -960,7 +960,7 @@ export function ProfileSettings({ onSaved, saveLabel, centerSave, showNip05 = tr
                   control={form.control}
                   name="bot"
                   render={({ field }) => (
-                    <FormItem className="flex items-center justify-between clip-hairline-lg [--edge:var(--border)/0.5] [--fill:var(--card)] [--fill-hover:var(--card)] p-3">
+                    <FormItem className="flex items-center justify-between rounded-2xl border border-border/70 bg-card/60 [--edge:var(--border)/0.5] [--fill:var(--card)] [--fill-hover:var(--card)] p-3">
                       <div>
                         <FormLabel className="text-sm">
                           <FormattedMessage id="profileSettings.bot" defaultMessage="Bot Account" />
@@ -982,7 +982,7 @@ export function ProfileSettings({ onSaved, saveLabel, centerSave, showNip05 = tr
           </Collapsible>
 
           <div className={centerSave ? 'flex justify-center' : undefined}>
-            <Button type="submit" disabled={busy} className="w-full sm:w-auto clip-corner-lg">
+            <Button type="submit" disabled={busy} className="w-full sm:w-auto rounded-2xl">
               {busy ? (
                 <>
                   <Loader2 className="size-4 mr-2 animate-spin" /> <FormattedMessage {...common.saving} />

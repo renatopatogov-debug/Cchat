@@ -72,10 +72,6 @@ vi.mock("@/hooks/useEventStore", () => ({
   useEventStore: () => fixture.eventStore,
 }));
 
-vi.mock("@/hooks/useNip29Servers", () => ({
-  useNip29Servers: () => fixture.liveServers,
-}));
-
 vi.mock("@/concord/hooks/useCommunityList", () => ({
   useLiveCommunities: () => fixture.communities,
 }));

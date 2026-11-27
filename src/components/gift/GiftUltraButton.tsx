@@ -96,9 +96,9 @@ function GiftOption({ icon, label, onClick }: { icon: ReactNode; label: string; 
     <button
       type="button"
       onClick={onClick}
-      className="flex flex-col items-center gap-2 clip-corner-lg bg-secondary/70 px-3 py-5 text-sm font-semibold transition-colors hover:bg-secondary"
+      className="flex flex-col items-center gap-2 rounded-2xl bg-secondary/70 px-3 py-5 text-sm font-semibold transition-colors hover:bg-secondary"
     >
-      <span className="flex size-12 items-center justify-center clip-corner-lg bg-gradient-to-br from-primary to-accent2 text-white shadow-md shadow-primary/30">
+      <span className="flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent2 text-white shadow-md shadow-primary/30">
         {icon}
       </span>
       {label}

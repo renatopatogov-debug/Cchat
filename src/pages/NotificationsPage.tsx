@@ -8,7 +8,6 @@ import { useConcordMentions } from "@/concord/hooks/useConcordMentions";
 import { useInviteInbox } from "@/concord/hooks/useDirectInvites";
 import type { CommunityListEntry } from "@/concord/lib/communityList";
 import { DisplayName } from "@/components/DisplayName";
-import { ServerRail } from "@/components/layout/ServerRail";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { PillTabs, type PillTab } from "@/components/ui/pill-tabs";
@@ -194,7 +193,7 @@ function NotificationRow({ item, onOpen }: { item: CenterItem; onOpen: (item: Ce
       type="button"
       onClick={() => onOpen(item)}
       className={cn(
-        "group flex w-full items-start gap-3 px-3 py-3 text-left transition-colors clip-corner-lg",
+        "group flex w-full items-start gap-3 px-3 py-3 text-left transition-colors rounded-2xl",
         item.unread ? "bg-primary/[0.07] hover:bg-primary/[0.11]" : "hover:bg-foreground/5",
       )}
     >
@@ -299,69 +298,66 @@ export function NotificationsPage() {
   };
 
   return (
-    <>
-      <ServerRail />
-      <main className="flex flex-1 min-w-0 flex-col safe-area-top h-full bg-background">
-        {servers.map((relayUrl) => (
-          <RelayNotificationSource key={relayUrl} relayUrl={relayUrl} report={report} />
-        ))}
-        {communities.map((entry) => (
-          <ConcordNotificationSource key={entry.community_id} entry={entry} report={report} />
-        ))}
+    <main className="flex flex-1 min-w-0 flex-col safe-area-top h-full bg-background">
+      {servers.map((relayUrl) => (
+        <RelayNotificationSource key={relayUrl} relayUrl={relayUrl} report={report} />
+      ))}
+      {communities.map((entry) => (
+        <ConcordNotificationSource key={entry.community_id} entry={entry} report={report} />
+      ))}
 
-        <div className="mx-auto flex w-full max-w-3xl flex-1 min-h-0 flex-col px-2 sm:px-4">
-          <header className="relative mt-1 sidebar:mt-3 flex h-12 touch:h-[3.25rem] shrink-0 items-center gap-2 px-3 clip-corner-lg bg-chrome">
-            <Bell className="size-5 shrink-0 text-muted-foreground" />
-            <h1 className="min-w-0 truncate font-semibold">
-              <FormattedMessage id="notificationsPage.title" defaultMessage="Notifications" />
-            </h1>
-            {unreadCount > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold leading-none text-primary-foreground">
-                {unreadCount > 99 ? "99+" : unreadCount}
-              </span>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="ml-auto gap-1.5"
-              disabled={unreadCount === 0}
-              onClick={markAllRead}
-            >
-              <CheckCheck className="size-4" />
-              <span className="hidden sm:inline">
-                <FormattedMessage id="notificationsPage.markAllRead" defaultMessage="Mark all read" />
-              </span>
-            </Button>
-          </header>
+      <div className="mx-auto flex w-full max-w-3xl flex-1 min-h-0 flex-col px-2 sm:px-4">
+        <header className="relative mt-1 sidebar:mt-3 flex h-12 touch:h-[3.25rem] shrink-0 items-center gap-2 px-3 rounded-2xl bg-chrome">
+          <Bell className="size-5 shrink-0 text-muted-foreground" />
+          <h1 className="min-w-0 truncate font-semibold">
+            <FormattedMessage id="notificationsPage.title" defaultMessage="Notifications" />
+          </h1>
+          {unreadCount > 0 && (
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold leading-none text-primary-foreground">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto gap-1.5"
+            disabled={unreadCount === 0}
+            onClick={markAllRead}
+          >
+            <CheckCheck className="size-4" />
+            <span className="hidden sm:inline">
+              <FormattedMessage id="notificationsPage.markAllRead" defaultMessage="Mark all read" />
+            </span>
+          </Button>
+        </header>
 
-          <div className="mt-3 shrink-0">
-            <PillTabs<"all" | "unread"> tabs={filters} value={filter} onChange={setFilter} />
-          </div>
-
-          <div className="mt-3 flex-1 min-h-0 overflow-y-auto pb-safe">
-            {visible.length > 0 ? (
-              <div className="space-y-1 pb-4">
-                {visible.map((item) => <NotificationRow key={item.id} item={item} onOpen={openItem} />)}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-3 px-4 py-16 text-center text-muted-foreground">
-                <Bell className="size-10 opacity-40" />
-                <p className="max-w-sm text-sm">
-                  {filter === "unread"
-                    ? <FormattedMessage id="notificationsPage.allCaughtUp" defaultMessage="You're all caught up." />
-                    : (
-                      <FormattedMessage
-                        id="notificationsPage.empty"
-                        defaultMessage="No notifications yet. Mentions and Concord invites will appear here."
-                      />
-                    )}
-                </p>
-              </div>
-            )}
-          </div>
+        <div className="mt-3 shrink-0">
+          <PillTabs<"all" | "unread"> tabs={filters} value={filter} onChange={setFilter} />
         </div>
-      </main>
-    </>
+
+        <div className="mt-3 flex-1 min-h-0 overflow-y-auto pb-safe">
+          {visible.length > 0 ? (
+            <div className="space-y-1 pb-4">
+              {visible.map((item) => <NotificationRow key={item.id} item={item} onOpen={openItem} />)}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-3 px-4 py-16 text-center text-muted-foreground">
+              <Bell className="size-10 opacity-40" />
+              <p className="max-w-sm text-sm">
+                {filter === "unread"
+                  ? <FormattedMessage id="notificationsPage.allCaughtUp" defaultMessage="You're all caught up." />
+                  : (
+                    <FormattedMessage
+                      id="notificationsPage.empty"
+                      defaultMessage="No notifications yet. Mentions and Concord invites will appear here."
+                    />
+                  )}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </main>
   );
 }
 

@@ -14,11 +14,8 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as nip19 from "nostr-tools/nip19";
 
-import { ArmadaCrest, ArmadaCrestKeyframes } from "@/components/brand/ArmadaCrest";
 import { DisplayName } from "@/components/DisplayName";
 import { ProfilePreviewCard } from "@/components/chat/ProfilePreviewCard";
-import { ServerRail } from "@/components/layout/ServerRail";
-import { SwipeReveal } from "@/components/layout/SwipeReveal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -37,8 +34,10 @@ import { rehydrateCommunity } from "@/concord/lib/communityList";
 import { directInviteExpired } from "@/concord/lib/directInvite";
 import type { InviteBundle } from "@/concord/lib/invite";
 import type { Community, ImagePointer } from "@/concord/lib/types";
+import { useAndroidBack } from "@/hooks/useAndroidBack";
 import { useAuthor } from "@/hooks/useAuthor";
 import { useFollowList } from "@/hooks/useFollowList";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { concordInviteReadKey, useReadState } from "@/hooks/useReadState";
 import { toast } from "@/hooks/useToast";
 import { FormattedMessage, t, useIntl } from "@/i18n";
@@ -103,7 +102,7 @@ function CommunityAvatar({
     <span
       style={iconUrl ? undefined : { backgroundImage: communityWash(communityHue(communityId)) }}
       className={cn(
-        "flex shrink-0 items-center justify-center overflow-hidden clip-corner-lg bg-secondary font-bold uppercase leading-none text-foreground/80",
+        "flex shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-secondary font-bold uppercase leading-none text-foreground/80",
         className,
       )}
     >
@@ -334,7 +333,7 @@ function InviteRow({
       type="button"
       onClick={() => onOpen(item)}
       className={cn(
-        "flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors clip-corner-lg",
+        "flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors rounded-2xl",
         selected ? "bg-primary/10" : "hover:bg-foreground/5",
         unread && !selected && "bg-primary/[0.06]",
       )}
@@ -532,7 +531,7 @@ export function InviteDetail({
   return (
     <div className="relative flex flex-1 flex-col min-h-0 safe-area-top h-full overflow-hidden">
       <InviteTide hue={hue} />
-      <header className="relative h-12 touch:h-[3.25rem] mx-gutter mt-1 sidebar:mt-3 px-2 sidebar:px-3 flex items-center gap-1.5 shrink-0 clip-corner-lg bg-chrome">
+      <header className="relative h-12 touch:h-[3.25rem] mx-gutter mt-1 sidebar:mt-3 px-2 sidebar:px-3 flex items-center gap-1.5 shrink-0 rounded-2xl bg-chrome">
         <Button
           variant="ghost"
           size="icon"
@@ -572,12 +571,11 @@ export function InviteDetail({
               className="size-full scale-125 object-cover opacity-50 blur-2xl"
             />
           ) : (
-            /* Wrapped rather than `aria-hidden`: the crest is a labelled `role="img"`. */
             <span
               aria-hidden
-              className="pointer-events-none absolute -right-8 -top-6 opacity-[0.14]"
+              className="pointer-events-none absolute -right-8 -top-6 opacity-[0.10]"
             >
-              <ArmadaCrest size={240} />
+              <ShieldCheck className="size-48 text-foreground" />
             </span>
           )}
           <span
@@ -627,7 +625,7 @@ export function InviteDetail({
 
           {/* Sender — Direct Invite only. The npub is the key that signed the seal. */}
           {sender && (
-            <div className="mt-4 clip-corner-lg bg-secondary/40 p-3.5">
+            <div className="mt-4 rounded-2xl bg-secondary/40 p-3.5">
               <p className="text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {isCatchUp ? (
                   <FormattedMessage id="invitesPage.detail.keysSentBy" defaultMessage="Keys sent by" />
@@ -716,7 +714,7 @@ export function InviteDetail({
           <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row">
             <Button
               variant="ghost"
-              className="h-12 min-w-0 flex-1 clip-corner-lg text-base"
+              className="h-12 min-w-0 flex-1 rounded-2xl text-base"
               onClick={onDecline}
               disabled={busy}
             >
@@ -729,7 +727,7 @@ export function InviteDetail({
             </Button>
             {signInSlot ?? (
               <Button
-                className="h-12 min-w-0 flex-1 clip-corner-lg text-base font-medium"
+                className="h-12 min-w-0 flex-1 rounded-2xl text-base font-medium"
                 onClick={onAccept}
                 disabled={busy || expired}
               >
@@ -748,7 +746,6 @@ export function InviteDetail({
           </div>
         </div>
       </div>
-      <ArmadaCrestKeyframes />
     </div>
   );
 }
@@ -869,82 +866,89 @@ export function InvitesPage() {
     }
   }, [all, selectedWrapId]);
 
+  const isDesktop = useIsDesktop();
+  useAndroidBack(() => {
+    setSelectedWrapId(undefined);
+    return true;
+  }, Boolean(selected) && !isDesktop);
+
   return (
-    <SwipeReveal
-      open={!selected}
-      onReveal={() => setSelectedWrapId(undefined)}
-      onClose={() => undefined}
-      canClose={false}
-      underlay={
-        <>
-          <ServerRail />
-          <div className="flex w-80 touch:max-sidebar:flex-1 min-w-0 flex-col safe-area-top h-full">
-            <header className="relative h-12 touch:h-[3.25rem] mx-gutter mt-1 sidebar:mt-3 px-2 sidebar:px-3 flex items-center gap-1.5 shrink-0 clip-corner-lg bg-chrome">
-              <MailPlus className="size-5 text-muted-foreground shrink-0" />
-              <h1 className="font-semibold truncate leading-tight">
-                <FormattedMessage id="invitesPage.title" defaultMessage="Invites" />
-              </h1>
-              {unreadCount > 0 && (
-                <span className="ml-1 flex min-w-5 h-5 px-1.5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold leading-none">
-                  {unreadCount}
-                </span>
-              )}
-            </header>
-            <div className="flex-1 min-h-0 overflow-y-auto px-2 py-2">
-              {all.length === 0 ? (
-                <div className="flex flex-col items-center gap-3 px-3 py-16 text-center text-muted-foreground">
-                  <MailPlus className="size-10 opacity-40" />
-                  <p className="text-sm">
+    <div className="flex flex-1 min-w-0 min-h-0 h-full bg-background">
+      <aside
+        className={cn(
+          "flex w-full sidebar:w-80 shrink-0 sidebar:border-r sidebar:border-border min-w-0 flex-col safe-area-top h-full",
+          selected && "hidden sidebar:flex",
+        )}
+      >
+        <header className="relative h-12 touch:h-[3.25rem] mx-gutter mt-1 sidebar:mt-3 px-2 sidebar:px-3 flex items-center gap-1.5 shrink-0 rounded-2xl bg-chrome">
+          <MailPlus className="size-5 text-muted-foreground shrink-0" />
+          <h1 className="font-semibold truncate leading-tight">
+            <FormattedMessage id="invitesPage.title" defaultMessage="Invites" />
+          </h1>
+          {unreadCount > 0 && (
+            <span className="ml-1 flex min-w-5 h-5 px-1.5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold leading-none">
+              {unreadCount}
+            </span>
+          )}
+        </header>
+        <div className="flex-1 min-h-0 overflow-y-auto px-2 py-2">
+          {all.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 px-3 py-16 text-center text-muted-foreground">
+              <MailPlus className="size-10 opacity-40" />
+              <p className="text-sm">
+                <FormattedMessage
+                  id="invitesPage.empty"
+                  defaultMessage="No invites. When someone hands you the keys to an encrypted community, it’ll show up here."
+                />
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-0.5">
+              {items.map((item) => (
+                <InviteRow
+                  key={item.invite.wrapId}
+                  item={item}
+                  selected={item.invite.wrapId === selectedWrapId}
+                  onOpen={(it) => setSelectedWrapId(it.invite.wrapId)}
+                />
+              ))}
+              {requests.length > 0 && (
+                <>
+                  <button
+                    type="button"
+                    aria-expanded={requestsOpen}
+                    onClick={() => setRequestsOpen(!requestsOpen)}
+                    className="mt-2 flex w-full items-center gap-1.5 px-3 py-2 touch:py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <ChevronRight className={cn("size-3.5 shrink-0 transition-transform", requestsOpen && "rotate-90")} />
                     <FormattedMessage
-                      id="invitesPage.empty"
-                      defaultMessage="No invites. When someone hands you the keys to an encrypted community, it’ll show up here."
+                      id="invitesPage.requests"
+                      defaultMessage="Requests ({count, number})"
+                      values={{ count: requests.length }}
                     />
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-0.5">
-                  {items.map((item) => (
+                  </button>
+                  {requestsOpen && requests.map((item) => (
                     <InviteRow
                       key={item.invite.wrapId}
                       item={item}
+                      request
                       selected={item.invite.wrapId === selectedWrapId}
                       onOpen={(it) => setSelectedWrapId(it.invite.wrapId)}
                     />
                   ))}
-                  {requests.length > 0 && (
-                    <>
-                      <button
-                        type="button"
-                        aria-expanded={requestsOpen}
-                        onClick={() => setRequestsOpen(!requestsOpen)}
-                        className="mt-2 flex w-full items-center gap-1.5 px-3 py-2 touch:py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
-                      >
-                        <ChevronRight className={cn("size-3.5 shrink-0 transition-transform", requestsOpen && "rotate-90")} />
-                        <FormattedMessage
-                          id="invitesPage.requests"
-                          defaultMessage="Requests ({count, number})"
-                          values={{ count: requests.length }}
-                        />
-                      </button>
-                      {requestsOpen && requests.map((item) => (
-                        <InviteRow
-                          key={item.invite.wrapId}
-                          item={item}
-                          request
-                          selected={item.invite.wrapId === selectedWrapId}
-                          onOpen={(it) => setSelectedWrapId(it.invite.wrapId)}
-                        />
-                      ))}
-                    </>
-                  )}
-                </div>
+                </>
               )}
             </div>
-          </div>
-        </>
-      }
-    >
-      <main className="flex flex-1 min-w-0 flex-col bg-background h-full">
+          )}
+        </div>
+      </aside>
+
+      <main
+        className={cn(
+          "flex flex-1 min-w-0 min-h-0 flex-col bg-background h-full",
+          !selected && "hidden sidebar:flex",
+        )}
+      >
         {selected ? (
           <InboxInviteDetail
             key={selected.wrapId}
@@ -968,7 +972,7 @@ export function InvitesPage() {
           </div>
         )}
       </main>
-    </SwipeReveal>
+    </div>
   );
 }
 

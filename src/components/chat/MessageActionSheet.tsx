@@ -124,7 +124,7 @@ export function MessageActionSheet({
           <div className="overflow-y-auto overscroll-contain pt-2 pb-[var(--safe-area-pad-bottom,0.75rem)]">
             {reactions && (
               <div className="flex items-center gap-2 px-3 pb-2">
-                <div className="flex flex-1 items-center gap-0.5 clip-corner-lg bg-muted/60 p-1">
+                <div className="flex flex-1 items-center gap-0.5 rounded-2xl bg-muted/60 p-1">
                   {frequent.map((f) => {
                     const mine = reactions.tallies.find((t) => t.key === f.key)?.mine ?? false;
                     return (
@@ -136,7 +136,7 @@ export function MessageActionSheet({
                           : intl.formatMessage({ id: "messageActionSheet.reactWith", defaultMessage: "React with {emoji}" }, { emoji: f.key })}
                         aria-pressed={mine}
                         className={cn(
-                          "flex size-11 flex-1 items-center justify-center clip-corner-lg transition-colors",
+                          "flex size-11 flex-1 items-center justify-center rounded-2xl transition-colors",
                           mine ? "bg-primary/20" : "active:bg-background",
                         )}
                         onClick={() => react(f.key, f.url)}
@@ -153,7 +153,7 @@ export function MessageActionSheet({
                 <button
                   type="button"
                   aria-label={intl.formatMessage({ id: "messageActionSheet.addReaction", defaultMessage: "Add reaction" })}
-                  className="flex size-12 shrink-0 items-center justify-center clip-corner-lg bg-muted/60 text-muted-foreground active:bg-secondary"
+                  className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-muted/60 text-muted-foreground active:bg-secondary"
                   onClick={() => setPickerOpen(true)}
                 >
                   <SmilePlus className="size-6" />
@@ -175,10 +175,10 @@ export function MessageActionSheet({
                   <button
                     type="button"
                     aria-expanded={moderationOpen}
-                    className="flex min-h-11 w-full items-center gap-3 clip-corner px-3 py-2.5 text-left text-chat font-medium text-foreground active:bg-secondary"
+                    className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-chat font-medium text-foreground active:bg-secondary"
                     onClick={() => setModerationOpen((o) => !o)}
                   >
-                    <span className="flex size-10 shrink-0 items-center justify-center clip-corner-lg bg-secondary">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-secondary">
                       <Shield className="size-5 text-muted-foreground" />
                     </span>
                     <FormattedMessage id="messageActionSheet.moderation" defaultMessage="Moderation" />
@@ -207,7 +207,7 @@ function SheetActionRow({ action, onDone }: { action: MessageActionItem; onDone:
       type="button"
       disabled={action.disabled}
       className={cn(
-        "flex min-h-11 w-full items-center gap-3 clip-corner px-3 py-2.5 text-left text-chat font-medium active:bg-secondary disabled:opacity-50",
+        "flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-chat font-medium active:bg-secondary disabled:opacity-50",
         action.destructive ? "text-destructive" : "text-foreground",
       )}
       onClick={() => {
@@ -215,7 +215,7 @@ function SheetActionRow({ action, onDone }: { action: MessageActionItem; onDone:
         action.onSelect();
       }}
     >
-      <span className="flex size-10 shrink-0 items-center justify-center clip-corner-lg bg-secondary">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-secondary">
         <action.icon className={cn("size-5", !action.destructive && "text-muted-foreground")} />
       </span>
       {action.label}

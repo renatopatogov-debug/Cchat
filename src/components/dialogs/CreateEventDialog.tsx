@@ -209,7 +209,7 @@ export function CreateEventDialog({ calendar, open, onOpenChange, editing }: Cre
         hideClose={pickerOpen}
       >
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="flex size-12 items-center justify-center clip-corner-lg bg-primary/15 text-primary">
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
             <CalendarDays className="size-6" />
           </div>
           <h2 className="chrome-dialog-title font-mono font-bold lowercase tracking-tight text-foreground">
@@ -337,10 +337,10 @@ export function CreateEventDialog({ calendar, open, onOpenChange, editing }: Cre
           )}
 
           <div className="flex gap-2 pt-1">
-            <Button type="button" variant="ghost" className="flex-1 clip-corner-lg" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="ghost" className="flex-1 rounded-2xl" onClick={() => onOpenChange(false)}>
               <FormattedMessage {...common.cancel} />
             </Button>
-            <Button type="submit" className="flex-1 clip-corner-lg" disabled={isSaving || !canSave}>
+            <Button type="submit" className="flex-1 rounded-2xl" disabled={isSaving || !canSave}>
               {isSaving ? (
                 <>
                   <Loader2 className="size-4 mr-2 animate-spin" />{" "}

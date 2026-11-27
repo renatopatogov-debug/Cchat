@@ -16,8 +16,8 @@ const OPEN_GUARD_MS = 400
 
 // The message action sheet's rows (MessageActionSheet), so every touch menu reads as one.
 const ROW =
-  "flex min-h-11 w-full items-center gap-3 clip-corner px-3 py-2.5 text-left text-chat font-medium active:bg-secondary disabled:opacity-50"
-const TILE = "flex size-10 shrink-0 items-center justify-center clip-corner-lg bg-secondary"
+  "flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-chat font-medium active:bg-secondary disabled:opacity-50"
+const TILE = "flex size-10 shrink-0 items-center justify-center rounded-2xl bg-secondary"
 const LIST = "min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-[var(--safe-area-pad-bottom,0.75rem)]"
 const TITLE = "truncate text-base font-semibold leading-tight tracking-normal"
 
@@ -402,7 +402,7 @@ function MenuSheetSubContent({ children }: { children?: React.ReactNode }) {
           <button
             type="button"
             aria-label={intl.formatMessage(common.back)}
-            className="-m-0.5 flex size-11 shrink-0 items-center justify-center clip-corner-lg text-muted-foreground active:bg-secondary"
+            className="-m-0.5 flex size-11 shrink-0 items-center justify-center rounded-2xl text-muted-foreground active:bg-secondary"
             onClick={sheet.back}
           >
             <ChevronLeft className="size-5" />

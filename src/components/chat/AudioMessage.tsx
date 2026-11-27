@@ -286,7 +286,7 @@ export function AudioMessage({
       disabled={downloading}
       aria-label={intl.formatMessage({ id: "audioMessage.download", defaultMessage: "Download audio" })}
       title={intl.formatMessage({ id: "audioMessage.download", defaultMessage: "Download audio" })}
-      className="size-7 touch:size-11 shrink-0 -mr-1 flex items-center justify-center clip-corner text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-colors disabled:opacity-60 disabled:cursor-wait"
+      className="size-7 touch:size-11 shrink-0 -mr-1 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-colors disabled:opacity-60 disabled:cursor-wait"
     >
       {downloading ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
     </button>
@@ -298,7 +298,7 @@ export function AudioMessage({
     return (
       <div
         className={cn(
-          "flex items-center gap-3 my-1.5 max-w-sm clip-hairline-lg [--edge:var(--border)/0.5] [--fill:var(--secondary)/0.3] [--fill-hover:var(--secondary)/0.3] p-2 pr-3",
+          "flex items-center gap-3 my-1.5 max-w-sm rounded-2xl border border-border/70 bg-card/60 [--edge:var(--border)/0.5] [--fill:var(--secondary)/0.3] [--fill-hover:var(--secondary)/0.3] p-2 pr-3",
           className,
         )}
         onClick={(e) => e.stopPropagation()}
@@ -325,7 +325,7 @@ export function AudioMessage({
   return (
     <div
       className={cn(
-        "flex items-center gap-2.5 my-1.5 max-w-sm clip-hairline-lg [--edge:var(--border)/0.5] [--fill:var(--secondary)/0.3] [--fill-hover:var(--secondary)/0.3] px-3 py-2",
+        "flex items-center gap-2.5 my-1.5 max-w-sm rounded-2xl border border-border/70 bg-card/60 [--edge:var(--border)/0.5] [--fill:var(--secondary)/0.3] [--fill-hover:var(--secondary)/0.3] px-3 py-2",
         className,
       )}
       onClick={(e) => e.stopPropagation()}
@@ -342,7 +342,7 @@ export function AudioMessage({
 function CoverArt({ src }: { src?: string }) {
   const [broken, setBroken] = useState<string | undefined>(undefined);
   return (
-    <div className="size-20 shrink-0 overflow-hidden clip-corner-lg bg-secondary flex items-center justify-center text-muted-foreground">
+    <div className="size-20 shrink-0 overflow-hidden rounded-2xl bg-secondary flex items-center justify-center text-muted-foreground">
       {src && broken !== src ? (
         <img src={src} alt="" className="size-full object-cover" onError={() => setBroken(src)} />
       ) : (

@@ -72,7 +72,7 @@ function RepositoryRow({ repository, connected, onSelect }: { repository: GitRep
       disabled={connected}
       onClick={onSelect}
       className={cn(
-        "flex w-full min-w-0 items-center gap-2.5 clip-corner px-2.5 py-2 text-left transition-colors",
+        "flex w-full min-w-0 items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors",
         connected ? "opacity-50" : "hover:bg-foreground/[0.05]",
       )}
     >
@@ -162,7 +162,7 @@ export function RepositoryPicker({ connectedCoordinates, onSelect, autoFocus = t
               <button
                 type="button"
                 aria-label={intl.formatMessage({ id: "repositoryPicker.whatCanIPaste", defaultMessage: "What can I paste?" })}
-                className="flex size-9 touch:size-11 shrink-0 items-center justify-center clip-corner-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                className="flex size-9 touch:size-11 shrink-0 items-center justify-center rounded-2xl text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
               >
                 <HelpCircle className="size-4" />
               </button>
@@ -178,15 +178,15 @@ export function RepositoryPicker({ connectedCoordinates, onSelect, autoFocus = t
           </Tooltip>
         </TooltipProvider>
       </div>
-      <div className="max-h-64 min-w-0 space-y-0.5 overflow-y-auto clip-corner-lg bg-secondary/40 p-1">
+      <div className="max-h-64 min-w-0 space-y-0.5 overflow-y-auto rounded-2xl bg-secondary/40 p-1">
         {looksLikeAddress ? (
           <button
             type="button"
             disabled={resolving}
             onClick={() => void resolveAddress()}
-            className="flex w-full min-w-0 items-center gap-2.5 clip-corner px-2.5 py-2 text-left transition-colors hover:bg-foreground/[0.05]"
+            className="flex w-full min-w-0 items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-foreground/[0.05]"
           >
-            <span className="flex size-8 shrink-0 items-center justify-center clip-corner bg-muted/60">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-muted/60">
               {resolving ? <Loader2 className="size-4 animate-spin text-muted-foreground" /> : <FolderGit2 className="size-4 text-muted-foreground" />}
             </span>
             <span className="min-w-0 flex-1">

@@ -123,7 +123,7 @@ function TriState({ value, onChange, disabled, name }: { value: RuleState; onCha
           disabled={disabled}
           onClick={() => onChange(state)}
           className={cn(
-            "flex size-7 items-center justify-center clip-corner transition-colors disabled:opacity-50 touch:size-11",
+            "flex size-7 items-center justify-center rounded-xl transition-colors disabled:opacity-50 touch:size-11",
             value === state ? on : "text-muted-foreground hover:bg-secondary",
           )}
         >
@@ -363,13 +363,13 @@ export function TargetPicker({ model, variant, onDone }: { model: EditorModel; v
       </div>
       <div className={sheet ? "flex shrink-0 items-center gap-2 px-5 pt-2 pb-[var(--safe-area-pad-bottom,0.75rem)]" : "flex justify-end gap-2"}>
         {!sheet && (
-          <Button type="button" variant="ghost" className="clip-corner-lg" onClick={() => onDone()}>
+          <Button type="button" variant="ghost" className="rounded-2xl" onClick={() => onDone()}>
             <FormattedMessage {...common.cancel} />
           </Button>
         )}
         <Button
           type="button"
-          className={cn("clip-corner-lg", sheet && "flex-1")}
+          className={cn("rounded-2xl", sheet && "flex-1")}
           disabled={picked.length === 0}
           onClick={() => {
             model.addTargets(picked);

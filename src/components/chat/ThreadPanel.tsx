@@ -455,7 +455,7 @@ export function ThreadMessage({
             <button
               type="button"
               onClick={() => onReply(event)}
-              className="inline-flex items-center gap-1 clip-corner px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary/60 hover:text-foreground touch:py-2"
+              className="inline-flex items-center gap-1 rounded-xl px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary/60 hover:text-foreground touch:py-2"
             >
               <Reply className="size-3.5" />
               <FormattedMessage {...common.reply} />
@@ -808,7 +808,7 @@ export function ThreadPanel({ root, rootTitle, transport, relayUrl, groupId, can
     <aside className={cn(
       // `thread:ml-0` drops the left gap only at ≥1200px (in-flow); below, it
       // overlays the chat and keeps the gutter.
-      "flex flex-col min-h-0 flex-1 min-w-0 mt-stack mb-2 sidebar:mb-3 mx-gutter thread:ml-0 p-1.5 clip-corner-lg bg-chrome",
+      "flex flex-col min-h-0 flex-1 min-w-0 mt-stack mb-2 sidebar:mb-3 mx-gutter thread:ml-0 p-1.5 rounded-2xl bg-chrome",
     )}>
       <div className="flex items-center justify-between px-2 py-1 shrink-0">
         <div className="flex items-center gap-2 min-w-0">
@@ -856,7 +856,7 @@ export function ThreadPanel({ root, rootTitle, transport, relayUrl, groupId, can
             <button
               type="button"
               onClick={() => scrollToBottom()}
-              className="pointer-events-auto inline-flex items-center gap-1.5 clip-corner-lg bg-secondary/90 backdrop-blur px-4 py-2 text-xs font-medium text-foreground shadow-lg hover:bg-secondary transition-colors"
+              className="pointer-events-auto inline-flex items-center gap-1.5 rounded-2xl bg-secondary/90 backdrop-blur px-4 py-2 text-xs font-medium text-foreground shadow-lg hover:bg-secondary transition-colors"
               aria-label={intl.formatMessage({ id: "threadPanel.jumpToLatestReplies", defaultMessage: "Jump to latest replies" })}
             >
               <ChevronDown className="size-4" />

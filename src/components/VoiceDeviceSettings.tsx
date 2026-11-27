@@ -443,7 +443,7 @@ export function VoiceDeviceSettings() {
             type="button"
             size="sm"
             variant={testing ? "secondary" : "default"}
-            className="shrink-0 gap-2 clip-corner-lg w-28 justify-center"
+            className="shrink-0 gap-2 rounded-2xl w-28 justify-center"
             onClick={() => (testing ? stopMicTest() : void startMicTest())}
           >
             {testing ? <MicOff className="size-4" /> : <Mic className="size-4" />}
@@ -480,7 +480,7 @@ export function VoiceDeviceSettings() {
                 type="button"
                 size="sm"
                 variant="secondary"
-                className="h-7 gap-2 clip-corner-lg"
+                className="h-7 gap-2 rounded-2xl"
                 onClick={() => void openDesktopMicSettings()}
               >
                 <FormattedMessage id="voiceDeviceSettings.openMicSettings" defaultMessage="Open microphone settings" />
@@ -523,7 +523,7 @@ export function VoiceDeviceSettings() {
           <Button
             type="button"
             size="sm"
-            className="gap-2 clip-corner-lg w-28 justify-center"
+            className="gap-2 rounded-2xl w-28 justify-center"
             disabled={playingTone}
             onClick={() => void playTestTone()}
           >
@@ -567,7 +567,7 @@ export function VoiceDeviceSettings() {
               setRecordingPushToTalk(false);
             }}
             className={cn(
-              "flex min-h-10 touch:min-h-11 w-full items-center justify-center clip-corner-lg px-3 text-sm font-medium transition-colors",
+              "flex min-h-10 touch:min-h-11 w-full items-center justify-center rounded-2xl px-3 text-sm font-medium transition-colors",
               recordingPushToTalk
                 ? "bg-primary/10 text-primary"
                 : "bg-secondary hover:bg-secondary/80 disabled:cursor-default disabled:opacity-80",

@@ -85,7 +85,7 @@ export function RequestToVanishDialog({ open, onOpenChange }: RequestToVanishDia
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="gap-0">
         <div className="mb-5 flex flex-col items-center gap-2 text-center">
-          <div className="flex size-12 items-center justify-center clip-corner-lg bg-destructive/15 text-destructive">
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-destructive/15 text-destructive">
             <AlertTriangle className="size-6" />
           </div>
           <AlertDialogTitle>

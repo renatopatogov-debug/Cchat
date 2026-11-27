@@ -118,7 +118,7 @@ export function EmojiPackCard({ event, expanded = false, className }: EmojiPackC
   return (
     <div
       className={cn(
-        "flex flex-col max-w-sm w-full clip-hairline-lg [--edge:var(--border)/0.6] [--fill:var(--card)] [--fill-hover:var(--card)] overflow-hidden my-1.5",
+        "flex flex-col max-w-sm w-full rounded-2xl border border-border/70 bg-card/60 [--edge:var(--border)/0.6] [--fill:var(--card)] [--fill-hover:var(--card)] overflow-hidden my-1.5",
         className,
       )}
       onClick={(e) => e.stopPropagation()}
@@ -128,7 +128,7 @@ export function EmojiPackCard({ event, expanded = false, className }: EmojiPackC
           {picture ? (
             <FallbackImage
               src={picture}
-              className="size-8 shrink-0 clip-corner object-cover"
+              className="size-8 shrink-0 rounded-xl object-cover"
               fallback={<Smile className="size-4 shrink-0 text-primary" />}
             />
           ) : (
@@ -225,7 +225,7 @@ export function EmojiPackCard({ event, expanded = false, className }: EmojiPackC
           {isAdded ? (
             <Button
               variant="ghost"
-              className="flex-1 clip-corner-lg hover:text-destructive"
+              className="flex-1 rounded-2xl hover:text-destructive"
               onClick={onRemove}
               disabled={isRemoving}
             >
@@ -243,7 +243,7 @@ export function EmojiPackCard({ event, expanded = false, className }: EmojiPackC
             </Button>
           ) : (
             <Button
-              className="flex-1 clip-corner-lg"
+              className="flex-1 rounded-2xl"
               onClick={onAdd}
               disabled={isAdding || entries.length === 0}
             >
@@ -271,7 +271,7 @@ export function EmojiPackCard({ event, expanded = false, className }: EmojiPackC
           {isOwn && identifier && (
             <Button
               variant="secondary"
-              className="shrink-0 clip-corner-lg"
+              className="shrink-0 rounded-2xl"
               onClick={() => setEditing(true)}
               aria-label={intl.formatMessage({ id: "emojiPackCard.edit", defaultMessage: "Edit emoji pack" })}
               title={intl.formatMessage({ id: "emojiPackCard.edit", defaultMessage: "Edit emoji pack" })}
@@ -282,7 +282,7 @@ export function EmojiPackCard({ event, expanded = false, className }: EmojiPackC
           {naddr && (
             <Button
               variant="secondary"
-              className="shrink-0 clip-corner-lg"
+              className="shrink-0 rounded-2xl"
               onClick={copy}
               aria-label={intl.formatMessage({ id: "emojiPackCard.copyLink", defaultMessage: "Copy emoji pack link" })}
               title={intl.formatMessage({ id: "emojiPackCard.copyLink", defaultMessage: "Copy emoji pack link" })}

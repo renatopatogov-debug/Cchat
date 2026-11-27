@@ -175,7 +175,7 @@ export function EmojiPicker({ onSelect, customEmojis, onBrowsePacks, packsLinkIn
           "#root { width: 100% !important; background-color: transparent !important; --sidebar-width: 0px !important; }",
           ".scroll { padding-right: var(--padding) !important; }",
           ".sticky { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; background-color: transparent !important; }",
-          // Mirrors SearchField: a `clip-corner-lg` chrome well with no focus ring.
+          // Mirrors SearchField: a `rounded-2xl` chrome well with no focus ring.
           ".search input[type='search'] { background-color: hsl(var(--chrome)) !important; border: 0 !important; border-radius: 0.55rem !important; clip-path: polygon(0.7rem 0, 100% 0, 100% calc(100% - 0.7rem), calc(100% - 0.7rem) 100%, 0 100%, 0 0.7rem) !important; padding: 0.5rem 46px 0.5rem 34px !important; height: 36px !important; }",
           "@media (pointer: coarse) { .search input[type='search'] { height: 44px !important; } }",
           // The sticker/GIF search wrapper's `pt-3 pb-2`; the spacer is emoji-mart's only gap above the field.
@@ -260,7 +260,7 @@ function BrowsePacksFooter({ hasCustom, onBrowse }: { hasCustom: boolean; onBrow
       <Button
         size="sm"
         variant="secondary"
-        className="h-7 touch:h-11 shrink-0 clip-corner-lg px-2 text-xs"
+        className="h-7 touch:h-11 shrink-0 rounded-2xl px-2 text-xs"
         onClick={() => {
           onBrowse();
           navigate("/discover?tab=emojis");

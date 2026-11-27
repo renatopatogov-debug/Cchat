@@ -575,7 +575,7 @@ function useRoomOptions(extra?: Partial<RoomOptions>): RoomOptions {
 
 function LoadingBar({ placeBar, label }: { placeBar: PlaceBar; label: React.ReactNode }) {
   return placeBar(
-    <div className="flex items-center justify-center gap-2 px-3 py-2 clip-corner-lg bg-chrome-deep min-h-12 shadow-lg">
+    <div className="flex items-center justify-center gap-2 px-3 py-2 rounded-2xl bg-chrome-deep min-h-12 shadow-lg">
       <Loader2 className="size-4 animate-spin text-muted-foreground" />
       <span className="text-sm text-muted-foreground">{label}</span>
     </div>,
@@ -584,7 +584,7 @@ function LoadingBar({ placeBar, label }: { placeBar: PlaceBar; label: React.Reac
 
 function ErrorBar({ placeBar, error, onLeave }: { placeBar: PlaceBar; error: unknown; onLeave: () => void }) {
   return placeBar(
-    <div className="flex items-center gap-2 px-3 py-2 clip-corner-lg bg-chrome-deep min-h-12 shadow-lg">
+    <div className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-chrome-deep min-h-12 shadow-lg">
       <span className="text-sm text-destructive flex-1 min-w-0 truncate">
         {error instanceof Error ? (
           <FormattedMessage
@@ -776,14 +776,14 @@ function VoiceRoomShell({
   if (!micReady) return <LoadingBar placeBar={placeBar} label={<FormattedMessage id="persistentVoiceRoom.openingMic" defaultMessage="Opening the microphone…" />} />;
   const mobileBar = (
     <ServerScopeProvider relayUrl={scopeRelayUrl}>
-      <div className="clip-corner-lg bg-chrome-deep shadow-lg">
+      <div className="rounded-2xl bg-chrome-deep shadow-lg">
         <InCallView label={label} compact />
       </div>
     </ServerScopeProvider>
   );
   const desktopBar = (
     <ServerScopeProvider relayUrl={scopeRelayUrl}>
-      <div className="clip-corner-lg bg-chrome-deep shadow-lg">
+      <div className="rounded-2xl bg-chrome-deep shadow-lg">
         <InCallView label={label} stacked />
       </div>
     </ServerScopeProvider>

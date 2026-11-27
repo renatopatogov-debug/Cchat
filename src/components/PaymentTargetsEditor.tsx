@@ -166,7 +166,7 @@ export const PaymentTargetsEditor = forwardRef<PaymentTargetsEditorHandle>(
                 return (
                   <div
                     key={draft.key}
-                    className="flex items-center gap-3 clip-hairline-lg [--edge:var(--border)/0.5] [--fill:var(--card)/0.5] [--fill-hover:var(--card)/0.5] p-3"
+                    className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card/60 [--edge:var(--border)/0.5] [--fill:var(--card)/0.5] [--fill-hover:var(--card)/0.5] p-3"
                   >
                     <div className="flex items-center gap-2 w-28 shrink-0 text-sm font-medium">
                       <PaymentMethodIcon method={method} className="text-muted-foreground" />
@@ -234,7 +234,7 @@ export const PaymentTargetsEditor = forwardRef<PaymentTargetsEditorHandle>(
                 type="button"
                 variant="secondary"
                 disabled={availableMethods.length === 0}
-                className="w-full h-11 gap-2 clip-corner-lg"
+                className="w-full h-11 gap-2 rounded-2xl"
               >
                 <Plus className="h-4 w-4" />
                 <FormattedMessage id="paymentTargetsEditor.addDonation" defaultMessage="Add donation" />

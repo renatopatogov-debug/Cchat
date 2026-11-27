@@ -90,7 +90,7 @@ export function CommunityListingCardSkeleton({ className }: { className?: string
   return (
     <div
       className={cn(
-        "flex flex-col w-full p-px clip-hairline-lg [--fill:var(--card)] [--fill-hover:var(--card)] overflow-hidden",
+        "flex flex-col w-full p-px rounded-2xl border border-border/70 bg-card/60 [--fill:var(--card)] [--fill-hover:var(--card)] overflow-hidden",
         className,
       )}
       aria-hidden
@@ -406,7 +406,7 @@ export function CommunityListingCard({
     <div
       ref={setCardEl}
       className={cn(
-        "flex flex-col w-full p-px clip-hairline-lg [--fill:var(--card)] [--fill-hover:var(--card)] overflow-hidden",
+        "flex flex-col w-full p-px rounded-2xl border border-border/70 bg-card/60 [--fill:var(--card)] [--fill-hover:var(--card)] overflow-hidden",
         className,
       )}
     >
@@ -518,17 +518,17 @@ export function CommunityListingCard({
 
         <div className="mt-auto flex gap-2">
           {husk ? (
-            <Button variant="secondary" className="min-w-0 flex-1 clip-corner-lg" disabled>
+            <Button variant="secondary" className="min-w-0 flex-1 rounded-2xl" disabled>
               <Skull className="size-4" />
               <FormattedMessage id="communityListingCard.dissolved" defaultMessage="Dissolved" />
             </Button>
           ) : isMember ? (
-            <Button variant="secondary" className="min-w-0 flex-1 clip-corner-lg" onClick={onOpen}>
+            <Button variant="secondary" className="min-w-0 flex-1 rounded-2xl" onClick={onOpen}>
               <Check className="size-4" />
               <FormattedMessage id="communityListingCard.open" defaultMessage="Open" />
             </Button>
           ) : (
-            <Button className="min-w-0 flex-1 clip-corner-lg" onClick={onJoin}>
+            <Button className="min-w-0 flex-1 rounded-2xl" onClick={onJoin}>
               <FormattedMessage id="communityListingCard.join" defaultMessage="Join" />
               <ArrowRight className="size-4" />
             </Button>
@@ -537,7 +537,7 @@ export function CommunityListingCard({
             <Button
               variant="ghost"
               size="icon"
-              className="shrink-0 clip-corner-lg"
+              className="shrink-0 rounded-2xl"
               aria-label={intl.formatMessage({ id: "communityListingCard.copyInviteLink", defaultMessage: "Copy invite link" })}
               onClick={onCopy}
             >
@@ -550,7 +550,7 @@ export function CommunityListingCard({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="shrink-0 clip-corner-lg"
+                  className="shrink-0 rounded-2xl"
                   aria-label={intl.formatMessage({ id: "communityListingCard.listingOptions", defaultMessage: "Listing options" })}
                   disabled={removing}
                 >

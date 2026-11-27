@@ -283,7 +283,7 @@ export function Watchalong({ sync }: { sync: AppSync }) {
         <div className="flex items-center gap-2">
           <div
             className={cn(
-              "flex h-9 touch:h-11 min-w-0 flex-1 items-center gap-1.5 px-2 clip-corner-lg",
+              "flex h-9 touch:h-11 min-w-0 flex-1 items-center gap-1.5 px-2 rounded-2xl",
               inputError ? "bg-destructive/10" : "bg-foreground/5",
             )}
           >
@@ -303,7 +303,7 @@ export function Watchalong({ sync }: { sync: AppSync }) {
               className="h-full flex-1 min-w-0 border-0 bg-transparent px-1 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
             />
           </div>
-          <Button size="sm" className="h-9 touch:h-11 clip-corner-lg" onClick={addToQueue} disabled={!urlInput.trim()}>
+          <Button size="sm" className="h-9 touch:h-11 rounded-2xl" onClick={addToQueue} disabled={!urlInput.trim()}>
             <Plus className="size-4" />
             <FormattedMessage {...common.add} />
           </Button>
@@ -313,7 +313,7 @@ export function Watchalong({ sync }: { sync: AppSync }) {
 
       {/* Capped to ~45vh so the queue stays on-screen (the stage isn't scrollable). */}
       {current ? (
-        <div className="mx-auto w-full max-h-[45vh] aspect-video overflow-hidden clip-corner-lg bg-black relative">
+        <div className="mx-auto w-full max-h-[45vh] aspect-video overflow-hidden rounded-2xl bg-black relative">
           {currentPlayer === "video" && current.url ? (
             <DirectVideoPlayer
               key={currentKey}
@@ -333,7 +333,7 @@ export function Watchalong({ sync }: { sync: AppSync }) {
                 <p className="text-sm font-semibold"><FormattedMessage id="watchalong.iosPlayerTitle" defaultMessage="YouTube opens in Armada's video player" /></p>
                 <p className="mt-1 text-xs text-white/60"><FormattedMessage id="watchalong.iosPlayerBody" defaultMessage="It starts at the shared watch position." /></p>
               </div>
-              <Button type="button" className="clip-corner-lg" onClick={openIosPlayer}>
+              <Button type="button" className="rounded-2xl" onClick={openIosPlayer}>
                 <Play className="size-4 fill-current" />
                 <FormattedMessage id="watchalong.openPlayer" defaultMessage="Open player" />
               </Button>
@@ -357,7 +357,7 @@ export function Watchalong({ sync }: { sync: AppSync }) {
           )}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center gap-2 clip-corner-lg bg-foreground/5 py-10 text-center">
+        <div className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-foreground/5 py-10 text-center">
           <MonitorPlay className="size-7 text-muted-foreground" />
           <p className="text-xs text-muted-foreground"><FormattedMessage id="watchalong.empty" defaultMessage="Paste a link above to start the queue." /></p>
         </div>
@@ -370,7 +370,7 @@ export function Watchalong({ sync }: { sync: AppSync }) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-8 touch:size-11 clip-corner-lg text-muted-foreground"
+                className="size-8 touch:size-11 rounded-2xl text-muted-foreground"
                 aria-label={intl.formatMessage({ id: "watchalong.previous", defaultMessage: "Previous" })}
                 disabled={!canPrev}
                 onClick={() => skip(-1)}
@@ -385,7 +385,7 @@ export function Watchalong({ sync }: { sync: AppSync }) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-8 touch:size-11 clip-corner-lg text-muted-foreground"
+                className="size-8 touch:size-11 rounded-2xl text-muted-foreground"
                 aria-label={intl.formatMessage(common.next)}
                 disabled={!canNext}
                 onClick={() => skip(1)}
@@ -581,12 +581,12 @@ function QueueRow({
   return (
     <div
       className={cn(
-        "group/row flex items-center gap-2.5 clip-corner px-2 py-1.5 transition-colors",
+        "group/row flex items-center gap-2.5 rounded-xl px-2 py-1.5 transition-colors",
         isCurrent ? "bg-primary/10" : "hover:bg-foreground/5",
       )}
     >
       <button type="button" onClick={onPlay} className="flex items-center gap-2.5 min-w-0 flex-1 text-left" aria-label={intl.formatMessage({ id: "watchalong.play", defaultMessage: "Play {title}" }, { title })}>
-        <div className="relative flex h-9 w-14 shrink-0 items-center justify-center overflow-hidden clip-corner bg-black/80">
+        <div className="relative flex h-9 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-black/80">
           {item.playlistId ? (
             <ListVideo className="size-4 text-white/80" />
           ) : thumbnail ? (
@@ -618,13 +618,13 @@ function QueueRow({
         </div>
       </button>
       <div className="flex shrink-0 items-center opacity-0 group-hover/row:opacity-100 touch:opacity-100 focus-within:opacity-100 transition-opacity">
-        <Button variant="ghost" size="icon" className="size-6 touch:size-11 clip-corner-lg text-muted-foreground" aria-label={intl.formatMessage({ id: "watchalong.moveUp", defaultMessage: "Move up" })} disabled={!canUp} onClick={onUp}>
+        <Button variant="ghost" size="icon" className="size-6 touch:size-11 rounded-2xl text-muted-foreground" aria-label={intl.formatMessage({ id: "watchalong.moveUp", defaultMessage: "Move up" })} disabled={!canUp} onClick={onUp}>
           <ArrowUp className="size-3.5" />
         </Button>
-        <Button variant="ghost" size="icon" className="size-6 touch:size-11 clip-corner-lg text-muted-foreground" aria-label={intl.formatMessage({ id: "watchalong.moveDown", defaultMessage: "Move down" })} disabled={!canDown} onClick={onDown}>
+        <Button variant="ghost" size="icon" className="size-6 touch:size-11 rounded-2xl text-muted-foreground" aria-label={intl.formatMessage({ id: "watchalong.moveDown", defaultMessage: "Move down" })} disabled={!canDown} onClick={onDown}>
           <ArrowDown className="size-3.5" />
         </Button>
-        <Button variant="ghost" size="icon" className="size-6 touch:size-11 clip-corner-lg text-muted-foreground hover:text-destructive" aria-label={intl.formatMessage({ id: "watchalong.removeFromQueue", defaultMessage: "Remove from queue" })} onClick={onRemove}>
+        <Button variant="ghost" size="icon" className="size-6 touch:size-11 rounded-2xl text-muted-foreground hover:text-destructive" aria-label={intl.formatMessage({ id: "watchalong.removeFromQueue", defaultMessage: "Remove from queue" })} onClick={onRemove}>
           <Trash2 className="size-3.5" />
         </Button>
       </div>

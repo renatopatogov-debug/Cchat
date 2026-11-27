@@ -224,7 +224,7 @@ export function RankedRolesBody({ community }: { community: Community }) {
       )}
 
       {activationLeft > 0 && (
-        <div className="flex w-full flex-col gap-2 clip-corner-lg bg-warning/10 p-3 text-sm sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="flex w-full flex-col gap-2 rounded-2xl bg-warning/10 p-3 text-sm sm:flex-row sm:flex-wrap sm:items-center">
           <p className="flex-1 text-warning">
             <FormattedMessage
               id="rankedRolesView.finishSwitch"
@@ -235,7 +235,7 @@ export function RankedRolesBody({ community }: { community: Community }) {
           <Button
             type="button"
             size="sm"
-            className="clip-corner-lg"
+            className="rounded-2xl"
             disabled={isActivating}
             onClick={() => {
               setError(null);
@@ -326,7 +326,7 @@ export function RankedRolesBody({ community }: { community: Community }) {
       <Button
         type="button"
         variant="secondary"
-        className="w-full clip-corner-lg"
+        className="w-full rounded-2xl"
         disabled={!folded || !author || isSaving || roles.length >= MAX_ROLES_PER_COMMUNITY}
         onClick={() => {
           setError(null);
@@ -384,7 +384,7 @@ export function RankedRolesSwitch({ community }: { community: Community }) {
             defaultMessage="Channel permissions, categories with their own rules, and roles you can delete. Every role, grant and category, and the channel order, carry across."
           />
         </p>
-        <Button type="button" size="sm" className="clip-corner-lg" onClick={() => setOpen(true)}>
+        <Button type="button" size="sm" className="rounded-2xl" onClick={() => setOpen(true)}>
           <Layers className="size-4" />
           <FormattedMessage id="rankedRolesView.switch" defaultMessage="Switch to ranked roles" />
         </Button>
@@ -405,7 +405,7 @@ export function RankedRolesSwitch({ community }: { community: Community }) {
               defaultMessage: "Ranked roles add channel permissions, categories with their own rules, and roles you can delete. Every role, grant and category, and the channel order, carry across.",
             })}
           />
-          <p className="mt-5 clip-corner-lg bg-warning/10 px-3 py-2 text-xs text-warning">
+          <p className="mt-5 rounded-2xl bg-warning/10 px-3 py-2 text-xs text-warning">
             <FormattedMessage
               id="rankedRolesView.switchConfirmOlder"
               defaultMessage="This can't be undone. Members on an older Armada will see this community's roles, channels and categories wrongly until they update."
@@ -586,7 +586,7 @@ function RankedRoleEditor({
         <Button type="button" variant="ghost" className="flex-1" onClick={onCancel} disabled={saving}>
           <FormattedMessage {...common.cancel} />
         </Button>
-        <Button type="submit" className="flex-1 clip-corner-lg" disabled={saving}>
+        <Button type="submit" className="flex-1 rounded-2xl" disabled={saving}>
           {saving ? <Loader2 className="size-4 animate-spin" /> : <FormattedMessage {...common.save} />}
         </Button>
       </div>

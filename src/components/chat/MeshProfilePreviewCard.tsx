@@ -99,7 +99,7 @@ function MeshProfilePreviewBody({
         {!isSelf && (
           <div className="mt-3 flex items-center gap-2">
             {onMessage && (
-              <Button size="sm" className="flex-1 clip-corner-lg h-8" onClick={message}>
+              <Button size="sm" className="flex-1 rounded-2xl h-8" onClick={message}>
                 <MessageSquare className="size-3.5 mr-1.5" />
                 <FormattedMessage id="meshProfilePreviewCard.message" defaultMessage="Message" />
               </Button>
@@ -108,7 +108,7 @@ function MeshProfilePreviewBody({
               <Button
                 size="sm"
                 variant="secondary"
-                className="flex-1 clip-corner-lg h-8"
+                className="flex-1 rounded-2xl h-8"
                 onClick={mention}
               >
                 <AtSign className="size-3.5 mr-1.5" />

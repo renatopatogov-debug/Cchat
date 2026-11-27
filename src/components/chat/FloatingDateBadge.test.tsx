@@ -94,7 +94,7 @@ describe("FloatingDateBadge", () => {
     Object.defineProperty(scroller, "clientHeight", { configurable: true, value: 500 });
     scroller.scrollTop = 100;
     readerScroll();
-    expect(document.querySelector(".clip-corner")?.parentElement).toHaveClass("opacity-100");
+    expect(screen.getByTestId("floating-date-badge").parentElement).toHaveClass("opacity-100");
   });
 
   it("stays out of the way of a day separator already under it", () => {

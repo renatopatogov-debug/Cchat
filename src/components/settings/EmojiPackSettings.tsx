@@ -117,7 +117,7 @@ export function EmojiPackSettings() {
       <SettingsRow>
         <Button
           variant="secondary"
-          className="w-full clip-corner-lg"
+          className="w-full rounded-2xl"
           onClick={() => setDialog({})}
         >
           <Plus className="size-4" />

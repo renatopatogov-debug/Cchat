@@ -40,7 +40,7 @@ export function ImageLightbox({ src, onClose }: { src: string; onClose: () => vo
         <button
           type="button"
           aria-label={intl.formatMessage(common.close)}
-          className="absolute top-safe-4 right-4 p-2 touch:p-2.5 clip-corner-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+          className="absolute top-safe-4 right-4 p-2 touch:p-2.5 rounded-2xl text-white/80 hover:text-white hover:bg-white/10 transition-colors"
           onClick={onClose}
         >
           <X className="size-6" />

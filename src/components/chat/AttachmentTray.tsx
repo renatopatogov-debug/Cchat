@@ -182,7 +182,7 @@ function AttachmentCard({
           onClick={() => onRemove(item.url)}
         />
       ) : (
-        <div className="absolute right-1 top-1 flex overflow-hidden clip-corner-lg bg-background/95 opacity-0 shadow-sm transition-opacity group-hover/att:opacity-100 focus-within:opacity-100">
+        <div className="absolute right-1 top-1 flex overflow-hidden rounded-2xl bg-background/95 opacity-0 shadow-sm transition-opacity group-hover/att:opacity-100 focus-within:opacity-100">
           <ToolbarButton label={intl.formatMessage({ id: "attachmentTray.editAttachment", defaultMessage: "Edit attachment" })} onClick={() => onEdit(item.url)}>
             <Pencil className="size-3.5" />
           </ToolbarButton>
@@ -486,7 +486,7 @@ function AttachmentEditDialog({
                   onClose();
                   onPreview(item.url);
                 }}
-                className="relative mx-auto block aspect-square w-40 cursor-zoom-in overflow-hidden clip-corner-lg bg-background/40"
+                className="relative mx-auto block aspect-square w-40 cursor-zoom-in overflow-hidden rounded-2xl bg-background/40"
                 aria-label={intl.formatMessage({ id: "attachmentTray.previewNamed", defaultMessage: "Preview {name}" }, { name: item.label })}
               >
                 <CardPreview item={item} />

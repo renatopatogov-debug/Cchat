@@ -205,7 +205,7 @@ function CopyFieldButton({ text, label }: { text: string; label: string }) {
           () => toast({ title: t({ id: "characterCard.copyFailed", defaultMessage: "Couldn't copy" }), variant: "destructive" }),
         );
       }}
-      className="grid size-6 shrink-0 place-items-center clip-corner text-muted-foreground transition-colors hover:bg-secondary hover:text-primary touch:size-9"
+      className="grid size-6 shrink-0 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-secondary hover:text-primary touch:size-9"
     >
       {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
     </button>
@@ -253,7 +253,7 @@ const SECTIONS = {
   }),
 } satisfies Record<string, SectionLabels>;
 
-const PROSE_BOX = "overflow-y-auto break-words clip-corner bg-secondary/30 px-3 py-2 text-sm leading-relaxed text-foreground/90";
+const PROSE_BOX = "overflow-y-auto break-words rounded-xl bg-secondary/30 px-3 py-2 text-sm leading-relaxed text-foreground/90";
 
 /** One titled card field; empty fields don't render. Long bodies scroll inside their box. */
 function CardSection({ section, text, name }: { section: SectionLabels; text?: string; name: string }) {
@@ -418,7 +418,7 @@ function CharacterCardDialog({ card, image, onClose }: { card: CharaCard; image:
               </h3>
               <ul className="space-y-1.5">
                 {book.entries.slice(0, 10).map((entry, i) => (
-                  <li key={i} className="clip-corner bg-secondary/30 px-3 py-2">
+                  <li key={i} className="rounded-xl bg-secondary/30 px-3 py-2">
                     <p className="truncate text-xs font-medium text-foreground">
                       {entry.name ||
                         entry.keys.join(", ") ||

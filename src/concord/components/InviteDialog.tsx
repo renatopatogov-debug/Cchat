@@ -344,7 +344,7 @@ function InviteBody({ community, canCreateLink }: { community: Community | undef
           variant="secondary"
           onClick={() => void handleInvite()}
           disabled={sharing || !community}
-          className="w-full clip-corner-lg"
+          className="w-full rounded-2xl"
         >
           {sharing ? (
             <Loader2 className="size-4 mr-2 animate-spin" />
@@ -406,7 +406,7 @@ function InviteBody({ community, canCreateLink }: { community: Community | undef
               />
             </div>
 
-            <div className="mt-3 clip-hairline-lg [--edge:var(--chrome-divider)] [--fill:var(--chrome)] [--fill-hover:var(--chrome)] p-3 space-y-2.5">
+            <div className="mt-3 rounded-2xl border border-border/70 bg-card/60 [--edge:var(--chrome-divider)] [--fill:var(--chrome)] [--fill-hover:var(--chrome)] p-3 space-y-2.5">
               <Label
                 htmlFor="list-publicly"
                 className="flex items-start justify-between gap-3 cursor-pointer"

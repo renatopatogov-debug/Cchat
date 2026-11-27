@@ -270,7 +270,7 @@ export function CommunitySettingsView({
               ) : (
                 <button
                   type="button"
-                  className="flex h-32 w-full items-center justify-center clip-corner-lg bg-secondary/40 text-muted-foreground transition-colors hover:bg-secondary/60"
+                  className="flex h-32 w-full items-center justify-center rounded-2xl bg-secondary/40 text-muted-foreground transition-colors hover:bg-secondary/60"
                   onClick={() => handlePickImage("banner")}
                   aria-label={intl.formatMessage({ id: "communitySettingsView.addBanner", defaultMessage: "Add banner" })}
                 >
@@ -280,7 +280,7 @@ export function CommunitySettingsView({
               {canManageMetadata && (
                 <button
                   type="button"
-                  className="absolute bottom-2 right-2 grid size-8 touch:size-11 place-items-center clip-corner-lg bg-background/70 text-foreground backdrop-blur transition-colors hover:bg-background/90"
+                  className="absolute bottom-2 right-2 grid size-8 touch:size-11 place-items-center rounded-2xl bg-background/70 text-foreground backdrop-blur transition-colors hover:bg-background/90"
                   onClick={() => handlePickImage("banner")}
                   disabled={uploading === "banner"}
                   aria-label={intl.formatMessage({ id: "communitySettingsView.changeBanner", defaultMessage: "Change banner" })}
@@ -310,7 +310,7 @@ export function CommunitySettingsView({
                 ) : canManageMetadata ? (
                   <button
                     type="button"
-                    className="grid size-16 place-items-center clip-corner-lg bg-secondary/50 text-muted-foreground transition-colors hover:bg-secondary/70"
+                    className="grid size-16 place-items-center rounded-2xl bg-secondary/50 text-muted-foreground transition-colors hover:bg-secondary/70"
                     onClick={() => handlePickImage("icon")}
                     aria-label={intl.formatMessage({ id: "communitySettingsView.addIcon", defaultMessage: "Add icon" })}
                   >
@@ -324,7 +324,7 @@ export function CommunitySettingsView({
                 {canManageMetadata && (
                   <button
                     type="button"
-                    className="absolute -bottom-1 -right-1 grid size-6 touch:size-11 place-items-center clip-corner-lg bg-background text-foreground transition-colors hover:bg-secondary"
+                    className="absolute -bottom-1 -right-1 grid size-6 touch:size-11 place-items-center rounded-2xl bg-background text-foreground transition-colors hover:bg-secondary"
                     onClick={() => handlePickImage("icon")}
                     disabled={uploading === "icon"}
                     aria-label={intl.formatMessage({ id: "communitySettingsView.changeIcon", defaultMessage: "Change icon" })}
@@ -506,7 +506,7 @@ function HistorySection({ community }: { community: Community }) {
         <Button
           type="button"
           size="sm"
-          className="clip-corner-lg"
+          className="rounded-2xl"
           onClick={() => navigate(`/c/${encodeURIComponent(community.idHex)}/history`)}
         >
           <History className="size-4 shrink-0" />
@@ -674,7 +674,7 @@ function ConnectRepositoryDialog({ open, onOpenChange, channels, connectedCoordi
           <RepositoryPicker connectedCoordinates={connectedCoordinates} onSelect={setPicked} />
         ) : (
           <div className="min-w-0 space-y-3">
-            <div className="flex min-w-0 items-center gap-2.5 clip-corner-lg bg-background/40 p-2.5">
+            <div className="flex min-w-0 items-center gap-2.5 rounded-2xl bg-background/40 p-2.5">
               <OwnerAvatar pubkey={picked.owner} />
               <span className="min-w-0 flex-1">
                 <OwnerSlashRepo owner={picked.owner} name={picked.displayName} />
@@ -683,7 +683,7 @@ function ConnectRepositoryDialog({ open, onOpenChange, channels, connectedCoordi
                 </span>
               </span>
             </div>
-            <div className="max-h-56 space-y-0.5 overflow-y-auto clip-corner-lg bg-background/40 p-1">
+            <div className="max-h-56 space-y-0.5 overflow-y-auto rounded-2xl bg-background/40 p-1">
               {channels.map((channel) => {
                 const pending = pendingChannelId === channel.idHex;
                 const taken = pending ? undefined : repositoryByChannel.get(channel.idHex);
@@ -1245,7 +1245,7 @@ function ChannelsSection({
   const drag = categoryDrag.dragging ? categoryDrag : channelDrag;
 
   const draggedOutline = (
-    <span className="pointer-events-none absolute inset-x-0 inset-y-px clip-hairline-lg [--edge:var(--primary)/0.5] [--fill:var(--primary)/0.05] [--fill-hover:var(--primary)/0.05]" />
+    <span className="pointer-events-none absolute inset-x-0 inset-y-px rounded-2xl border border-border/70 bg-card/60 [--edge:var(--primary)/0.5] [--fill:var(--primary)/0.05] [--fill-hover:var(--primary)/0.05]" />
   );
 
   const renderChannelRow = (ch: Channel) => {
@@ -1377,7 +1377,7 @@ function ChannelsSection({
             <div
               data-ch-newzone
               className={cn(
-                "mt-2 flex items-center justify-center gap-1.5 clip-hairline-lg px-2 py-3 text-2xs font-semibold uppercase tracking-wider transition-colors",
+                "mt-2 flex items-center justify-center gap-1.5 rounded-2xl border border-border/70 bg-card/60 px-2 py-3 text-2xs font-semibold uppercase tracking-wider transition-colors",
                 channelDrag.target?.newCategory
                   ? "[--edge:var(--primary)] [--fill:var(--primary)/0.05] [--fill-hover:var(--primary)/0.05] text-primary"
                   : "[--edge:var(--primary)/0.5] [--fill:var(--background)/0.4] [--fill-hover:var(--background)/0.4] text-muted-foreground/70",
@@ -1420,7 +1420,7 @@ function ChannelsSection({
           className="pointer-events-none fixed z-[300] -translate-y-1/2 animate-in zoom-in-75 duration-150"
           style={{ left: (drag.columnX?.left ?? 0) + 12, top: drag.pointer.y }}
         >
-          <span className="flex max-w-48 items-center gap-2 rotate-[-2deg] scale-105 clip-corner-lg bg-muted px-3 py-1.5 text-sm font-medium ring-2 ring-primary [filter:drop-shadow(0_8px_16px_rgba(0,0,0,0.55))_drop-shadow(0_0_8px_hsl(var(--primary)/0.6))]">
+          <span className="flex max-w-48 items-center gap-2 rotate-[-2deg] scale-105 rounded-2xl bg-muted px-3 py-1.5 text-sm font-medium ring-2 ring-primary [filter:drop-shadow(0_8px_16px_rgba(0,0,0,0.55))_drop-shadow(0_0_8px_hsl(var(--primary)/0.6))]">
             {draggedChannel
               ? <ChannelGlyph isPrivate={draggedChannel.isPrivate} view={draggedChannel.view} className="size-4 shrink-0" />
               : <Folder className="size-4 shrink-0" />}

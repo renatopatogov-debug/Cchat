@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -331,7 +331,7 @@ beforeEach(() => {
 });
 
 describe("CommunityScreen Signal UI & E2EE guards", () => {
-  it("lists subgroups and call channels on mobile, opens a subgroup on tap, and joins voice calls", () => {
+  it("lists subgroups and call channels on mobile, opens a subgroup on tap, and joins voice calls", async () => {
     render(
       <MemoryRouter initialEntries={[`/c/${mockCommunity.idHex}`]}>
         <Routes>
@@ -342,11 +342,11 @@ describe("CommunityScreen Signal UI & E2EE guards", () => {
     );
 
     expect(screen.getByText("Grupo Teste")).toBeInTheDocument();
-    const voiceBtn = screen.getByRole("button", { name: /chamada-geral/i });
+    const voiceBtn = screen.getByRole("button", { name: /^chamada-geral/i });
     fireEvent.click(voiceBtn);
-    expect(state.joinConcordCall).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(state.joinConcordCall).toHaveBeenCalledTimes(1));
 
-    const channelBtn = screen.getByRole("button", { name: /geral/i });
+    const channelBtn = screen.getByRole("button", { name: /^geral\b/i });
     fireEvent.click(channelBtn);
 
     expect(screen.getByTestId("message-timeline")).toBeInTheDocument();

@@ -36,7 +36,10 @@ const mockChannel = {
   streams: [],
 };
 
-vi.mock("@/lib/blocklistStore", () => ({ useIsBlocked: () => () => false }));
+vi.mock("@/lib/blocklistStore", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/blocklistStore")>();
+  return { ...actual, useIsBlocked: () => () => false };
+});
 vi.mock("@/lib/bootGate", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/bootGate")>();
   return {
@@ -44,135 +47,227 @@ vi.mock("@/lib/bootGate", async (importOriginal) => {
     markBootPainted: () => undefined,
   };
 });
-vi.mock("@/hooks/useReadState", () => ({
-  useReadState: () => ({
-    readState: {},
-    getLastRead: () => 0,
-    markRead: () => undefined,
-    hydrate: () => undefined,
-  }),
-  concordReadKey: (id: string) => `c2:${id}`,
-}));
-vi.mock("@/wire/activation", () => ({
-  activateScope: () => undefined,
-  concordScope: (id: string) => `c2:${id}`,
-}));
-vi.mock("@/hooks/useCurrentUser", () => ({
-  useCurrentUser: () => ({ user: { pubkey: "b".repeat(64) } }),
-}));
+vi.mock("@/hooks/useReadState", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/hooks/useReadState")>();
+  return {
+    ...actual,
+    useReadState: () => ({
+      readState: {},
+      getLastRead: () => 0,
+      markRead: () => undefined,
+      hydrate: () => undefined,
+    }),
+    concordReadKey: (id: string) => `c2:${id}`,
+  };
+});
+vi.mock("@/wire/activation", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/wire/activation")>();
+  return {
+    ...actual,
+    activateScope: () => undefined,
+    concordScope: (id: string) => `c2:${id}`,
+  };
+});
+vi.mock("@/hooks/useCurrentUser", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/hooks/useCurrentUser")>();
+  return {
+    ...actual,
+    useCurrentUser: () => ({ user: { pubkey: "b".repeat(64) } }),
+  };
+});
 vi.mock("@/hooks/useIsDesktop", () => ({ useIsDesktop: () => state.isDesktop }));
-vi.mock("@/hooks/useIsMobile", () => ({ useIsTouch: () => true, useIsMobile: () => true }));
-vi.mock("@/lib/settingsOverlay", () => ({ usePageCovered: () => false }));
-vi.mock("@/hooks/useAppContext", () => ({
-  useAppContext: () => ({
-    config: { lastChannelByServer: {}, zapsEnabled: false },
-    updateConfig: () => undefined,
-  }),
-}));
-vi.mock("@/hooks/useAndroidBack", () => ({ useAndroidBack: () => undefined }));
-vi.mock("@/hooks/useCustomEmojis", () => ({
-  CustomEmojisProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
-}));
+vi.mock("@/hooks/useIsMobile", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/hooks/useIsMobile")>();
+  return { ...actual, useIsTouch: () => true, useIsMobile: () => true };
+});
+vi.mock("@/lib/settingsOverlay", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/settingsOverlay")>();
+  return { ...actual, usePageCovered: () => false };
+});
+vi.mock("@/hooks/useAppContext", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/hooks/useAppContext")>();
+  return {
+    ...actual,
+    useAppContext: () => ({
+      config: { lastChannelByServer: {}, zapsEnabled: false },
+      updateConfig: () => undefined,
+    }),
+  };
+});
+vi.mock("@/hooks/useAndroidBack", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/hooks/useAndroidBack")>();
+  return {
+    ...actual,
+    useAndroidBack: () => undefined,
+    useBackDismiss: (props: { open?: boolean; defaultOpen?: boolean; onOpenChange?: (open: boolean) => void }) => ({
+      open: props.open ?? props.defaultOpen ?? false,
+      onOpenChange: props.onOpenChange ?? (() => undefined),
+    }),
+  };
+});
+vi.mock("@/hooks/useCustomEmojis", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/hooks/useCustomEmojis")>();
+  return {
+    ...actual,
+    CustomEmojisProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
+  };
+});
 vi.mock("@/concord/components/ConcordMediaHold", () => ({
   ConcordMediaHold: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
-vi.mock("@/concord/hooks/useCommunityList", () => ({
-  useCommunity: () => mockCommunity,
-  useCommunityList: () => ({
-    data: { event: null, list: { entries: [], tombstones: [] } },
-    isLoading: false,
-  }),
-  useIsExcluded: () => state.excluded,
-}));
-vi.mock("@/concord/hooks/useControlPlane", () => ({
-  useControlFold: () => ({
-    data: {
-      ownerHex: "b".repeat(64),
-      metadata: { name: "Comunidade Teste", relays: ["wss://relay.example.com"] },
-      channels: new Map(),
-      banned: new Set<string>(),
-      heads: new Map(),
-      headEditions: new Map(),
-      roster: { roles: new Map(), grants: new Map(), overwrites: new Map() },
-      rankedRoster: true,
-      incomplete: [],
-    },
-  }),
-  useChannels: () => [mockChannel],
-  useDissolved: () => ({ data: state.dissolved }),
-}));
-vi.mock("@/concord/hooks/useStreamAuth", () => ({
-  useRegisterChannelStreamKeys: () => undefined,
-}));
-vi.mock("@/concord/hooks/useRekey", () => ({
-  useRekeyWatch: () => ({ stranded: state.stranded }),
-  useChannelRekeyWatch: () => undefined,
-}));
-vi.mock("@/concord/hooks/useRoles", () => ({ useStaffKeyWatch: () => undefined }));
+vi.mock("@/concord/hooks/useCommunityList", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/concord/hooks/useCommunityList")>();
+  return {
+    ...actual,
+    useCommunity: () => mockCommunity,
+    useCommunityList: () => ({
+      data: { event: null, list: { entries: [], tombstones: [] } },
+      isLoading: false,
+    }),
+    useIsExcluded: () => state.excluded,
+  };
+});
+vi.mock("@/concord/hooks/useControlPlane", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/concord/hooks/useControlPlane")>();
+  return {
+    ...actual,
+    useControlFold: () => ({
+      data: {
+        ownerHex: "b".repeat(64),
+        metadata: { name: "Comunidade Teste", relays: ["wss://relay.example.com"] },
+        channels: new Map(),
+        banned: new Set<string>(),
+        heads: new Map(),
+        headEditions: new Map(),
+        roster: { roles: new Map(), grants: new Map(), overwrites: new Map() },
+        rankedRoster: true,
+        incomplete: [],
+      },
+    }),
+    useChannels: () => [mockChannel],
+    useDissolved: () => ({ data: state.dissolved }),
+  };
+});
+vi.mock("@/concord/hooks/useStreamAuth", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/concord/hooks/useStreamAuth")>();
+  return {
+    ...actual,
+    useRegisterChannelStreamKeys: () => undefined,
+  };
+});
+vi.mock("@/concord/hooks/useRekey", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/concord/hooks/useRekey")>();
+  return {
+    ...actual,
+    useRekeyWatch: () => ({ stranded: state.stranded }),
+    useChannelRekeyWatch: () => undefined,
+  };
+});
+vi.mock("@/concord/hooks/useRoles", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/concord/hooks/useRoles")>();
+  return { ...actual, useStaffKeyWatch: () => undefined };
+});
 vi.mock("@/concord/hooks/useRelayFollow", () => ({ useRelayFollow: () => undefined }));
-vi.mock("@/concord/hooks/useWriterAccess", () => ({
-  useWriterAccess: () => undefined,
-  useCanPost: () => state.canPost,
-}));
-vi.mock("@/concord/lib/writerKeys", () => ({ sendsIn: () => state.canPost }));
-vi.mock("@/concord/hooks/useCommunityActions", () => ({
-  useStrandedRecovery: () => ({ canRecover: false, checking: false, checkNow: async () => false }),
-  useCommunityManagement: () => ({
-    leave: async () => undefined,
-    isLeaving: false,
-    createChannel: async () => ({ channelIdHex: "d".repeat(64) }),
-    isAddingChannel: false,
-  }),
-}));
-vi.mock("@/concord/hooks/useGuestbook", () => ({
-  useGuestbook: () => ({
-    coalesced: new Map(),
-    timeouts: new Map(),
-    nicknames: new Map(),
-    refound: undefined,
-  }),
-  useRestoreJoin: () => undefined,
-}));
-vi.mock("@/concord/hooks/usePause", () => ({ useActivePause: () => undefined }));
+vi.mock("@/concord/hooks/useWriterAccess", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/concord/hooks/useWriterAccess")>();
+  return {
+    ...actual,
+    useWriterAccess: () => undefined,
+    useCanPost: () => state.canPost,
+  };
+});
+vi.mock("@/concord/lib/writerKeys", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/concord/lib/writerKeys")>();
+  return { ...actual, sendsIn: () => state.canPost };
+});
+vi.mock("@/concord/hooks/useCommunityActions", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/concord/hooks/useCommunityActions")>();
+  return {
+    ...actual,
+    useStrandedRecovery: () => ({ canRecover: false, checking: false, checkNow: async () => false }),
+    useCommunityManagement: () => ({
+      leave: async () => undefined,
+      isLeaving: false,
+      createChannel: async () => ({ channelIdHex: "d".repeat(64) }),
+      isAddingChannel: false,
+    }),
+  };
+});
+vi.mock("@/concord/hooks/useGuestbook", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/concord/hooks/useGuestbook")>();
+  return {
+    ...actual,
+    useGuestbook: () => ({
+      coalesced: new Map(),
+      timeouts: new Map(),
+      nicknames: new Map(),
+      refound: undefined,
+    }),
+    useRestoreJoin: () => undefined,
+  };
+});
+vi.mock("@/concord/hooks/usePause", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/concord/hooks/usePause")>();
+  return { ...actual, useActivePause: () => undefined };
+});
 vi.mock("@/concord/hooks/useConcordUnread", () => ({
   useConcordUnread: () => ({ byChannel: {}, markRead: () => undefined, getLastRead: () => 0 }),
 }));
 vi.mock("@/concord/hooks/useCommunityRumors", () => ({
   useCommunityRumors: () => ({ byChannel: new Map() }),
 }));
-vi.mock("@/concord/hooks/useTransport", () => ({
-  useTransport: (_comm: unknown, _ch: unknown, canWrite: boolean) => ({
-    transport: {
-      messages: [],
-      isLoading: false,
-      canWrite,
-      canModerate: false,
-      hasMore: false,
-    },
-    span: undefined,
-    reactionsFor: () => ({ tallies: [], react: () => undefined }),
-    allMessages: [],
-    timerEntries: [],
-    trustedAuthors: new Set<string>(),
-  }),
-}));
-vi.mock("@/concord/lib/rumorStore", () => ({ scheduleExpiredSweep: () => undefined }));
-vi.mock("@/concord/lib/channelSync", () => ({ channelDecodeDeadEnd: () => false }));
+vi.mock("@/concord/hooks/useTransport", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/concord/hooks/useTransport")>();
+  return {
+    ...actual,
+    useTransport: (_comm: unknown, _ch: unknown, canWrite: boolean) => ({
+      transport: {
+        messages: [],
+        isLoading: false,
+        canWrite,
+        canModerate: false,
+        hasMore: false,
+      },
+      span: undefined,
+      reactionsFor: () => ({ tallies: [], react: () => undefined }),
+      allMessages: [],
+      timerEntries: [],
+      trustedAuthors: new Set<string>(),
+    }),
+  };
+});
+vi.mock("@/concord/lib/rumorStore", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/concord/lib/rumorStore")>();
+  return { ...actual, scheduleExpiredSweep: () => undefined };
+});
+vi.mock("@/concord/lib/channelSync", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/concord/lib/channelSync")>();
+  return { ...actual, channelDecodeDeadEnd: () => false };
+});
 vi.mock("@/concord/hooks/useReplyParents", () => ({
   useConcordReplyParents: () => new Map(),
 }));
-vi.mock("@/concord/hooks/useChannel", () => ({
-  useSendMessage: () => ({ mutateAsync: async () => undefined }),
-}));
-vi.mock("@/concord/hooks/useTyping", () => ({
-  useTyping: () => [],
-  useTypingPublisher: () => () => undefined,
-}));
+vi.mock("@/concord/hooks/useChannel", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/concord/hooks/useChannel")>();
+  return { ...actual, useSendMessage: () => ({ mutateAsync: async () => undefined }) };
+});
+vi.mock("@/concord/hooks/useTyping", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/concord/hooks/useTyping")>();
+  return {
+    ...actual,
+    useTyping: () => [],
+    useTypingPublisher: () => () => undefined,
+  };
+});
 vi.mock("@/sync/useSyncTopic", () => ({
   useSyncTopicState: () => ({ status: "settled" }),
 }));
-vi.mock("@/hooks/useSyncActivity", () => ({ useSyncTaskInScope: () => false }));
+vi.mock("@/hooks/useSyncActivity", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/hooks/useSyncActivity")>();
+  return { ...actual, useSyncTaskInScope: () => false };
+});
 vi.mock("@/components/SyncStatusIndicator", () => ({ SyncStatusIndicator: () => null }));
+vi.mock("@/components/chat/ChatMessage", () => ({ ChatMessage: () => null }));
 vi.mock("@/components/chat/MessageTimeline", () => ({
   MessageTimeline: () => <div data-testid="message-timeline" />,
 }));

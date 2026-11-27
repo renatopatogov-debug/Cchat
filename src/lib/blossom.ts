@@ -1,0 +1,190 @@
+import { config } from "@/lib/env";
+import { isLocalNetworkUrl, sanitizeUrl } from "@/lib/sanitizeUrl";
+
+import type { NostrRumor } from "@/lib/nostrRumor";
+
+/**
+ * The deployment's Blossom servers (`BLOSSOM_SERVERS`, comma-separated
+ * origins), most trusted first (BUD-03). The first is the preferred one,
+ * whose URL uploads embed when it takes the blob. Unset or empty means
+ * Armada's public servers with no preference.
+ */
+const DEPLOYMENT_BLOSSOM_SERVERS: string[] = parseServerList(config("BLOSSOM_SERVERS") ?? "");
+
+export const APP_BLOSSOM_SERVERS: string[] = DEPLOYMENT_BLOSSOM_SERVERS.length > 0
+  ? DEPLOYMENT_BLOSSOM_SERVERS
+  : parseServerList(
+    "https://blossom.ditto.pub/,https://blossom.dreamith.to/,https://blossom.primal.net/,https://cdn.hzrd149.com/",
+  );
+
+/** The first of a deployment's `BLOSSOM_SERVERS`, or "" for no preference. */
+export const PREFERRED_BLOSSOM_SERVER: string = DEPLOYMENT_BLOSSOM_SERVERS[0] ?? "";
+
+function parseServerList(value: string): string[] {
+  return value
+    .split(",")
+    .map((url: string) => normalizeBlossomServerUrl(url))
+    .filter((url: string | null): url is string => url !== null);
+}
+
+/**
+ * The user's Blossom server list, synced with their kind 10063 event.
+ * `updatedAt` (0 = never synced) keeps a stale relay read from clobbering local edits.
+ */
+export interface BlossomServerMetadata {
+  servers: string[];
+  updatedAt: number;
+  /** Winning kind-10063 id, for NIP-01's lower-id same-second tiebreak. */
+  eventId?: string;
+}
+
+/** Parse a kind 10063 Blossom server list event into validated server URLs. */
+export function parseBlossomServerList(event: Pick<NostrRumor, "tags">): string[] {
+  return event.tags
+    .filter(([name]) => name === "server")
+    .map(([, url]) => url)
+    .filter((url) => {
+      try {
+        new URL(url);
+        return true;
+      } catch {
+        return false;
+      }
+    });
+}
+
+/**
+ * Normalize a Blossom server URL for storage/publishing: require http(s),
+ * default bare hostnames to https, strip search/hash, ensure a trailing
+ * slash. Returns null when the input isn't a usable server URL.
+ */
+export function normalizeBlossomServerUrl(input: string): string | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const url = new URL(withScheme);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+    url.search = "";
+    url.hash = "";
+    if (!url.pathname.endsWith("/")) url.pathname += "/";
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+/** Normalize a Blossom server URL for deduplication. */
+function normalizeUrl(url: string): string {
+  return url.toLowerCase().replace(/\/+$/, "");
+}
+
+export interface UploadTargets {
+  servers: string[];
+  /** The server whose URL an upload embeds when it takes the blob. */
+  preferred?: string;
+}
+
+/**
+ * Where uploads go: the user's kind 10063 list, else the app servers. BUD-03
+ * orders the list most trusted first, so its first server is the preferred one.
+ */
+export function uploadTargets(userMeta: BlossomServerMetadata): UploadTargets {
+  const own = dedupeServers(
+    userMeta.servers
+      .map((url) => normalizeBlossomServerUrl(url))
+      .filter((url): url is string => url !== null),
+  );
+  if (own.length > 0) return { servers: own, preferred: own[0] };
+  return { servers: [...APP_BLOSSOM_SERVERS], preferred: PREFERRED_BLOSSOM_SERVER || undefined };
+}
+
+export function lookupBlossomServers(userMeta: BlossomServerMetadata): string[] {
+  return dedupeServers([...userMeta.servers, ...APP_BLOSSOM_SERVERS]);
+}
+
+/**
+ * How long an attachment's blob outlives its disappearing message's own deadline: it's uploaded
+ * when picked, and the message is stamped only when sent.
+ */
+const ATTACHMENT_EXPIRATION_SLACK_SECS = 24 * 60 * 60;
+
+/**
+ * When the blob of an attachment uploaded now may be deleted (`X-Expiration`, blossom#115), for a
+ * message under a `timerSecs` disappearing timer; undefined when the timer is off.
+ */
+export function attachmentExpiration(timerSecs: number, nowMs = Date.now()): number | undefined {
+  return timerSecs > 0 ? Math.floor(nowMs / 1000) + timerSecs + ATTACHMENT_EXPIRATION_SLACK_SECS : undefined;
+}
+
+/** A content-addressed path `/<sha256>` (64 hex), optionally with an extension. */
+export const BLOSSOM_SHA256_PATH_REGEX = /^\/[a-f0-9]{64}\b/i;
+
+/**
+ * The same content-addressed blob on every OTHER server (BUD-04 mirrors), for
+ * read-side redundancy. `[]` for non-content-addressed URLs.
+ */
+export function blossomFallbackUrls(url: string, servers: readonly string[]): string[] {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return [];
+  }
+  if (!BLOSSOM_SHA256_PATH_REGEX.test(parsed.pathname)) return [];
+
+  const seen = new Set<string>([parsed.origin]);
+  const out: string[] = [];
+  for (const server of servers) {
+    let origin: string;
+    try {
+      origin = new URL(server).origin;
+    } catch {
+      continue;
+    }
+    if (seen.has(origin)) continue;
+    seen.add(origin);
+    out.push(`${origin}${parsed.pathname}${parsed.search}`);
+  }
+  return out;
+}
+
+/**
+ * The single ordering of sources for a media reference: primary, then the
+ * sender's declared fallbacks (they know where the blob is), then Blossom
+ * mirrors. Raw URLs are sanitized here so `javascript:`/LAN URLs never reach a fetch.
+ */
+export function mediaCandidates(
+  url: string,
+  declaredFallbacks: readonly string[] | undefined,
+  blossomServers: readonly string[],
+): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of [url, ...(declaredFallbacks ?? [])]) {
+    const safe = sanitizeUrl(raw);
+    if (!safe || isLocalNetworkUrl(safe) || seen.has(safe)) continue;
+    seen.add(safe);
+    out.push(safe);
+  }
+  for (const mirror of blossomFallbackUrls(url, blossomServers)) {
+    if (seen.has(mirror)) continue;
+    seen.add(mirror);
+    out.push(mirror);
+  }
+  return out;
+}
+
+/** Deduplicate server URLs by normalized form, preserving order. */
+function dedupeServers(urls: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const url of urls) {
+    const normalized = normalizeUrl(url);
+    if (!seen.has(normalized)) {
+      seen.add(normalized);
+      out.push(url);
+    }
+  }
+  return out;
+}

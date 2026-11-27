@@ -1,0 +1,230 @@
+import { useNostr } from "@nostrify/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
+
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useNostrPublish } from "@/hooks/useNostrPublish";
+import { useToast } from "@/hooks/useToast";
+import {
+  type CalendarEvent,
+  type CalendarEventInput,
+  type CalendarTransport,
+  KIND_CALENDAR_DATE,
+  KIND_CALENDAR_RSVP,
+  KIND_CALENDAR_TIME,
+  calendarEventCoord,
+  parseCalendarEvents,
+  parseRsvpStatus,
+  type RsvpStatus,
+  type RsvpTally,
+  type RsvpVote,
+  tallyRsvps,
+} from "@/lib/calendar";
+import {
+  buildCalendarEventTags,
+  buildRsvpTags,
+  KIND_DELETE,
+  parseRsvpCoord,
+  relayRejectionMessage,
+} from "@/lib/nip29";
+
+import type { NostrRumor } from "@/lib/nostrRumor";
+import { t } from "@/i18n";
+
+export { isUpcoming } from "@/lib/calendar";
+
+/**
+ * A group's NIP-52 calendar events (31922/31923) from its host relay, with
+ * create/update/delete mutations (relay-gated to mods). Newest per (author, kind,
+ * `d`) wins; sorted soonest-first.
+ */
+export function useCalendarEvents(relayUrl: string | undefined, groupId: string | undefined) {
+  const { nostr } = useNostr();
+  const queryClient = useQueryClient();
+  const { mutateAsync: publishEvent } = useNostrPublish();
+  const { toast } = useToast();
+
+  const queryKey = ["nip29", "calendar", relayUrl, groupId];
+
+  const query = useQuery<CalendarEvent[]>({
+    queryKey,
+    queryFn: async ({ signal }) => {
+      const events = await nostr.relay(relayUrl!).query(
+        // `#h` routes to the group's DB (relay29 requires an h/e/a/ids selector).
+        [{ kinds: [KIND_CALENDAR_DATE, KIND_CALENDAR_TIME], "#h": [groupId!], limit: 200 }],
+        { signal: AbortSignal.any([signal, AbortSignal.timeout(8000)]) },
+      );
+      return parseCalendarEvents(events);
+    },
+    enabled: Boolean(relayUrl && groupId),
+    staleTime: 15_000,
+    refetchInterval: 60_000,
+  });
+
+  const events = query.data ?? [];
+
+  const save = useMutation({
+    mutationFn: async ({ input, prev }: { input: CalendarEventInput; prev?: NostrRumor }) => {
+      return publishEvent({
+        kind: input.kind,
+        content: input.description ?? "",
+        tags: buildCalendarEventTags(groupId!, input),
+        relay: relayUrl,
+        prev,
+      });
+    },
+    onError: (err) => {
+      toast({
+        title: t({ id: "useCalendarEvents.saveFailed", defaultMessage: "Couldn't save event" }),
+        description: relayRejectionMessage(err),
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey });
+    },
+  });
+
+  const remove = useMutation({
+    mutationFn: async (event: CalendarEvent) => {
+      return publishEvent({
+        kind: KIND_DELETE,
+        content: "",
+        tags: [
+          ["e", event.event.id],
+          ["k", String(event.kind)],
+          ["h", groupId!],
+        ],
+        relay: relayUrl,
+      });
+    },
+    onError: (err) => {
+      toast({
+        title: t({ id: "useCalendarEvents.deleteFailed", defaultMessage: "Couldn't delete event" }),
+        description: relayRejectionMessage(err),
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey });
+    },
+  });
+
+  return {
+    events,
+    isLoading: query.isLoading,
+    /** Create a new event, or update an existing one (pass its raw event as `prev`). */
+    save: (input: CalendarEventInput, prev?: NostrRumor) => save.mutateAsync({ input, prev }),
+    isSaving: save.isPending,
+    /** Delete an event (NIP-09 kind 5, author/moderator only per the relay). */
+    remove: (event: CalendarEvent) => remove.mutateAsync(event),
+    isRemoving: remove.isPending,
+  };
+}
+
+/** All RSVPs for a group's events, keyed by the event coordinate they point at. */
+type RsvpMap = Map<string, RsvpVote[]>;
+
+const EMPTY_RSVPS: RsvpVote[] = [];
+
+/**
+ * A NIP-29 {@link CalendarTransport}: events plus RSVPs (tallied client-side) and
+ * mutations, for the transport-agnostic calendar UI.
+ */
+export function useNip29CalendarTransport(
+  relayUrl: string | undefined,
+  groupId: string | undefined,
+  canModerate: boolean,
+): CalendarTransport {
+  const { nostr } = useNostr();
+  const { user } = useCurrentUser();
+  const queryClient = useQueryClient();
+  const { mutateAsync: publishEvent } = useNostrPublish();
+  const { toast } = useToast();
+  const { events, save, remove, isSaving } = useCalendarEvents(relayUrl, groupId);
+
+  const rsvpKey = ["nip29", "rsvps", relayUrl, groupId];
+
+  const rsvpQuery = useQuery<RsvpMap>({
+    queryKey: rsvpKey,
+    queryFn: async ({ signal }) => {
+      const rsvps = await nostr.relay(relayUrl!).query(
+        [{ kinds: [KIND_CALENDAR_RSVP], "#h": [groupId!], limit: 1000 }],
+        { signal: AbortSignal.any([signal, AbortSignal.timeout(8000)]) },
+      );
+      const map: RsvpMap = new Map();
+      for (const rsvp of rsvps) {
+        const coord = parseRsvpCoord(rsvp);
+        const status = parseRsvpStatus(rsvp);
+        if (!coord || !status) continue;
+        const list = map.get(coord) ?? [];
+        list.push({ pubkey: rsvp.pubkey, status, ms: rsvp.created_at * 1000 });
+        map.set(coord, list);
+      }
+      return map;
+    },
+    enabled: Boolean(relayUrl && groupId),
+    staleTime: 15_000,
+    refetchInterval: 60_000,
+  });
+
+  const rsvpMap = rsvpQuery.data;
+
+  const rsvpsFor = useCallback(
+    (event: CalendarEvent): RsvpTally => {
+      const coord = calendarEventCoord(event.kind, event.event.pubkey, event.identifier);
+      return tallyRsvps(rsvpMap?.get(coord) ?? EMPTY_RSVPS, user?.pubkey);
+    },
+    [rsvpMap, user?.pubkey],
+  );
+
+  const setRsvp = useMutation({
+    mutationFn: async ({ event, status }: { event: CalendarEvent; status: RsvpStatus }) => {
+      const coord = calendarEventCoord(event.kind, event.event.pubkey, event.identifier);
+      return publishEvent({
+        kind: KIND_CALENDAR_RSVP,
+        content: "",
+        tags: buildRsvpTags({
+          groupId: groupId!,
+          eventCoord: coord,
+          eventId: event.event.id,
+          eventAuthor: event.event.pubkey,
+          status,
+        }),
+        relay: relayUrl,
+      });
+    },
+    onMutate: async ({ event, status }) => {
+      if (!user) return;
+      await queryClient.cancelQueries({ queryKey: rsvpKey });
+      const prev = queryClient.getQueryData<RsvpMap>(rsvpKey);
+      const coord = calendarEventCoord(event.kind, event.event.pubkey, event.identifier);
+      // Optimistically reflect the new status (newest ms wins in the tally).
+      const next: RsvpMap = new Map(prev);
+      const list = (next.get(coord) ?? []).filter((v) => v.pubkey !== user.pubkey);
+      list.push({ pubkey: user.pubkey, status, ms: Date.now() });
+      next.set(coord, list);
+      queryClient.setQueryData<RsvpMap>(rsvpKey, next);
+      return { prev };
+    },
+    onError: (err, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(rsvpKey, ctx.prev);
+      toast({ title: t({ id: "useCalendarEvents.rsvpFailed", defaultMessage: "RSVP failed" }), description: relayRejectionMessage(err), variant: "destructive" });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: rsvpKey });
+    },
+  });
+
+  return {
+    events,
+    canModerate,
+    canRsvp: Boolean(user),
+    isSaving,
+    isSettingRsvp: setRsvp.isPending,
+    save: (input, prev) => save(input, prev).then(() => undefined),
+    remove: (event) => remove(event).then(() => undefined),
+    rsvpsFor,
+    setRsvp: (event, status) => void setRsvp.mutateAsync({ event, status }).catch(() => {}),
+  };
+}

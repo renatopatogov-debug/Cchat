@@ -1,0 +1,587 @@
+import {
+  ParticipantEvent,
+  Track,
+  type LocalParticipant,
+  type LocalTrack,
+  type LocalVideoTrack,
+  type RemoteVideoTrack,
+  type TrackPublishOptions,
+} from "livekit-client";
+
+import {
+  getScreenShareQuality,
+  normalizeScreenShareQuality,
+  screenShareAudioPublishOptions,
+  screenShareDisplayMediaOptions,
+  screenSharePublishOptions,
+  screenShareVideoConstraints,
+  type ScreenShareQuality,
+} from "@/lib/screenShareQuality";
+
+type AcquireDisplayMedia = (quality: ScreenShareQuality) => Promise<MediaStream>;
+
+export interface ScreenShareSenderStats {
+  captureWidth?: number;
+  captureHeight?: number;
+  captureFrameRate?: number;
+  encodedWidth?: number;
+  encodedHeight?: number;
+  encodedFrameRate?: number;
+  /** Measured encoded media sent over the last stats interval, in bits/s. */
+  actualBitrate?: number;
+  /** WebRTC congestion controller's current encoder target, in bits/s. */
+  targetBitrate?: number;
+  /** User-configured maximum for the full-resolution encoding, in bits/s. */
+  configuredMaxBitrate?: number;
+  codec?: string;
+  encoderImplementation?: string;
+  qualityLimitationReason?: string;
+  framesEncoded?: number;
+  keyFramesEncoded?: number;
+  packetsSent?: number;
+  retransmittedPacketsSent?: number;
+  nackCount?: number;
+  pliCount?: number;
+}
+
+export interface ScreenShareReceiverStats {
+  decodedWidth?: number;
+  decodedHeight?: number;
+  decodedFrameRate?: number;
+  actualBitrate?: number;
+  codec?: string;
+  decoderImplementation?: string;
+  framesReceived?: number;
+  framesDecoded?: number;
+  framesDropped?: number;
+  packetsReceived?: number;
+  packetsLost?: number;
+  nackCount?: number;
+  pliCount?: number;
+  jitter?: number;
+}
+
+interface OutboundVideoStats extends RTCStats {
+  kind?: string;
+  mediaType?: string;
+  codecId?: string;
+  frameWidth?: number;
+  frameHeight?: number;
+  framesPerSecond?: number;
+  bytesSent?: number;
+  targetBitrate?: number;
+  encoderImplementation?: string;
+  qualityLimitationReason?: string;
+  framesEncoded?: number;
+  keyFramesEncoded?: number;
+  packetsSent?: number;
+  retransmittedPacketsSent?: number;
+  nackCount?: number;
+  pliCount?: number;
+}
+
+interface InboundVideoStats extends RTCStats {
+  kind?: string;
+  mediaType?: string;
+  codecId?: string;
+  frameWidth?: number;
+  frameHeight?: number;
+  framesPerSecond?: number;
+  bytesReceived?: number;
+  framesReceived?: number;
+  framesDecoded?: number;
+  framesDropped?: number;
+  packetsReceived?: number;
+  packetsLost?: number;
+  nackCount?: number;
+  pliCount?: number;
+  jitter?: number;
+  decoderImplementation?: string;
+}
+
+interface CodecStats extends RTCStats {
+  mimeType?: string;
+}
+
+interface OutboundByteSample {
+  timestamp: number;
+  bytesSent: number;
+}
+
+const outboundSamples = new WeakMap<RTCRtpSender, OutboundByteSample>();
+const inboundSamples = new WeakMap<RemoteVideoTrack, OutboundByteSample>();
+
+type PublisherInternals = LocalParticipant & {
+  engine?: {
+    pcManager?: {
+      publisher?: {
+        getTransceivers?: () => RTCRtpTransceiver[];
+      };
+    };
+  };
+};
+
+type PublishedLocalVideoTrack = LocalTrack & {
+  publishOptions?: TrackPublishOptions;
+};
+
+function codecParameter(codec: RTCRtpCodec, name: string): string | undefined {
+  const entry = codec.sdpFmtpLine
+    ?.split(";")
+    .map((part) => part.trim())
+    .find((part) => part.toLowerCase().startsWith(`${name.toLowerCase()}=`));
+  return entry?.slice(entry.indexOf("=") + 1);
+}
+
+/**
+ * Prefer H.264 packetization-mode=1 for encrypted shares: LiveKit E2EE keeps the
+ * NAL header and encrypts the rest, and mode 0 can't fragment the large
+ * encrypted NAL, so keyframes are silently dropped.
+ */
+export function preferredE2eeH264Codecs(
+  codecs: readonly RTCRtpCodec[],
+): RTCRtpCodec[] {
+  const h264 = codecs.filter((codec) => codec.mimeType.toLowerCase() === "video/h264");
+  const e2eeCompatible = h264.filter(
+    (codec) => codecParameter(codec, "packetization-mode") === "1",
+  );
+  // setCodecPreferences() negotiates exactly this list, so keep repair codecs
+  // (without video/rtx there is no NACK retransmission).
+  const repair = codecs.filter((codec) =>
+    ["video/rtx", "video/red", "video/ulpfec", "video/flexfec-03"].includes(
+      codec.mimeType.toLowerCase(),
+    )
+  );
+
+  // No mode-1 profile exposed: keep all H.264 rather than make it unnegotiable.
+  if (e2eeCompatible.length === 0) return [...h264, ...repair];
+
+  return [...e2eeCompatible, ...repair];
+}
+
+function isLinuxBrowser(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const nav = navigator as Navigator & { userAgentData?: { platform?: string } };
+  return /linux/i.test(nav.userAgentData?.platform ?? nav.platform ?? nav.userAgent);
+}
+
+function configureScreenShareCodecPreferences(
+  participant: LocalParticipant,
+  sender: RTCRtpSender,
+  track: LocalTrack,
+  endToEndEncrypted: boolean,
+): void {
+  const videoTrack = track as PublishedLocalVideoTrack;
+  if (
+    track.source !== Track.Source.ScreenShare ||
+    videoTrack.publishOptions?.videoCodec !== "h264" ||
+    (!endToEndEncrypted && !isLinuxBrowser())
+  ) {
+    return;
+  }
+
+  const capabilities = globalThis.RTCRtpSender?.getCapabilities?.("video")?.codecs ?? [];
+  const preferences = preferredE2eeH264Codecs(capabilities);
+  if (preferences.length === 0) return;
+
+  const transceiver = (participant as PublisherInternals).engine?.pcManager?.publisher
+    ?.getTransceivers?.()
+    .find((candidate) => candidate.sender === sender);
+  if (!transceiver?.setCodecPreferences) return;
+
+  try {
+    // LocalSenderCreated fires before the offer — the only point to affect H.264 negotiation.
+    transceiver.setCodecPreferences(preferences);
+  } catch (error) {
+    console.warn("failed to prefer a compatible H.264 screen-share profile", error);
+  }
+}
+
+/** Install the pre-negotiation H.264 compatibility policy for screen shares. */
+export function installScreenShareCodecPreferences(
+  participant: LocalParticipant,
+  { endToEndEncrypted = false }: { endToEndEncrypted?: boolean } = {},
+): () => void {
+  const listener = (sender: RTCRtpSender, track: LocalTrack) => {
+    configureScreenShareCodecPreferences(participant, sender, track, endToEndEncrypted);
+  };
+  participant.on(ParticipantEvent.LocalSenderCreated, listener);
+  return () => participant.off(ParticipantEvent.LocalSenderCreated, listener);
+}
+
+export function bitrateFromOutboundSamples(
+  previous: OutboundByteSample | undefined,
+  current: OutboundByteSample,
+): number | undefined {
+  if (!previous) return undefined;
+  const elapsedMs = current.timestamp - previous.timestamp;
+  const bytes = current.bytesSent - previous.bytesSent;
+  if (elapsedMs <= 0 || bytes < 0) return undefined;
+  return (bytes * 8 * 1_000) / elapsedMs;
+}
+
+async function acquireReplacementStream(quality: ScreenShareQuality): Promise<MediaStream> {
+  const stream = await navigator.mediaDevices.getDisplayMedia(
+    screenShareDisplayMediaOptions(quality),
+  );
+  const video = stream.getVideoTracks()[0];
+  if (video) video.contentHint = "detail";
+  return stream;
+}
+
+async function ensureHighLayerCeiling(
+  participant: LocalParticipant,
+  quality: ScreenShareQuality,
+): Promise<void> {
+  const track = participant.getTrackPublication(Track.Source.ScreenShare)?.videoTrack;
+  const sender = track?.sender;
+  if (!sender) return;
+
+  try {
+    const parameters = sender.getParameters();
+    if (parameters.encodings.length === 0) return;
+    const high = parameters.encodings.find((encoding) => encoding.rid === "f") ??
+      (parameters.encodings.length === 1
+        ? parameters.encodings[0]
+        : parameters.encodings.reduce((best, encoding) =>
+            (encoding.scaleResolutionDownBy ?? 1) < (best.scaleResolutionDownBy ?? 1)
+              ? encoding
+              : best,
+          ));
+    // Firefox disables an unused layer by pinning maxBitrate to 10 bps; writing
+    // a ceiling would re-enable it. Otherwise write even while paused: dynacast
+    // re-enables via `active` alone and never restores maxBitrate.
+    if (high.maxBitrate === 10) return;
+    high.maxBitrate = quality.maxBitrate;
+    high.maxFramerate = quality.frameRate;
+    high.priority = "medium";
+    high.networkPriority = "medium";
+    await sender.setParameters(parameters);
+  } catch (error) {
+    // Belt-and-braces for browsers with a different encoding count (non-simulcast Safari).
+    console.warn("failed to confirm screen-share sender ceiling", error);
+  }
+}
+
+/**
+ * Snapshot capture constraints to restore if a quality change fails.
+ * getConstraints() is empty for a fresh getDisplayMedia() capture, so fall back
+ * to pinning the measured settings rather than lifting the caps.
+ */
+function captureConstraintSnapshot(track: MediaStreamTrack): MediaTrackConstraints {
+  const applied = track.getConstraints();
+  if (applied.width || applied.height || applied.frameRate) return applied;
+
+  const settings = track.getSettings();
+  const snapshot: MediaTrackConstraints = {};
+  if (settings.width) snapshot.width = { ideal: settings.width, max: settings.width };
+  if (settings.height) snapshot.height = { ideal: settings.height, max: settings.height };
+  if (settings.frameRate) {
+    snapshot.frameRate = { ideal: settings.frameRate, max: settings.frameRate };
+  }
+  return snapshot;
+}
+
+function effectiveVideoCodec(options: TrackPublishOptions | undefined): string {
+  return options?.videoCodec ?? "vp8";
+}
+
+function effectiveSimulcast(options: TrackPublishOptions | undefined): boolean {
+  return options?.simulcast ?? true;
+}
+
+function requiresRenegotiation(
+  previous: TrackPublishOptions | undefined,
+  next: TrackPublishOptions,
+): boolean {
+  return effectiveVideoCodec(previous) !== effectiveVideoCodec(next) ||
+    effectiveSimulcast(previous) !== effectiveSimulcast(next);
+}
+
+/** Read what Chromium is actually capturing and attempting to encode. */
+export async function getLocalScreenShareSenderStats(
+  track: LocalVideoTrack,
+): Promise<ScreenShareSenderStats> {
+  const settings = track.mediaStreamTrack.getSettings();
+  const result: ScreenShareSenderStats = {
+    captureWidth: settings.width,
+    captureHeight: settings.height,
+    captureFrameRate: settings.frameRate,
+    configuredMaxBitrate: track.publishOptions?.screenShareEncoding?.maxBitrate,
+  };
+  if (!track.sender?.getStats) return result;
+
+  const report = await track.sender.getStats();
+  const codecs = new Map<string, CodecStats>();
+  const outbound: OutboundVideoStats[] = [];
+  report.forEach((entry) => {
+    const stats = entry as RTCStats & Partial<OutboundVideoStats & CodecStats>;
+    if (stats.type === "codec") codecs.set(stats.id, stats);
+    if (
+      stats.type === "outbound-rtp" &&
+      (stats.kind === "video" || stats.mediaType === "video")
+    ) {
+      outbound.push(stats);
+    }
+  });
+  if (outbound.length === 0) return result;
+
+  const largest = outbound.reduce((best, stats) => {
+    const pixels = (stats.frameWidth ?? 0) * (stats.frameHeight ?? 0);
+    const bestPixels = (best.frameWidth ?? 0) * (best.frameHeight ?? 0);
+    return pixels > bestPixels ? stats : best;
+  });
+  const targetBitrate = outbound.reduce((total, stats) => total + (stats.targetBitrate ?? 0), 0);
+  const currentSample = {
+    timestamp: Math.max(...outbound.map((stats) => stats.timestamp)),
+    bytesSent: outbound.reduce((total, stats) => total + (stats.bytesSent ?? 0), 0),
+  };
+  const actualBitrate = bitrateFromOutboundSamples(outboundSamples.get(track.sender), currentSample);
+  outboundSamples.set(track.sender, currentSample);
+  const codec = largest.codecId ? codecs.get(largest.codecId)?.mimeType : undefined;
+  return {
+    ...result,
+    encodedWidth: largest.frameWidth,
+    encodedHeight: largest.frameHeight,
+    encodedFrameRate: largest.framesPerSecond,
+    actualBitrate,
+    targetBitrate: targetBitrate || undefined,
+    codec: codec?.replace(/^video\//i, ""),
+    encoderImplementation: largest.encoderImplementation,
+    qualityLimitationReason: largest.qualityLimitationReason,
+    framesEncoded: largest.framesEncoded,
+    keyFramesEncoded: largest.keyFramesEncoded,
+    packetsSent: largest.packetsSent,
+    retransmittedPacketsSent: largest.retransmittedPacketsSent,
+    nackCount: largest.nackCount,
+    pliCount: largest.pliCount,
+  };
+}
+
+export async function getPublishedScreenShareSenderStats(
+  participant: LocalParticipant,
+): Promise<ScreenShareSenderStats | null> {
+  const track = participant.getTrackPublication(Track.Source.ScreenShare)?.videoTrack;
+  return track ? getLocalScreenShareSenderStats(track) : null;
+}
+
+/** Read the media that reached this viewer after SFU delivery and decoding. */
+export async function getRemoteScreenShareReceiverStats(
+  track: RemoteVideoTrack,
+): Promise<ScreenShareReceiverStats | null> {
+  const report = await track.getRTCStatsReport();
+  if (!report) return null;
+  const codecs = new Map<string, CodecStats>();
+  const inbound: InboundVideoStats[] = [];
+  report.forEach((entry) => {
+    const stats = entry as RTCStats & Partial<InboundVideoStats & CodecStats>;
+    if (stats.type === "codec") codecs.set(stats.id, stats);
+    if (
+      stats.type === "inbound-rtp" &&
+      (stats.kind === "video" || stats.mediaType === "video")
+    ) {
+      inbound.push(stats);
+    }
+  });
+  if (inbound.length === 0) return null;
+  const largest = inbound.reduce((best, stats) => {
+    const pixels = (stats.frameWidth ?? 0) * (stats.frameHeight ?? 0);
+    const bestPixels = (best.frameWidth ?? 0) * (best.frameHeight ?? 0);
+    return pixels > bestPixels ? stats : best;
+  });
+  const sample = {
+    timestamp: Math.max(...inbound.map((stats) => stats.timestamp)),
+    bytesSent: inbound.reduce((total, stats) => total + (stats.bytesReceived ?? 0), 0),
+  };
+  const actualBitrate = bitrateFromOutboundSamples(inboundSamples.get(track), sample);
+  inboundSamples.set(track, sample);
+  const codec = largest.codecId ? codecs.get(largest.codecId)?.mimeType : undefined;
+  return {
+    decodedWidth: largest.frameWidth,
+    decodedHeight: largest.frameHeight,
+    decodedFrameRate: largest.framesPerSecond,
+    actualBitrate,
+    codec: codec?.replace(/^video\//i, ""),
+    decoderImplementation: largest.decoderImplementation,
+    framesReceived: largest.framesReceived,
+    framesDecoded: largest.framesDecoded,
+    framesDropped: largest.framesDropped,
+    packetsReceived: largest.packetsReceived,
+    packetsLost: largest.packetsLost,
+    nackCount: largest.nackCount,
+    pliCount: largest.pliCount,
+    jitter: largest.jitter,
+  };
+}
+
+/** Apply new capture and sender constraints without replacing the publication. */
+export async function applyPublishedScreenShareQuality(
+  participant: LocalParticipant,
+  value: ScreenShareQuality,
+): Promise<void> {
+  const quality = normalizeScreenShareQuality(value);
+  const publication = participant.getTrackPublication(Track.Source.ScreenShare);
+  const track = publication?.videoTrack;
+  if (!publication || !track) throw new Error("No active screen share to update.");
+
+  const mediaTrack = track.mediaStreamTrack;
+  const previousConstraints = captureConstraintSnapshot(mediaTrack);
+  const previousTrackOptions = track.publishOptions;
+  const previousPublicationOptions = publication.options;
+  const previousDimensions = track.lastEncodedDimensions;
+
+  await mediaTrack.applyConstraints(screenShareVideoConstraints(quality));
+  mediaTrack.contentHint = "detail";
+
+  const publishOptions = screenSharePublishOptions(quality);
+  const activePublishOptions = {
+    ...publishOptions,
+    simulcast: track.publishOptions?.simulcast ?? publishOptions.simulcast,
+  };
+  const renegotiate = requiresRenegotiation(track.publishOptions, publishOptions);
+  if (renegotiate) activePublishOptions.simulcast = publishOptions.simulcast;
+  track.publishOptions = { ...track.publishOptions, ...activePublishOptions };
+  publication.options = { ...publication.options, ...activePublishOptions };
+  // replaceTrack() skips recomputing encodings when dimensions compare equal;
+  // bitrate/FPS may have changed, so force it.
+  track.lastEncodedDimensions = undefined;
+
+  try {
+    if (renegotiate) {
+      // Codec/simulcast are SDP decisions; republish the same capture track so
+      // no new source picker appears.
+      await participant.unpublishTrack(track, false);
+      await participant.publishTrack(track, activePublishOptions);
+    } else {
+      await track.replaceTrack(mediaTrack, { userProvidedTrack: false });
+    }
+    await ensureHighLayerCeiling(participant, quality);
+  } catch (error) {
+    track.publishOptions = previousTrackOptions;
+    publication.options = previousPublicationOptions;
+    track.lastEncodedDimensions = previousDimensions;
+    try {
+      await mediaTrack.applyConstraints(previousConstraints);
+    } catch {
+      // Best effort: retaining the live track is more important than rollback.
+    }
+    if (
+      renegotiate &&
+      !participant.getTrackPublication(Track.Source.ScreenShare) &&
+      previousPublicationOptions
+    ) {
+      try {
+        await participant.publishTrack(track, previousPublicationOptions);
+      } catch (rollbackError) {
+        console.warn("failed to restore screen-share publication", rollbackError);
+      }
+    }
+    throw error;
+  }
+}
+
+/**
+ * A source switch that failed after the new video reached the sender, so the
+ * previous share is already gone.
+ */
+export function isScreenShareSwitchPartialFailure(error: unknown): boolean {
+  return error instanceof Error &&
+    (error as Error & { videoAdopted?: boolean }).videoAdopted === true;
+}
+
+/**
+ * Whether a capture failed because its AUDIO source couldn't open (Chromium
+ * `NotReadableError: "Could not start audio source"`, mostly Windows), which
+ * fails the whole capture. "video source" failures aren't fixed by dropping audio.
+ */
+export function isScreenShareAudioSourceFailure(error: unknown): boolean {
+  return error instanceof Error &&
+    error.name === "NotReadableError" &&
+    /audio source/i.test(error.message);
+}
+
+/**
+ * Replace an active LiveKit screen share without unpublishing its video track,
+ * preserving sender, subscription and E2EE state. The new stream is acquired
+ * first, so cancelling the picker leaves the current share untouched.
+ */
+export async function switchPublishedScreenShare(
+  participant: LocalParticipant,
+  value: ScreenShareQuality = getScreenShareQuality(),
+  acquire: AcquireDisplayMedia = acquireReplacementStream,
+): Promise<void> {
+  const quality = normalizeScreenShareQuality(value);
+  const publication = participant.getTrackPublication(Track.Source.ScreenShare);
+  const currentVideo = publication?.videoTrack;
+  if (!publication || !currentVideo) throw new Error("No active screen share to switch.");
+
+  const stream = await acquire(quality);
+  const replacementVideo = stream.getVideoTracks()[0];
+  const replacementAudio = stream.getAudioTracks()[0];
+  const unusedTracks = stream
+    .getTracks()
+    .filter((track) => track !== replacementVideo && track !== replacementAudio);
+
+  if (!replacementVideo) {
+    stream.getTracks().forEach((track) => track.stop());
+    throw new Error("The selected source did not provide a video track.");
+  }
+  replacementVideo.contentHint = "detail";
+
+  let videoAdopted = false;
+  let audioAdopted = false;
+  const previousTrackOptions = currentVideo.publishOptions;
+  const previousPublicationOptions = publication.options;
+  const previousDimensions = currentVideo.lastEncodedDimensions;
+  try {
+    const publishOptions = screenSharePublishOptions(quality);
+    const activePublishOptions = {
+      ...publishOptions,
+      // Keep the negotiated codec/topology; applyPublishedScreenShareQuality() changes those.
+      videoCodec: currentVideo.publishOptions?.videoCodec ?? publishOptions.videoCodec,
+      simulcast: currentVideo.publishOptions?.simulcast ?? publishOptions.simulcast,
+    };
+    currentVideo.publishOptions = { ...currentVideo.publishOptions, ...activePublishOptions };
+    publication.options = { ...publication.options, ...activePublishOptions };
+    currentVideo.lastEncodedDimensions = undefined;
+    await currentVideo.replaceTrack(replacementVideo, { userProvidedTrack: false });
+    videoAdopted = true;
+    await ensureHighLayerCeiling(participant, quality);
+
+    const currentAudio = participant.getTrackPublication(
+      Track.Source.ScreenShareAudio,
+    )?.track;
+    if (replacementAudio && currentAudio) {
+      await currentAudio.replaceTrack(replacementAudio, { userProvidedTrack: false });
+      audioAdopted = true;
+    } else if (replacementAudio) {
+      await participant.publishTrack(replacementAudio, {
+        ...screenShareAudioPublishOptions(),
+        source: Track.Source.ScreenShareAudio,
+      });
+      audioAdopted = true;
+    } else if (currentAudio) {
+      await participant.unpublishTrack(currentAudio);
+    }
+  } catch (error) {
+    if (!videoAdopted) {
+      currentVideo.publishOptions = previousTrackOptions;
+      publication.options = previousPublicationOptions;
+      currentVideo.lastEncodedDimensions = previousDimensions;
+      throw error;
+    }
+    // The new video is live and the old audio released: report a partial failure.
+    throw Object.assign(
+      new Error(
+        `Sharing the new source, but its audio could not follow: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      ),
+      { videoAdopted: true as const, cause: error },
+    );
+  } finally {
+    if (!videoAdopted) replacementVideo.stop();
+    if (replacementAudio && !audioAdopted) replacementAudio.stop();
+    unusedTracks.forEach((track) => track.stop());
+  }
+}

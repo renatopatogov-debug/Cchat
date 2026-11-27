@@ -1,0 +1,282 @@
+import { clearImageDims } from "@/components/chat/imageDims";
+import { clearAccessDutyMemory } from "@/concord/hooks/useAccessDuty";
+import { clearPurgedChannelsMemory } from "@/wire/WireSync";
+import { clearWriterDutyMemory } from "@/concord/hooks/writerDutyRun";
+import { clearRefusedBlobs } from "@/concord/lib/blobOnce";
+import { clearThumbs } from "@/lib/imageThumb";
+import { resetClockOffset } from "@/lib/relayClock";
+import { clearRevealedMedia } from "@/components/chat/revealedMedia";
+import { clearTokenCache } from "@/components/chat/tokenCache";
+import { clearRenderedPlaintext } from "@/hooks/dmRenderCache";
+import { clearAudioMetadata } from "@/hooks/useAudioMetadata";
+import { clearRecentDecrypts } from "@/lib/AppSigner";
+import { clearCharacterCardCache } from "@/lib/characterCard";
+import { ARMADA_DB_NAME, purgeArmadaDB } from "@/lib/db/armadaDB";
+import { resetKvCaches } from "@/lib/db/kvCache";
+import { resetDecryptConsent } from "@/lib/decryptConsent";
+import { clearEvictedMediaMemory } from "@/lib/evictMessageMedia";
+import { FONT_SCALE_KEY } from "@/lib/fontScale";
+import { TERMS_ACCEPTED_KEY } from "@/lib/platform";
+import { EFFECT_KEYS } from "@/lib/reducedMotion";
+import { closeDmEphemeralSubs } from "@/lib/nip17/ephemeralInbox";
+import { clearFoldedMemory } from "@/lib/foldedCache";
+import { clearDeferredFoldMemory } from "@/concord/hooks/useDeferredFold";
+import { clearIconThumbMemory } from "@/concord/lib/iconThumbs";
+import { clearSightingsMemory } from "@/concord/lib/mediaTrust";
+import { clearOutgoingMemory } from "@/concord/lib/outgoing";
+import { clearChannelSealMemo } from "@/concord/lib/channelSeal";
+import { clearOutgoingVerifyMemory } from "@/concord/lib/outgoingVerify";
+import { clearPendingGuestbookJoinMemory } from "@/concord/lib/pendingGuestbookJoin";
+import { clearPendingJoins } from "@/concord/lib/pendingJoins";
+import { clearRumorStoreMemory } from "@/concord/lib/rumorStore";
+import { clearGuestbookExtrasMemory } from "@/concord/lib/guestbookExtras";
+import { clearGuestbookParseMemory } from "@/concord/lib/guestbook";
+import { clearCommunityListMemory } from "@/concord/hooks/useCommunityList";
+import { clearControlPlaneMemory } from "@/concord/hooks/useControlPlane";
+import { clearGuestbookSessionMemory } from "@/concord/hooks/useGuestbook";
+import { clearVoicePresenceMemory } from "@/concord/hooks/useVoice";
+import { clearTimelineSnapshotMemory } from "@/concord/hooks/timelineSnapshot";
+import { clearChannelSyncContexts } from "@/concord/lib/channelSync";
+import { clearChatDecodeMemo } from "@/concord/lib/chat";
+import { clearControlMemos } from "@/concord/lib/control";
+import { clearGroupKeyMemory } from "@/concord/lib/groupKeyPersist";
+import { clearStreamAuthRegistry } from "@/concord/lib/streamAuth";
+import { clearBuzzMediaCache } from "@/buzz/media";
+import { clearDm17SessionState } from "@/hooks/useDm17";
+import { resetFrequentReactionsCache } from "@/hooks/useFrequentReactions";
+import { clearMuteListMemos } from "@/hooks/useMuteList";
+import { resetSettingsKeysAnnouncements } from "@/hooks/useSettingsKeys";
+import { clearGroupListMemo } from "@/hooks/useUserGroupList";
+import { clearAttachmentCache } from "@/lib/encryptedMedia";
+import { clearMediaCacheMemory } from "@/lib/mediaCache";
+import { closeAllNip46Transports } from "@/lib/nip46Transport";
+import { PUSH_STATE_DB_NAME } from "@/lib/pushState";
+import { clearDm17ThreadSnapshotMemory } from "@/lib/nip17/threadSnapshot";
+import { clearPendingDm17 } from "@/lib/nip17/dm17Store";
+import { clearSettingsRootMemory } from "@/lib/settingsRootStore";
+import { clearProfileSyncMemory } from "@/sync/profileSync";
+import { haltSyncManager } from "@/sync/syncManager";
+import { clearShareShortcuts } from "@/lib/shareTarget";
+import { writePushDisabledFlag } from "@/lib/swPushDisabled";
+import { WEB_PUSH_RETIREMENT_KEY } from "@/lib/webPushEndpoint";
+import { LOCALE_KEY } from "@/i18n/language";
+import { getLanguage } from "@/i18n/intl";
+import { ArmadaNotification } from "@/lib/nativeNotifications";
+import { clearIosPushConfig } from "@/lib/nativePush";
+import { hasNativeNotificationService } from "@/lib/platform";
+import { STAGING_DIR as CALL_RECORDING_STAGING_DIR } from "@/lib/callRecording/protocol";
+import { RETIRED_DATABASES, RETIRED_OPFS_DIR } from "@/lib/retiredStorage";
+
+/**
+ * localStorage keys that survive a purge. `armada:login` is mutated by
+ * `removeLogin` in the same tick; wiping it here would race that and
+ * resurrect a stale session.
+ */
+const PRESERVE_LOCAL_STORAGE_KEYS = new Set<string>([
+  "armada:login",
+  // The next account needs to know whether the old browser endpoint was retired.
+  WEB_PUSH_RETIREMENT_KEY,
+  // A device accessibility setting, not account data; the login screen needs it too.
+  FONT_SCALE_KEY,
+  // Likewise the interface language.
+  LOCALE_KEY,
+  // And the motion and effects switches.
+  ...EFFECT_KEYS,
+  // A device's agreement to the Terms, not an account's.
+  TERMS_ACCEPTED_KEY,
+]);
+
+/**
+ * Remove the retired SQLite-WASM store's OPFS directory, still present on
+ * upgraded devices, and any staged call recording (decrypted call audio).
+ */
+async function purgeOrphanedOpfs(): Promise<void> {
+  for (const dir of [RETIRED_OPFS_DIR, CALL_RECORDING_STAGING_DIR]) {
+    try {
+      const root = await navigator.storage?.getDirectory?.();
+      await root?.removeEntry(dir, { recursive: true });
+    } catch {
+      // best-effort — absent (the common case) or held open
+    }
+  }
+}
+
+/** Best-effort deletion of every IndexedDB database this origin owns. */
+async function purgeIndexedDB(): Promise<void> {
+  if (typeof indexedDB === "undefined") return;
+  try {
+    // `indexedDB.databases()` is unsupported on Firefox; fall back to known names.
+    const known = [
+      // Tenant DBs (`armada:t:<id>`) are deleted by `purgeArmadaDB`, which can close them first.
+      `${ARMADA_DB_NAME}:kv`,
+      PUSH_STATE_DB_NAME,
+      ...RETIRED_DATABASES,
+    ];
+    const dbs =
+      typeof indexedDB.databases === "function"
+        ? (await indexedDB.databases()).map((d) => d.name).filter((n): n is string => Boolean(n))
+        : known;
+    await Promise.all(
+      [...new Set([...dbs, ...known])]
+        // Preserve offline Bluetooth Mesh escrow settlement receipts across logout so unpaid deliveries aren't lost.
+        .filter((name) => name !== "armada-escrow-mesh-outbox")
+        .map(
+          (name) =>
+            new Promise<void>((resolve) => {
+              const req = indexedDB.deleteDatabase(name);
+              req.onsuccess = req.onerror = req.onblocked = () => resolve();
+            }),
+        ),
+    );
+  } catch {
+    // best-effort
+  }
+}
+
+/** Best-effort deletion of every Cache Storage entry this origin owns. */
+async function purgeCacheStorage(): Promise<void> {
+  if (typeof caches === "undefined") return;
+  try {
+    const keys = await caches.keys();
+    await Promise.all(keys.map((k) => caches.delete(k)));
+  } catch {
+    // best-effort
+  }
+}
+
+/** Wipe all Armada localStorage (everything except the preserved keys). */
+function purgeLocalStorage(): void {
+  if (typeof localStorage === "undefined") return;
+  try {
+    const toRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (
+        key &&
+        !PRESERVE_LOCAL_STORAGE_KEYS.has(key) &&
+        !key.startsWith("armada:evm-wallet:") &&
+        !key.startsWith("armada:testnet-escrow:")
+      ) {
+        toRemove.push(key);
+      }
+    }
+    for (const key of toRemove) localStorage.removeItem(key);
+  } catch {
+    // best-effort
+  }
+}
+
+/** Session memos holding decrypted data or the account's keys; run before and after the purge. */
+function clearSessionMemos(): void {
+  clearStreamAuthRegistry();
+  clearChannelSyncContexts();
+  clearChatDecodeMemo();
+  clearControlMemos();
+  clearControlPlaneMemory();
+  clearGuestbookSessionMemory();
+  clearVoicePresenceMemory();
+  clearRefusedBlobs();
+  clearWriterDutyMemory();
+  clearAccessDutyMemory();
+  clearPurgedChannelsMemory();
+  clearCommunityListMemory();
+  clearTimelineSnapshotMemory();
+  clearDm17ThreadSnapshotMemory();
+  clearDm17SessionState();
+  clearPendingDm17();
+  clearMuteListMemos();
+  clearGroupListMemo();
+  clearAttachmentCache();
+  clearEvictedMediaMemory();
+  clearCharacterCardCache();
+  clearImageDims();
+  clearMediaCacheMemory();
+  clearBuzzMediaCache();
+  clearThumbs();
+  clearProfileSyncMemory();
+  resetFrequentReactionsCache();
+  resetSettingsKeysAnnouncements();
+}
+
+/** Local and idempotent; bounded so a native call that never answers can't stall the purge. */
+async function clearNativePushConfigs(): Promise<void> {
+  const clears = [clearIosPushConfig()];
+  if (hasNativeNotificationService()) {
+    clears.push(ArmadaNotification.configure({ enabled: false, locale: getLanguage() }).catch(() => {}));
+  }
+  await Promise.race([Promise.all(clears), new Promise((resolve) => setTimeout(resolve, 2_000))]);
+}
+
+/**
+ * Purge all client-side persistence on logout (caches, decrypt cache, read
+ * state, drafts, prefs, the push gateway's per-install client key, …).
+ * `armada:login` is left to the caller's `removeLogin`.
+ */
+export async function purgeClientStorage(): Promise<void> {
+  // Before anything is cleared: no sync round may decrypt or write past this point.
+  haltSyncManager();
+  // Latches group-key persistence off so no pending save rewrites
+  // derived stream secrets into the store this purge empties.
+  clearGroupKeyMemory();
+  closeAllNip46Transports();
+  clearSessionMemos();
+  clearRenderedPlaintext();
+  clearTokenCache();
+  clearRecentDecrypts();
+  clearFoldedMemory();
+  clearRumorStoreMemory();
+  clearGuestbookExtrasMemory();
+  clearGuestbookParseMemory();
+  clearDeferredFoldMemory();
+  clearIconThumbMemory();
+  clearAudioMetadata();
+  clearPendingJoins();
+  clearSightingsMemory();
+  clearOutgoingMemory();
+  clearChannelSealMemo();
+  clearOutgoingVerifyMemory();
+  clearPendingGuestbookJoinMemory();
+  clearRevealedMedia();
+  // The settings root and every key derived from it.
+  clearSettingsRootMemory();
+  resetDecryptConsent();
+  // Shared DM ephemeral REQs linger past their last consumer; close them.
+  closeDmEphemeralSubs();
+  // KV-backed caches hold in-memory copies that would otherwise leak into the next account.
+  resetKvCaches();
+  resetClockOffset();
+  // Android share-sheet suggestions would keep naming the old account's rooms.
+  // Not awaited: a rate-limitable system call nothing else depends on.
+  void clearShareShortcuts();
+  // The controllers clear these on account exit, but only when mounted and
+  // inside the teardown budget; the iOS file can hold the account's nsec.
+  await clearNativePushConfigs();
+  purgeLocalStorage();
+  // ArmadaDB first: `deleteDatabase` is blocked by open connections.
+  await purgeArmadaDB();
+  await Promise.all([purgeIndexedDB(), purgeCacheStorage(), purgeOrphanedOpfs()]);
+  // Recreate only the worker's kill switch, so a late push tears its endpoint
+  // down instead of notifying a logged-out browser.
+  await writePushDisabledFlag();
+  // Again: in-flight warms/reads may have refilled caches from the old database.
+  resetKvCaches();
+  clearRenderedPlaintext();
+  clearTokenCache();
+  clearRecentDecrypts();
+  clearFoldedMemory();
+  clearRumorStoreMemory();
+  clearGuestbookExtrasMemory();
+  clearGuestbookParseMemory();
+  clearDeferredFoldMemory();
+  clearIconThumbMemory();
+  clearAudioMetadata();
+  clearPendingJoins();
+  clearSightingsMemory();
+  clearOutgoingMemory();
+  clearChannelSealMemo();
+  clearOutgoingVerifyMemory();
+  clearPendingGuestbookJoinMemory();
+  clearRevealedMedia();
+  clearSettingsRootMemory();
+  clearSessionMemos();
+}

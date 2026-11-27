@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Content Security Policy, delivered as a meta tag so it applies on every
+         platform. armada-stack, which hosts the web build, also sends it as a
+         response header, so it covers every response and not just documents. Native has no header at all —
+         Capacitor serves the bundle from https://localhost (Android) and
+         capacitor://localhost (iOS), and Electron from app://armada — so this
+         tag is the whole policy in those builds.
+         Notes on individual directives:
+         - 'unsafe-inline' in style-src is required, not incidental: the boot
+           splash below is built out of style= attributes, and fontLoader.ts
+           injects a <style> element for theme @font-face rules at runtime.
+         - https://www.youtube.com in script-src is the iframe player API
+           (src/lib/youtubeApi.ts); the embed itself is a frame-src entry.
+         - blob: in worker-src/media-src carries bundled web workers and
+           decrypted attachment playback respectively.
+         - frame-ancestors is ignored in a meta-delivered policy, so the
+           clickjacking defense is the host's: armada-stack adds
+           frame-ancestors 'none' to the header for a policy that names none. -->
+    <meta http-equiv="content-security-policy" content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval' https://www.youtube.com; worker-src 'self' blob:; child-src 'self' blob:; style-src 'self' 'unsafe-inline'; frame-src 'self' https://www.youtube-nocookie.com https://open.spotify.com https://platform.twitter.com https://www.instagram.com https://streamable.com https://odysee.com https://*.iframe.diy; object-src 'none'; font-src 'self' https: data:; base-uri 'self'; manifest-src 'self'; connect-src 'self' blob: https: wss:; img-src 'self' data: blob: https:; media-src 'self' blob: https:" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="256x256" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
+    <!-- YouTube requires an HTTP Referer for embedded playback. The browser
+         supplies this deployment's own origin, including on self-hosts. -->
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta name="theme-color" content="#100b15" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <!-- Standalone/home-screen behavior comes from manifest.webmanifest alone
+         (display: standalone). Deliberately NO legacy apple-mobile-web-app-*
+         meta tags: with apple-mobile-web-app-capable + black-translucent
+         present, iOS (observed on iOS 26 / iPhone 16 Pro) takes the legacy
+         home-screen layout path and sizes the standalone webview to
+         screen-minus-status-bar while anchoring it at the top, leaving a
+         dead ~62pt letterbox band below the page that no in-page CSS can
+         remove. Manifest-only (Ditto's config) sizes the window correctly.
+         apple-mobile-web-app-capable was also tried as a fix for iOS Web Push
+         being unavailable in the installed PWA (window.Notification undefined);
+         it made no difference on iOS 26.2.1, so it stays out. -->
+    <title>Armada</title>
+    <!-- Stamped per build (armada-build-stamp Vite plugin); lets a device's
+         running bundle be identified when debugging stale-PWA issues. -->
+    <meta name="build" content="__BUILD_STAMP__" />
+    <meta name="description" content="The open-source, encrypted Discord alternative. Communities with channels, voice and DMs that need no host." />
+
+    <!-- Open Graph / social. og:image/twitter:image MUST be absolute URLs —
+         most crawlers (X, Discord, Slack, iMessage) do not resolve relative
+         ones and the card renders with no image. __PUBLIC_ORIGIN__ is stamped
+         at build time from PUBLIC_WEB_ORIGIN so a build points its card at
+         the host it is actually served from: an absolute URL on some OTHER
+         origin is only as good as that origin, and when it can't be fetched
+         the preview degrades to the platform's generic placeholder icon. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Armada" />
+    <meta property="og:description" content="The open-source, encrypted Discord alternative. Communities with channels, voice and DMs that need no host." />
+    <meta property="og:image" content="__PUBLIC_ORIGIN__/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:url" content="__PUBLIC_ORIGIN__" />
+    <meta property="og:site_name" content="Armada" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Armada" />
+    <meta name="twitter:description" content="The open-source, encrypted Discord alternative. Communities with channels, voice and DMs that need no host." />
+    <meta name="twitter:image" content="__PUBLIC_ORIGIN__/og.png" />
+
+    <!-- Marks home-screen (standalone PWA) launches on <html> before first
+         paint so CSS can scroll-lock the shell (see index.css). External
+         because the policy above permits no inline script. -->
+    <script src="/standalone.js"></script>
+    <script src="/theme.js"></script>
+    <!-- Without JavaScript the splash would cover the page forever. -->
+    <noscript><style>#root { display: none !important; } body { background: #100b15 !important; }</style></noscript>
+  </head>
+  <body>
+    <!-- Static boot splash: the same animated Armada crest as BootSplash.tsx,
+         inlined so it paints on the very first frame — before the JS bundle
+         parses, the provider tree mounts, and the first lazy route chunk loads.
+         Without it, an APK cold start (logged in) showed a blank themed
+         background for a few seconds until React could render its own splash.
+         React's createRoot(#root).render() replaces these children on mount,
+         so it disappears the moment the app paints. Uses the CSS vars theme.js
+         set on :root before this markup, so it matches the persisted theme. -->
+    <div id="root">
+      <div id="boot-splash" role="status" aria-label="Loading" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:hsl(var(--background, 260 22% 9%));">
+        <!-- Hidden until the script below decides this launch isn't headed for
+             /welcome. A display:none element doesn't animate, so revealing it
+             starts the draw at frame one rather than mid-stroke. -->
+        <svg id="boot-mark" width="96" height="96" viewBox="0 0 128 128" fill="none" role="img" aria-label="Armada logo" style="display:none;filter:drop-shadow(0 8px 24px hsl(var(--primary, 330 90% 62%) / 0.25));">
+          <!-- Wake: each line sweeps open from the centerline (x=64, also every
+               line's own midpoint), then scans slowly in and out on its own
+               loop. Both are scaleX about that centerline, split across the
+               wrapper and the path so they don't fight over one transform. -->
+          <g fill="hsl(var(--accent2, 180 90% 55%))">
+            <g style="transform-origin:64px 0;animation:armada-wake 6s ease-in-out 0.9s infinite;">
+              <path d="M95.4 104.865H32.59c-1.18 0-2.14-.96-2.14-2.14s.96-2.14 2.14-2.14H95.4c1.18 0 2.14.96 2.14 2.14s-.96 2.14-2.14 2.14z" style="transform-origin:64px 0;animation:armada-sweep 0.52s cubic-bezier(0.22,1,0.36,1) both;"></path>
+            </g>
+            <g style="transform-origin:64px 0;animation:armada-wake 6s ease-in-out 1.5s infinite;">
+              <path d="M83.98 115.565H44.01a1.43 1.43 0 1 1 0-2.86h39.97a1.43 1.43 0 1 1 0 2.86z" style="transform-origin:64px 0;animation:armada-sweep 0.52s cubic-bezier(0.22,1,0.36,1) 0.07s both;"></path>
+            </g>
+            <g style="transform-origin:64px 0;animation:armada-wake 6s ease-in-out 2.1s infinite;">
+              <path d="M73.99 123.775H54.01a1.071 1.071 0 0 1 0-2.14h19.98a1.071 1.071 0 0 1 0 2.14z" style="transform-origin:64px 0;animation:armada-sweep 0.52s cubic-bezier(0.22,1,0.36,1) 0.14s both;"></path>
+            </g>
+          </g>
+          <!-- Sail, drawn in three stacked copies: halo sheen, fill, and the
+               hairline trace on top (pathLength="1" normalizes the dash). -->
+          <path d="M64 4.225l-39.97 88.5h17.13l2.31-5.2 2.76-6.22-2.22-1.43-1.42-12.84h9.99l4.89-11.01L64 41.335l11.42 25.7h9.99l-1.43 12.84-2.22 1.43 2.77 6.22 2.31 5.2h17.13z" fill="hsl(var(--primary, 330 90% 62%))" style="opacity:0;filter:drop-shadow(0 0 10px hsl(var(--primary, 330 90% 62%) / 0.6));animation:armada-sheen 0.9s ease-in-out 0.64s both;"></path>
+          <path d="M64 4.225l-39.97 88.5h17.13l2.31-5.2 2.76-6.22-2.22-1.43-1.42-12.84h9.99l4.89-11.01L64 41.335l11.42 25.7h9.99l-1.43 12.84-2.22 1.43 2.77 6.22 2.31 5.2h17.13z" fill="hsl(var(--primary, 330 90% 62%))" style="animation:armada-ink 0.42s ease-out 0.4s both;"></path>
+          <path d="M64 4.225l-39.97 88.5h17.13l2.31-5.2 2.76-6.22-2.22-1.43-1.42-12.84h9.99l4.89-11.01L64 41.335l11.42 25.7h9.99l-1.43 12.84-2.22 1.43 2.77 6.22 2.31 5.2h17.13z" pathLength="1" fill="none" stroke="hsl(var(--primary, 330 90% 62%))" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0;stroke-dasharray:1;animation:armada-trace 0.78s cubic-bezier(0.65,0,0.35,1) 0.08s both;"></path>
+          <!-- Waterline caret, inked in last. -->
+          <path d="M76.84 79.165c-.15 0-.31-.05-.44-.15l-12.41-9.65-12.41 9.65c-.31.24-.76.19-1-.13a.706.706 0 0 1 .13-1l12.85-9.99c.26-.2.62-.2.88 0l12.85 9.99a.715.715 0 0 1-.43 1.28z" fill="hsl(var(--primary, 330 90% 62%))" fill-opacity="0.85" style="animation:armada-ink 0.32s ease-out 0.86s both;"></path>
+        </svg>
+      </div>
+    </div>
+    <noscript>
+      <div style="max-width:32rem;margin:6rem auto;padding:0 1.5rem;text-align:center;font:16px/1.5 system-ui,sans-serif;color:#ece8f2;">
+        <p>Armada needs JavaScript to run in a browser.</p>
+        <p style="margin-top:1.5rem;">
+          <a href="https://pkg.soapbox.pub/deb/soapbox.pub/buzz.armada.app" style="display:inline-block;padding:.75rem 1.25rem;border-radius:.5rem;background:#f472b6;color:#100b15;font-weight:600;text-decoration:none;">Download Armada</a>
+        </p>
+        <p style="margin-top:1rem;font-size:14px;opacity:.7;">Debian/Ubuntu, Flatpak and F-Droid packages, always the newest release.</p>
+        <!-- The same commands /downloads shows (PACKAGE_MANAGERS in src/lib/downloads.ts; downloads.test.ts checks them). -->
+        <div style="margin-top:2rem;text-align:left;font-size:14px;">
+          <p style="font-weight:600;">Debian / Ubuntu</p>
+          <pre style="white-space:pre-wrap;word-break:break-all;background:#1c1524;padding:.75rem;border-radius:.5rem;">sudo curl -fsSL -o /etc/apt/sources.list.d/buzz.armada.app.sources https://pkg.soapbox.pub/deb/soapbox.pub/buzz.armada.app/source
+sudo apt update
+sudo apt install armada-desktop</pre>
+          <p style="margin-top:1rem;font-weight:600;">Flatpak</p>
+          <pre style="white-space:pre-wrap;word-break:break-all;background:#1c1524;padding:.75rem;border-radius:.5rem;">flatpak install --user https://pkg.soapbox.pub/flatpak/soapbox.pub/buzz.armada.app/buzz.armada.app.flatpakref</pre>
+          <p style="margin-top:1rem;font-weight:600;">Android</p>
+          <p><a href="https://pkg.soapbox.pub/fdroid/soapbox.pub/buzz.armada.app/repo?fingerprint=1b043939b45972c680a518799d5098dd25edcc78ddeda2c6476722ed1f571832" style="color:#f472b6;">F-Droid repository</a> · <a href="https://zapstore.dev/apps/buzz.armada.app" style="color:#f472b6;">Zapstore</a></p>
+        </div>
+      </div>
+    </noscript>
+    <!-- Reveals the mark above unless this launch is headed for /welcome (see
+         the file for why). Must stay HERE, after the splash markup it reads.
+         External because the policy above permits no inline script. -->
+    <script src="/boot-splash.js"></script>
+    <style>
+      /* Keep in sync with ArmadaCrestKeyframes in src/components/brand/ArmadaCrest.tsx.
+         Every element's base style is its final resting state and the keyframes
+         supply only the entrance, so killing them below lands on the finished
+         mark rather than a half-drawn one. */
+      @keyframes armada-trace { 0% { opacity: 1; stroke-dashoffset: 1; } 76% { opacity: 1; stroke-dashoffset: 0; } 100% { opacity: 0; stroke-dashoffset: 0; } }
+      @keyframes armada-ink { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes armada-sheen { 0%, 100% { opacity: 0; } 45% { opacity: 1; } }
+      @keyframes armada-sweep { from { opacity: 0; transform: scaleX(0.15); } to { opacity: 1; transform: scaleX(1); } }
+      @keyframes armada-wake { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.78); } }
+      @media (prefers-reduced-motion: reduce) { #boot-splash [style*="animation"] { animation: none !important; } }
+    </style>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,142 @@
+package buzz.armada.app.db
+
+/**
+ * The logged-in user's OWN replaceable/addressable documents — a Kotlin port of
+ * the catalogue in `src/lib/selfSyncKinds.ts`.
+ *
+ * These are the events that describe who you are and what you've joined: follow
+ * and mute lists, the NIP-29 server/channel list, the Concord membership
+ * vault, DM/Blossom/emoji relay lists, Armada's NIP-78 settings documents, and
+ * its installation-sharded private app data.
+ *
+ * The WebView keeps them fresh with a standing REQ while it is alive. It isn't,
+ * most of the time — so a change made on another device landed nowhere until
+ * the app was next opened AND a relay read happened to succeed at exactly the
+ * moment the sockets were coldest. The service is awake and already connected,
+ * so it subscribes to the same catalogue and files each version in the same
+ * `main` tenant the WebView reads. Opening the app then finds the current list
+ * already on disk, with no relay round-trip in the critical path.
+ *
+ * Nothing here decrypts, and this object stays pure/Context-free. A 10009's
+ * private items and the 30078 settings blobs are NIP-44-encrypted; storing the
+ * raw event verbatim is the whole job, and the WebView decrypts on read exactly
+ * as it does for an event it fetched itself.
+ *
+ * Armada's settings now live under keys derived from the settings root (the
+ * one `d = armada` document the user signs; see docs/settings-documents.md), so
+ * most kind-30078 documents are authored by a key that is not the user's. The
+ * WebView hands the service those (pubkey, `d`) pairs; nothing here derives them.
+ *
+ * The one document the service opens for itself — in [NotificationRelayService],
+ * not here — is read-state: a read advanced on another device has to dismiss the
+ * matching tray notification while the app is dead, and the stamps to do it live
+ * inside that encrypted blob. The decryption is the service's, so this catalogue
+ * remains a pure set of rules with no crypto of its own.
+ *
+ * Pure and Context-free so the rules can be tested on the JVM without an
+ * emulator, matching [Dm17] and [Concord].
+ */
+object SelfState {
+
+    /** NIP-78 application-specific data — Armada's settings document. */
+    const val KIND_APP_SPECIFIC = 30078
+
+    /**
+     * The bare replaceable kinds, synced with a plain `{authors:[me], kinds:[…]}`
+     * filter: follow (3), mute (10000), the NIP-65 pointer (10002), search
+     * relays (10007), NIP-29 servers/channels (10009), DM relays (10050),
+     * Blossom servers (10063), custom emoji (10030), quick reactions (10077),
+     * the fragmented Concord community vault (33302), and the invite list (13303).
+     */
+    @JvmField
+    val KINDS: Set<Int> = setOf(3, 10000, 10002, 10007, 10009, 10050, 10063, 10030, 10077, 33302, 13303)
+
+    /**
+     * The `d` values of the addressable kind-30078 documents Armada owns, for
+     * the default `APP_ID`. The kind is shared with every other NIP-78 client
+     * on the user's identity, so it is filtered by `d` rather than stored
+     * wholesale — a third-party app's blob is none of our business and would
+     * only cost space.
+     *
+     * The WebView supplies the real set through the plugin config
+     * (`selfDTags`), because a fork can change `APP_ID` and rename every
+     * document. This default is what the service runs on before any WebView
+     * has ever configured it — on a cold boot, the prefs are read and the
+     * sockets opened long before the app is opened — and is therefore the set
+     * a default build depends on. `settingsDocs.test.ts` asserts it matches
+     * `SETTINGS_DOC_NAMES`; drift costs background delivery for whichever
+     * documents are missing, silently.
+     *
+     * Absent config means "use this", never "use nothing": an empty set would
+     * drop the kind-30078 subscription entirely.
+     */
+    @JvmField
+    val DEFAULT_D_TAGS: Set<String> = setOf(
+        // The settings root, then the legacy documents read during migration.
+        "armada",
+        "armada/metadata",
+        "armada/rail",
+        "armada/read-state",
+        "armada/read-state-recent",
+        "armada/notifications",
+        "armada/dms",
+        "armada/reactions",
+    )
+
+    /** Tag shared by the legacy per-installation encrypted GIF-favorite shards. */
+    const val TOPIC_GIF_FAVORITES = "armada-gif-favorites"
+    /** Tag shared by the legacy per-installation encrypted DM-conversation shards. */
+    const val TOPIC_DM_CONVERSATIONS = "armada-dm-conversations"
+
+    /**
+     * Topic-scoped kind-30078 documents with dynamic `d` tags. The service's
+     * REQ and its storage admission both use this exact set.
+     */
+    @JvmField
+    val TOPICS: Set<String> = setOf(TOPIC_GIF_FAVORITES, TOPIC_DM_CONVERSATIONS)
+
+    /** Whether this kind could be part of the catalogue (a cheap pre-filter). */
+    @JvmStatic
+    fun isSelfKind(kind: Int): Boolean = kind in KINDS || kind == KIND_APP_SPECIFIC
+
+    /**
+     * Whether a received event is one of [self]'s own self-state documents and
+     * may be stored.
+     *
+     * The authorship check is the security boundary, not a tidiness one. These
+     * documents are read back as the user's truth — which servers they joined,
+     * how their rail is arranged, who they mute — so a relay that answered our
+     * filter with somebody else's event, or with an unsigned one, must not be
+     * able to write into that. The caller verifies the signature; this refuses
+     * anything not authored by [self].
+     *
+     * [dTags] and [derivedDocs] must be the SAME sets the REQ was built from.
+     * Subscribing to one set and authorizing against another means either
+     * storing documents we never asked for, or discarding ones we did.
+     *
+     * A document under a derived key ([derivedDocs], author → its one `d`) is
+     * admitted only at exactly that coordinate: each derived key writes a single
+     * kind-30078 document, so anything else it signs is not ours to keep.
+     */
+    @JvmStatic
+    @JvmOverloads
+    fun storable(
+        self: String,
+        rumor: Rumor,
+        dTags: Set<String> = DEFAULT_D_TAGS,
+        derivedDocs: Map<String, String> = emptyMap(),
+    ): Boolean {
+        if (self.isEmpty()) return false
+        if (rumor.pubkey != self) {
+            val d = derivedDocs[rumor.pubkey] ?: return false
+            return rumor.kind == KIND_APP_SPECIFIC && rumor.tagValue("d") == d
+        }
+        if (rumor.kind in KINDS) return true
+        if (rumor.kind != KIND_APP_SPECIFIC) return false
+        // Addressable: keep only Armada's own documents.
+        if (rumor.tagValue("d") in dTags) return true
+        return rumor.tags.any { tag ->
+            tag.size >= 2 && tag[0] == "t" && tag[1]?.let { it in TOPICS } == true
+        }
+    }
+}

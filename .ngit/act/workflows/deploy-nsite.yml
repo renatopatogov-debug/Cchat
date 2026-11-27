@@ -1,0 +1,249 @@
+name: Deploy nsite
+
+# Builds the web client and publishes it as the named nsite "armada" (NIP-5A
+# kind 35128) described by .nsite/config.json: the files become Blossom blobs,
+# the manifest mapping path -> sha256 goes to relays, and a gateway
+# (nsite.lol, nosto.re, …) glues the two together. Same tool and the same
+# NSYTE_BUNKER secret name as soapbox-pub/yourspace.
+#
+# ONE trigger: a push to main republishes the named site manifest, which IS
+# the live site. A release tag is pushed with main at the same commit, so the
+# tagged bundle reaches the nsite through that run; the tag itself does not
+# need its own.
+#
+# ── Why a tag no longer publishes a snapshot ────────────────────────────────
+# It used to also publish an immutable manifest snapshot (kind 5128) titled
+# with the tag, so a release stayed addressable at v<snapshotIdB36>.<gateway>
+# after the named site moved on. That is worth having, and this file will get
+# it back — but not the way it was doing it.
+#
+# `nsyte snapshot` builds its event ENTIRELY from the manifest it fetches off
+# the relays (`createSnapshotTemplate(sourceManifest, …)`) and has no title of
+# its own, so the only way to title a snapshot with a version was to retitle
+# the LIVE site to "vX.Y.Z", deploy, snapshot, retitle back and deploy again.
+# Two costs, and the second is the one that ended it: a live manifest left
+# titled with a version is the one piece of state this job could strand, in an
+# event that by design is never replaced; and running on a tag meant the same
+# commit planned this workflow TWICE (once for refs/heads/main, once for
+# refs/tags/vX.Y.Z). act derives a job's container name from the workflow and
+# job names alone — no run id, ref or commit — so the two runs collided on one
+# container and each destroyed the other's ("No such container: …").
+#
+# Revisit when nsyte can title a snapshot directly (a `--title` on `snapshot`,
+# or a snapshot taken from a directory rather than from the live manifest).
+# Then a tag can publish a snapshot and NOTHING else, in its own workflow file
+# so the container names differ. Snapshots already published stay published —
+# nothing here retracts them.
+#
+# ── Secrets (provisioned by the ngit-ci operator for this repo's alias) ──────
+# ngit-ci injects ${{ secrets.* }} ONLY on maintainer-authored triggers — a
+# push to a watched repo always qualifies — and ONLY for secrets the operator
+# has provisioned for this repo (there is no GITHUB_TOKEN, nothing is injected
+# by default). Ask the operator to set, keyed to this repo's #ALIAS:
+#   NSYTE_BUNKER              nbunksec1... — a pre-established NIP-46 session,
+#                             the form nsyte documents for CI (`nsyte ci`).
+#                             The SIGNING PUBKEY IS THE SITE ADDRESS, so this
+#                             secret decides whose namespace the site lives in.
+# An empty NSYTE_BUNKER FAILS the job rather than skipping quietly: this is
+# the only workflow that publishes the client anywhere, so a skipped run
+# leaves the nsite silently pinned to an older build.
+
+# `nsyte validate` checks .nsite/config.json against nsyte's own schema, which
+# is narrower than NIP-5A in at least one place that matters here: `source`
+# must match ^https?://, so the repo is named by its gitworkshop.dev URL and
+# NOT by the nostr:// remote the NIP permits. Run it after editing the config —
+# an invalid file fails the deploy after the build, not before.
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      # Inlined at build time (src/build/buildConfig.ts), and so public: the
+      # site's /build.json records it for scripts/verify-build.mjs.
+      BRIDGE_PORTAL_URL: https://bridge.armada.buzz
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Exact, and the CI image's toolcache version, so a build can be reproduced.
+          node-version-file: .nvmrc
+
+      # Ahead of npm ci and the build, so a config nsyte won't accept costs
+      # seconds instead of failing at the end of a green-looking run.
+      - name: Install nsyte and validate the config
+        env:
+          NSYTE_BUNKER: ${{ secrets.NSYTE_BUNKER }}
+        run: |
+          set -eu
+          # No apostrophe in that message: bash treats a single quote inside
+          # ${var:?word} as opening a quoted section, even within the double
+          # quotes, and swallows the rest of the script.
+          : "${NSYTE_BUNKER:?NSYTE_BUNKER is not set; ask the ngit-ci operator to provision it for the #ALIAS of this repo.}"
+
+          # Pin the binary as a FLOOR, not an exact version. An unversioned
+          # install has been observed pulling 0.10.1, which emits legacy
+          # kind-34128 events that every current gateway ignores while still
+          # reporting a successful deploy. 0.28.0 is the floor because it is the
+          # first release whose nostr-tools will encrypt a NIP-44 payload larger
+          # than 64 KiB; under it, signing a large site manifest through the
+          # bunker fails outright.
+          #
+          # nsyte is baked into the coordinator's CI image alongside zsp
+          # (armada's .ngit/ci-image/Dockerfile). Comparing its VERSION rather
+          # than just `command -v` is deliberate: a stale baked binary silently
+          # outranked this pin, which is how deploys kept running 0.27.2 long
+          # after the pin moved. Accepting anything NEWER than the floor lets
+          # the image move ahead of these files without sending every job back
+          # to the download.
+          #
+          # That download is the fallback for a coordinator whose image lacks
+          # nsyte, and is exactly what kept failing here: the ~129 MB release
+          # asset broke mid-transfer with "SSL_read: decryption failed or bad
+          # record mac", identically on every attempt within a run, taking
+          # deploy-nsite down across every repo. Hence the loop, HTTP/1.1, and
+          # running the binary before trusting it.
+          NSYTE_MIN_VERSION=0.28.0
+          # nsyte colours its version output with ANSI escapes even when piped.
+          baked="$(NO_COLOR=1 nsyte --version 2>/dev/null \
+                   | sed 's/\x1b\[[0-9;]*m//g' | awk 'NR == 1 { print $2 }')"
+          oldest="$(printf '%s\n%s\n' "$NSYTE_MIN_VERSION" "$baked" | sort -V | head -1)"
+          if [ -n "$baked" ] && [ "$oldest" = "$NSYTE_MIN_VERSION" ]; then
+            echo "using the nsyte baked into the runner image ($baked)"
+          else
+            test -z "$baked" || echo "baked nsyte $baked is below $NSYTE_MIN_VERSION; downloading"
+            NSYTE_URL="https://github.com/sandwichfarm/nsyte/releases/download/v${NSYTE_MIN_VERSION}/nsyte-linux-${NSYTE_MIN_VERSION}"
+            ok=""
+            for attempt in 1 2 3 4 5; do
+              if curl -fsSL --http1.1 --retry 2 --retry-delay 5 --retry-all-errors \
+                   --connect-timeout 20 --max-time 900 -o /usr/local/bin/nsyte "$NSYTE_URL" \
+                 && chmod +x /usr/local/bin/nsyte \
+                 && nsyte --version >/dev/null; then
+                ok=yes
+                break
+              fi
+              echo "nsyte download attempt $attempt failed; retrying in 10s"
+              sleep 10
+            done
+            test -n "$ok" || { echo "could not download a working nsyte after 5 attempts"; exit 1; }
+          fi
+          nsyte --version
+
+          nsyte validate
+
+      - run: npm ci
+
+      # Build the SPA. `npm run build` compiles the Mini App realtime transport
+      # (crates/webxdc-rt, iroh-gossip -> wasm) through a prebuild hook that is
+      # deliberately non-fatal for frontend-only contributors — so here, where
+      # it is NOT optional, WEBXDC_RT_REQUIRED makes a missing toolchain or a
+      # failed compile fail the deploy instead of quietly publishing a build
+      # with multiplayer switched off. The Rust toolchain is baked into the
+      # armada-ci runner image and iroh's compiled dependency tree persists in
+      # the coordinator's cargo volumes (.ngit/ci-image). (npm build also copies dist/index.html ->
+      # dist/404.html, the path NIP-5A host servers fall back to.)
+      - run: npm run build
+        env:
+          WEBXDC_RT_REQUIRED: "1"
+
+      # Spellcheck dictionaries for the desktop app (SPELL_DICTIONARY_URL in
+      # electron/main.js). Served from the site only: not in the web bundle.
+      - name: Fetch spellcheck dictionaries
+        run: scripts/fetch-spell-dictionaries.sh dist/dictionaries
+
+      # The web bundle as one archive, served beside the site, for Flatpak
+      # shells up to v0.67.6: they read this path's hash from the signed site
+      # manifest and unpack it into userData. Newer shells load the site file
+      # by file (electron/webSite.js) and never fetch it, so it can go once
+      # those shells have updated. Deterministic so an unchanged build keeps
+      # its hash.
+      - name: Pack the web bundle
+        run: |
+          set -eu
+          mkdir -p dist/downloads
+          tar -C dist --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner \
+            --exclude=./downloads --exclude=./dictionaries -cf - . | gzip -n > dist/downloads/armada-web.tar.gz
+          ls -l dist/downloads/armada-web.tar.gz
+
+      - name: Publish to Blossom + relays
+        # act does NOT enforce a job's `timeout-minutes` (it parses the field
+        # and only debug-logs it); the step-level one below is the only
+        # deadline this workflow actually has. Without it a wedged nsyte waits
+        # for the coordinator's run-level timeout, which replaces every job
+        # result act has already produced with a single synthetic one — so the
+        # logs that would explain the hang are the first thing lost.
+        # `nsyte deploy` has no internal deadline of its own; the wrapper below
+        # bounds each of its (at most two) runs at NSITE_DEPLOY_TIMEOUT and this
+        # step's budget is those plus the probes.
+        #
+        # NSITE_DEPLOY_TIMEOUT is PINNED here rather than left to the wrapper's
+        # 420 s default so the failover bound is deterministic — the coordinator
+        # image was observed running a single deploy ~750 s without the bound
+        # firing, which is exactly the window in which a mirror that passed the
+        # probe and then wedged (blossom.ditto.pub: 10 s per HEAD/PUT × retries)
+        # grinds the step out to 12+ min while still "succeeding" on the healthy
+        # two. This deploy is a manifest reconcile — every blob it names is
+        # already on Blossom (the SPA's changed chunks aside), so a healthy run
+        # finishes in well under 240 s; a wedged mirror hits the bound instead,
+        # nsyte is killed (rc 124), and the wrapper's retry drops the server its
+        # log blames and re-runs on the live remainder. The wrapper now echoes
+        # the effective timeout so a future run's log proves it was honored.
+        timeout-minutes: 20
+        env:
+          NSYTE_BUNKER: ${{ secrets.NSYTE_BUNKER }}
+          NSITE_DEPLOY_TIMEOUT: "240"
+        run: |
+          set -eu
+
+          # Relays/servers/site id/title all come from .nsite/config.json, so
+          # they are versioned with the client rather than split across this
+          # file — and this job never writes to it, so there is no site state
+          # a failed run can leave behind.
+          #
+          # scripts/nsite-deploy.sh is where a Blossom outage is absorbed, and
+          # every nsite this repo publishes goes through it (see its header):
+          # it probes the servers and hands nsyte only the live ones, bounds
+          # and retries the run without the servers a failed one blames, and
+          # deploys with --sync so every file of the site is HEAD-checked on
+          # every live server and re-uploaded where missing — which is what
+          # backfills a mirror that was down for an earlier deploy. It also
+          # refuses a zero-file scan (nsyte pointed at the wrong directory
+          # publishes nothing while exiting 0) and skips nsyte's secrets scan,
+          # which prompts on false positives in our own bundle (pubkeys,
+          # bunker:// parsing code) — with -i that prompt defaults to N.
+          #
+          # The nbunksec goes on nsyte's command line because that is the only
+          # non-interactive way in (`--prompt-sec` is a hidden TTY prompt that
+          # cannot be piped). It is visible in the runner's process list, to
+          # host root — which already holds it, since the coordinator passes it
+          # in from its own environment. Job containers get no docker socket
+          # and their own PID namespace, so a concurrent job cannot read it.
+          scripts/nsite-deploy.sh dist
+
+      # The same build again as the named site `armada-stable`, but only when
+      # this push IS a stable release (the release skill's "Release vX.Y.Z"
+      # commit; a prerelease carries a "-" and is skipped). Desktop shells on
+      # the "Releases only" channel (Settings › Desktop, electron/webUpdateChannel.js)
+      # follow this site instead of `armada`, which moves with every push to
+      # main. A separate step in this one job, so it plans no second workflow
+      # run for act's container names to collide on (see the header). Every
+      # blob is already on the servers from the step above, so --sync only
+      # HEADs them. --no-config: the config's `armada` id must not apply.
+      - name: Publish the release track
+        timeout-minutes: 15
+        env:
+          NSYTE_BUNKER: ${{ secrets.NSYTE_BUNKER }}
+          NSITE_DEPLOY_TIMEOUT: "240"
+        run: |
+          set -eu
+          subject="$(git log -1 --format=%s)"
+          if ! printf '%s' "$subject" | grep -Eq '^Release v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "not a stable release commit ($subject); the release track is unchanged"
+            exit 0
+          fi
+          scripts/nsite-deploy.sh dist --name armada-stable --no-config --fallback /index.html

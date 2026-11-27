@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+
+    <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <!-- Dark window background so the area behind the transparent edge-to-edge
+             system bars renders the app's dark theme color (#100b15) instead of a
+             white flash before the WebView paints. Deliberately windowBackground
+             ONLY: a theme-level android:background is inherited by every view,
+             including the floating text-selection toolbar and selection-handle
+             popups, which then render as solid #100b15 boxes. -->
+        <item name="android:background">@null</item>
+        <item name="android:windowBackground">@color/armadaBackground</item>
+        <!-- Transparent system bars; the WebView draws edge-to-edge beneath them. -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
+
+    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <!-- Branded launch splash: dark background + centered ANIMATED Armada
+             crest. windowSplashScreen* apply on API 31+ (the animated icon runs
+             there); android:background is the pre-31 fallback (static crest) and
+             what Capacitor's launch window uses. The splash is held past the
+             animation by MainActivity until the web layer reports it has painted
+             (WebReadyPlugin), so the animation plays and the finished crest sits
+             over the whole cold start with no blank gap. -->
+        <item name="android:windowBackground">@drawable/splash</item>
+        <item name="android:background">@drawable/splash</item>
+        <item name="windowSplashScreenBackground">@color/armadaBackground</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_logo_anim</item>
+        <!-- Matches the AVD's total timeline (~1000ms) so the system lets it
+             play through before it would otherwise dismiss. -->
+        <item name="windowSplashScreenAnimationDuration">1000</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <!-- Theme to hand off to once the activity is up. -->
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
+    </style>
+</resources>

@@ -1,0 +1,118 @@
+app-id: buzz.armada.app
+
+runtime: org.freedesktop.Platform
+runtime-version: &runtime-version '25.08'
+sdk: org.freedesktop.Sdk
+
+base: org.electronjs.Electron2.BaseApp
+base-version: *runtime-version
+
+command: armada
+separate-locales: false
+
+# Everything shipped here is a prebuilt Electron binary, so a .Debug extension
+# carries nothing useful and the debuginfo phase is pure cost. Set at the top
+# level AND on the module: which scope flatpak-builder resolves this from for
+# the post-process phase is not something we can verify on the build host, and
+# the two spellings are free.
+build-options:
+  strip: false
+  no-debuginfo: true
+
+finish-args:
+  - --share=network
+  - --share=ipc
+  - --socket=x11
+  - --socket=wayland
+  - --socket=pulseaudio
+  - --device=all
+  - --filesystem=xdg-download
+  - --filesystem=xdg-pictures:ro
+  - --filesystem=xdg-videos:ro
+  - --filesystem=xdg-run/pipewire-0
+  - --talk-name=org.freedesktop.secrets
+  - --talk-name=org.freedesktop.Notifications
+  - --talk-name=org.kde.StatusNotifierWatcher
+  - --talk-name=com.canonical.AppMenu.Registrar
+  - --system-talk-name=org.freedesktop.login1
+  - --env=XCURSOR_PATH=/run/host/user-share/icons:/run/host/share/icons
+
+# This permission set is DELIBERATELY complete. Nothing here can swap the
+# read-only OSTree /app mount, and nothing should be added that can — in
+# particular no `--talk-name=org.freedesktop.Flatpak`, which is arbitrary
+# host-command execution through `flatpak-spawn --host` and spends the sandbox
+# boundary that is the reason to ship a Flatpak at all.
+#
+# `org.freedesktop.Notifications` is the session-bus notification daemon that
+# Electron's libnotify-backed `new Notification()` posts to on Linux. Without
+# this talk-name the sandbox silently drops every banner — the foreground
+# notifier is the desktop build's only notifier, so this is the whole of it.
+# It only lets the app post notifications; it cannot touch the /app mount.
+#
+# `org.freedesktop.login1` is on the SYSTEM bus, and it is the only source of
+# Electron's `powerMonitor` suspend/resume (logind's PrepareForSleep) and
+# lock/unlock signals on Linux — there is no session-bus fallback for `resume`.
+# The sandbox exposes no system bus at all by default, so without this the
+# renderer never learns the machine woke: main.js relays `powerMonitor.on
+# ("resume")` as `armada:resume`, which NostrProvider turns into a full relay
+# reconnect. A suspend silently kills the relay sockets' TCP without Chromium
+# firing `close` (they read OPEN while carrying no traffic), so a wake with no
+# resume signal leaves every socket dead — no new events, so no notifications
+# and no message catch-up until a restart. Talk access only lets the app call
+# login1 and receive its signals; suspend/reboot still gate on polkit.
+#
+# The bundle embeds no origin URL; its shell updates through `flatpak update`
+# from whichever remote it was installed from (npkg's, for pkg.soapbox.pub).
+# Its web app also updates in place: the shell loads it from Armada's signed
+# nsite into userData and serves that (electron/webSite.js).
+# `--share=network` is all that needs.
+
+modules:
+  - name: armada
+    buildsystem: simple
+    # The module is a repackaged Electron AppImage of prebuilt binaries, so a
+    # .Debug extension carries nothing useful. Skipping it also drops the hard
+    # dependency on elfutils' eu-strip/eu-elfcompress, which the build host is
+    # not required to have.
+    build-options:
+      strip: false
+      no-debuginfo: true
+    build-commands:
+      - chmod +x Armada.AppImage
+      - ./Armada.AppImage --appimage-extract
+      # Linux installers all carry the same pre-tested publisher. Keeping it in
+      # the AppImage before repackaging prevents Flatpak/AppImage helper drift.
+      - test -x squashfs-root/resources/armada-hevc-publisher
+      # venmic 7.x's published addon requires GLIBCXX_3.4.35, newer than the
+      # 25.08 runtime (3.4.34). Its 6.1 addon exposes the capture API Armada
+      # uses and was built against GLIBCXX_3.4.32, so replace only the native
+      # prebuild; AppImage/deb continue using the package-lock-pinned 7.x addon.
+      - cp -a venmic-compat/prebuilds/. squashfs-root/resources/app.asar.unpacked/node_modules/@vencord/venmic/prebuilds/
+      - mv squashfs-root /app/armada
+      - install -Dm755 armada-wrapper /app/bin/armada
+      - install -Dm644 buzz.armada.app.desktop /app/share/applications/buzz.armada.app.desktop
+      - install -Dm644 buzz.armada.app.metainfo.xml /app/share/metainfo/buzz.armada.app.metainfo.xml
+      - install -Dm644 armada.png /app/share/icons/hicolor/512x512/apps/buzz.armada.app.png
+    sources:
+      - type: file
+        path: ../release/Armada.AppImage
+      # Content marker maintained by build.sh. Including it makes the module's
+      # cache key unambiguously follow the AppImage bytes in local test cycles.
+      - type: file
+        path: ../release/Armada.AppImage.sha256
+        dest-filename: Armada.AppImage.sha256
+      - type: archive
+        url: https://registry.npmjs.org/@vencord/venmic/-/venmic-6.1.0.tgz
+        sha256: 7d8694997ff2eeffe1dea6205df1af56df8f2d2656d9ba966bc884b23cb08c1f
+        strip-components: 1
+        dest: venmic-compat
+      - type: file
+        path: armada-wrapper
+      - type: file
+        path: buzz.armada.app.desktop
+      # Staged by build.sh with a <release> for the version being built.
+      - type: file
+        path: ../release/buzz.armada.app.metainfo.xml
+      - type: file
+        path: ../build/linux-icon.png
+        dest-filename: armada.png

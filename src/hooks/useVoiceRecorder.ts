@@ -1,0 +1,246 @@
+import { useState, useRef, useCallback, useEffect } from 'react';
+
+/** Maximum recording duration in seconds (NIP-A0 recommends 60s). */
+const MAX_DURATION = 60;
+
+const WAVEFORM_SAMPLES = 100;
+
+const SAMPLE_INTERVAL_MS = 100;
+
+/**
+ * Speech-tuned bitrate (browsers default to ~128 kbps). Opus is clean at 32 kbps;
+ * AAC-LC (Safari/mp4) degrades harder, so 64 kbps.
+ */
+function audioBitsPerSecond(mimeType: string): number {
+  return mimeType.includes('opus') ? 32_000 : 64_000;
+}
+
+export interface VoiceRecording {
+  blob: Blob;
+  mimeType: string;
+  duration: number;
+  /** Waveform amplitude values (0–100 integers, ~100 samples). */
+  waveform: number[];
+}
+
+export interface UseVoiceRecorderReturn {
+  isSupported: boolean;
+  isRecording: boolean;
+  recordingDuration: number;
+  /** Live waveform amplitude samples captured so far (0–100 integers). */
+  liveWaveform: number[];
+  startRecording: () => Promise<void>;
+  stopRecording: () => Promise<VoiceRecording | null>;
+  cancelRecording: () => void;
+}
+
+function getRecordingMimeType(): string {
+  if (typeof MediaRecorder === 'undefined') return 'audio/webm';
+  // Prefer mp4/aac per NIP-A0 recommendation
+  const preferred = [
+    'audio/mp4',
+    'audio/mp4;codecs=aac',
+    'audio/aac',
+    'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/ogg;codecs=opus',
+  ];
+  for (const mime of preferred) {
+    if (MediaRecorder.isTypeSupported(mime)) return mime;
+  }
+  return 'audio/webm';
+}
+
+/** Record voice messages, capturing amplitude samples for NIP-A0 waveform data. */
+export function useVoiceRecorder(): UseVoiceRecorderReturn {
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [liveWaveform, setLiveWaveform] = useState<number[]>([]);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const waveformRef = useRef<number[]>([]);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const samplerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startTimeRef = useRef<number>(0);
+  const resolveRef = useRef<((recording: VoiceRecording | null) => void) | null>(null);
+
+  const isSupported = typeof navigator !== 'undefined'
+    && !!navigator.mediaDevices
+    && !!navigator.mediaDevices.getUserMedia
+    && typeof MediaRecorder !== 'undefined';
+
+  useEffect(() => {
+    return () => {
+      cleanup();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const cleanup = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    if (samplerRef.current) {
+      clearInterval(samplerRef.current);
+      samplerRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
+    }
+    analyserRef.current = null;
+    mediaRecorderRef.current = null;
+    chunksRef.current = [];
+  }, []);
+
+  const startRecording = useCallback(async () => {
+    if (isRecording || !isSupported) return;
+
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    streamRef.current = stream;
+
+    const audioCtx = new AudioContext();
+    audioContextRef.current = audioCtx;
+    const source = audioCtx.createMediaStreamSource(stream);
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    source.connect(analyser);
+    analyserRef.current = analyser;
+
+    const mimeType = getRecordingMimeType();
+    const recorder = new MediaRecorder(stream, { mimeType, audioBitsPerSecond: audioBitsPerSecond(mimeType) });
+    mediaRecorderRef.current = recorder;
+    chunksRef.current = [];
+    waveformRef.current = [];
+
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) chunksRef.current.push(e.data);
+    };
+
+    recorder.onstop = () => {
+      const blob = new Blob(chunksRef.current, { type: mimeType });
+      const duration = (Date.now() - startTimeRef.current) / 1000;
+
+      const raw = waveformRef.current;
+      const waveform = downsampleWaveform(raw, WAVEFORM_SAMPLES);
+
+      const recording: VoiceRecording = { blob, mimeType, duration, waveform };
+
+      if (resolveRef.current) {
+        resolveRef.current(recording);
+        resolveRef.current = null;
+      }
+
+      cleanup();
+      setIsRecording(false);
+      setRecordingDuration(0);
+      setLiveWaveform([]);
+    };
+
+    recorder.start(250);
+    startTimeRef.current = Date.now();
+    setIsRecording(true);
+    setRecordingDuration(0);
+    setLiveWaveform([]);
+
+    timerRef.current = setInterval(() => {
+      const elapsed = (Date.now() - startTimeRef.current) / 1000;
+      setRecordingDuration(elapsed);
+
+      if (elapsed >= MAX_DURATION) {
+        if (mediaRecorderRef.current?.state === 'recording') {
+          mediaRecorderRef.current.stop();
+        }
+      }
+    }, 100);
+
+    samplerRef.current = setInterval(() => {
+      // Bromite strips AnalyserNode reads.
+      if (typeof analyserRef.current?.getByteTimeDomainData !== "function") return;
+      const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+      analyserRef.current.getByteTimeDomainData(dataArray);
+
+      let sum = 0;
+      for (let i = 0; i < dataArray.length; i++) {
+        const v = (dataArray[i] - 128) / 128; // -1..1
+        sum += v * v;
+      }
+      const rms = Math.sqrt(sum / dataArray.length);
+      // Map RMS to 0–100 (typical voice RMS is ~0.05–0.3)
+      const amplitude = Math.min(100, Math.round(rms * 333));
+
+      waveformRef.current.push(amplitude);
+      setLiveWaveform((prev) => [...prev, amplitude]);
+    }, SAMPLE_INTERVAL_MS);
+  }, [isRecording, isSupported, cleanup]);
+
+  const stopRecording = useCallback(async (): Promise<VoiceRecording | null> => {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state !== 'recording') return null;
+
+    return new Promise<VoiceRecording | null>((resolve) => {
+      resolveRef.current = resolve;
+      recorder.stop();
+    });
+  }, []);
+
+  const cancelRecording = useCallback(() => {
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state === 'recording') {
+      recorder.onstop = () => {
+        cleanup();
+        setIsRecording(false);
+        setRecordingDuration(0);
+        setLiveWaveform([]);
+      };
+      recorder.stop();
+    } else {
+      cleanup();
+      setIsRecording(false);
+      setRecordingDuration(0);
+      setLiveWaveform([]);
+    }
+    if (resolveRef.current) {
+      resolveRef.current(null);
+      resolveRef.current = null;
+    }
+  }, [cleanup]);
+
+  return {
+    isSupported,
+    isRecording,
+    recordingDuration,
+    liveWaveform,
+    startRecording,
+    stopRecording,
+    cancelRecording,
+  };
+}
+
+/** Downsample to `targetLen` samples, taking the max of each window. */
+function downsampleWaveform(raw: number[], targetLen: number): number[] {
+  if (raw.length === 0) return [];
+  if (raw.length <= targetLen) return raw;
+
+  const result: number[] = [];
+  const step = raw.length / targetLen;
+  for (let i = 0; i < targetLen; i++) {
+    const start = Math.floor(i * step);
+    const end = Math.floor((i + 1) * step);
+    let max = 0;
+    for (let j = start; j < end && j < raw.length; j++) {
+      if (raw[j] > max) max = raw[j];
+    }
+    result.push(max);
+  }
+  return result;
+}

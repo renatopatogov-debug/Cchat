@@ -1,0 +1,76 @@
+name: Test
+
+# Lint / typecheck / unit tests / production build for the Armada web client.
+# ngit-ci watches .ngit/act/workflows/ and runs these with `act` (GitHub
+# Actions-compatible syntax) in a Linux container per job. The GitLab mirror
+# still runs .gitlab-ci.yml on its own runners; the two are independent.
+#
+# Runs on every push and on every Nostr PR (kinds 1618/1619). Tag pushes are
+# handled by release.yml, so they are excluded here.
+#
+# `["*", "**"]`, not `["**"]`. On GitHub the two patterns split the space —
+# `*` matches a branch with no `/`, `**` matches one with — so naming only
+# `**` already excludes `main`. ngit-ci is stricter still: its matcher
+# (`ref_matches_pattern`) special-cases a bare `*` to true, handles a
+# `<prefix>/**` suffix, and otherwise treats a trailing `*` as a literal
+# prefix — so a bare `**` reduces to `starts_with("*")` and matches NO ref at
+# all. This file therefore ran on Nostr PRs and on nothing else; the suite has
+# never run on a push. Keep both patterns: the pair is correct on GitHub, and
+# the `*` is what actually matches here.
+
+on:
+  push:
+    branches: ["*", "**"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    # 15 before the Swift suite; the vendored SQLite amalgamation is a ~9 MB C
+    # file compiled from scratch on a cold .build. The Linux H.265 publisher
+    # also vendors and tests its Go dependency graph here.
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # The Node the deploy builds with.
+          node-version-file: .nvmrc
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: electron/hevc-publisher/go.mod
+          cache-dependency-path: electron/hevc-publisher/go.sum
+
+      - run: npm ci
+
+      # tsc + eslint + vitest + production build (see package.json "test").
+      - run: npm run test
+
+      # Exercise the statically linked Linux H.265 publisher and the vendored
+      # LiveKit primary-codec patch on every PR, rather than discovering a Go
+      # or SDK drift only in the tag-triggered desktop release workflow.
+      - run: ./electron/scripts/build-hevc-publisher.sh --arch x64
+
+      # The Swift ArmadaDB engine's conformance suite (ios/ArmadaDB), ported
+      # from ArmadaDbTest.kt. The engine is a SwiftPM package with SQLite
+      # vendored so it builds on Linux — act runs Linux containers only, so
+      # this is the one place iOS storage is tested at all.
+      #
+      # The toolchain is baked into the armada-ci image (.ngit/ci-image), NOT
+      # installed here: it is ~1 GB, and there is no setup-swift step to heal a
+      # stale image. A "swift: command not found" here means the coordinator's
+      # image predates this step and needs .ngit/ci-image/build.sh.
+      - run: swift test --package-path ios/ArmadaDB
+
+      # The iOS Notification Service Extension's decrypt/store/present pipeline
+      # (ios/ArmadaNotify) — NIP-44, NIP-17 gift wraps, Concord stream wraps.
+      # Also a SwiftPM package for the Linux reason above, and more load-bearing
+      # than most: this is the code that decides whether a rumor is authentic,
+      # and its vectors were generated with the very nostr-tools/@noble builds
+      # the web client uses, so a drift from the app's own crypto fails here.
+      - run: swift test --package-path ios/ArmadaNotify
+
+      # Fail on known high/critical advisories in dependencies.
+      - run: npm audit --audit-level=high

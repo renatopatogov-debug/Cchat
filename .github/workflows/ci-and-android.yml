@@ -1,0 +1,65 @@
+name: CI & Android APK (Cloud Build)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  web-and-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck, Lint, i18n & Unit Tests
+        run: npx tsc --noEmit && npx eslint . && npm run i18n:check && npx vitest run --passWithNoTests --reporter=dot
+
+      - name: Build Web Bundle
+        run: npm run build
+
+      - name: Upload Web Dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: armada-web-dist
+          path: dist/
+
+  android-apk:
+    needs: web-and-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Install dependencies & Build Web
+        run: npm ci && npm run build
+
+      - name: Sync Capacitor Android
+        run: npx cap sync android
+
+      - name: Build Debug APK
+        working-directory: android
+        run: chmod +x gradlew && ./gradlew assembleDebug -PapkAbis=arm64-v8a
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: armada-debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk

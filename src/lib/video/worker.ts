@@ -1,0 +1,315 @@
+/// <reference lib="webworker" />
+
+/**
+ * The one place mediabunny runs. Video processing: probes, decides via
+ * `./policy.ts`, executes (WebCodecs), and extracts NIP-94 `imeta` metadata
+ * (dim, duration, blurhash, poster). Also reads audio tags for
+ * `readAudioMetadata.ts`, so the main bundle carries no second copy.
+ */
+
+import { encode as blurhashEncode } from "blurhash";
+import {
+  ALL_FORMATS,
+  BlobSource,
+  BufferTarget,
+  CanvasSink,
+  Conversion,
+  getFirstEncodableAudioCodec,
+  getFirstEncodableVideoCodec,
+  Input,
+  Mp4OutputFormat,
+  Output,
+  UrlSource,
+  type AudioCodec,
+  type InputVideoTrack,
+  type MetadataTags,
+  type Source,
+} from "mediabunny";
+
+import { audioTagsFrom, type AudioMetadata } from "@/lib/audioMetadata";
+
+import {
+  AUDIO_BITRATE,
+  decideVideoAction,
+  isFastStartMp4,
+  KEYFRAME_INTERVAL,
+  type VideoAction,
+  type VideoProbe,
+} from "./policy";
+
+import type { ProcessedVideo, WorkerRequest, WorkerResponse } from "./types";
+
+/** Width of the poster frame we generate, in pixels. */
+const POSTER_WIDTH = 320;
+
+/** JPEG quality for the poster frame. */
+const POSTER_QUALITY = 0.75;
+
+/** Width used to sample pixels for the blurhash (matches the image path). */
+const BLURHASH_SAMPLE_WIDTH = 64;
+
+/** Audio codecs MP4 can carry untouched (copying beats re-encoding). */
+const MP4_AUDIO_CODECS = new Set<AudioCodec>(["aac", "opus", "mp3", "flac", "ac3", "eac3"]);
+
+/** The in-flight conversion, so a cancel message can abort it. */
+let active: Conversion | null = null;
+
+self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
+  const message = event.data;
+
+  if (message.type === "cancel") {
+    await active?.cancel().catch(() => {});
+    return;
+  }
+
+  if (message.type === "audioTags") {
+    post({ type: "audioTags", id: message.id, result: await readAudioTags(message.source) });
+    return;
+  }
+
+  try {
+    const result = await process(message.file);
+    post({ type: "done", result });
+  } catch (error) {
+    post({ type: "error", message: error instanceof Error ? error.message : String(error) });
+  } finally {
+    active = null;
+  }
+};
+
+function post(response: WorkerResponse): void {
+  (self as unknown as DedicatedWorkerGlobalScope).postMessage(response);
+}
+
+async function process(file: File): Promise<ProcessedVideo> {
+  const input = new Input({ formats: ALL_FORMATS, source: new BlobSource(file) });
+
+  const videoTrack = await input.getPrimaryVideoTrack();
+  if (!videoTrack) {
+    return { file, action: "passthrough" };
+  }
+
+  const probe = await buildProbe(file, input, videoTrack);
+  const action = decideVideoAction(probe);
+
+  // Preview from the source, so passthrough paths get one too.
+  const preview = await extractPreview(videoTrack);
+
+  const base = {
+    duration: probe.duration > 0 ? Math.round(probe.duration) : undefined,
+    blurhash: preview?.blurhash,
+    poster: preview?.poster,
+  };
+
+  if (action.kind === "passthrough") {
+    return { ...base, file, dim: dimOf(probe.width, probe.height), action: "passthrough" };
+  }
+
+  const converted = await convert(file, input, action);
+  if (!converted) {
+    // Conversion impossible (e.g. no audio encoder): send the original.
+    return { ...base, file, dim: dimOf(probe.width, probe.height), action: "passthrough" };
+  }
+
+  return {
+    ...base,
+    file: converted,
+    dim: action.kind === "transcode"
+      ? dimOf(action.width, action.height)
+      : dimOf(probe.width, probe.height),
+    action: action.kind,
+  };
+}
+
+async function buildProbe(
+  file: File,
+  input: Input,
+  videoTrack: InputVideoTrack,
+): Promise<VideoProbe> {
+  const [width, height, duration, tags] = await Promise.all([
+    videoTrack.getDisplayWidth(),
+    videoTrack.getDisplayHeight(),
+    input.computeDuration().catch(() => 0),
+    input.getMetadataTags().catch(() => ({}) as MetadataTags),
+  ]);
+
+  const canEncode = (await getFirstEncodableVideoCodec(["avc"], { width, height })) !== null;
+
+  const isFastStart = await isFastStartMp4(
+    async (offset, length) => new Uint8Array(await file.slice(offset, offset + length).arrayBuffer()),
+    file.size,
+  ).catch(() => false);
+
+  return {
+    size: file.size,
+    duration,
+    width,
+    height,
+    codec: videoTrack.codec,
+    mimeType: file.type,
+    canEncode,
+    isFastStart,
+    hasMetadataTags: hasMeaningfulTags(tags),
+  };
+}
+
+/** Any populated tag counts (`date` and `raw` hold timestamps and GPS). */
+function hasMeaningfulTags(tags: MetadataTags): boolean {
+  for (const [key, value] of Object.entries(tags)) {
+    if (value === undefined || value === null) continue;
+    if (key === "raw") {
+      if (typeof value === "object" && Object.keys(value).length > 0) return true;
+      continue;
+    }
+    if (Array.isArray(value) && value.length === 0) continue;
+    return true;
+  }
+  return false;
+}
+
+/** JPEG poster + blurhash from a frame ~1s in (first frames are often black). */
+async function extractPreview(
+  videoTrack: InputVideoTrack,
+): Promise<{ poster: Blob; blurhash?: string } | undefined> {
+  try {
+    if (!(await videoTrack.canDecode())) return undefined;
+
+    const first = await videoTrack.getFirstTimestamp();
+    const duration = await videoTrack.computeDuration();
+    const timestamp = duration > 2 ? first + 1 : first + Math.max(0, duration - first) / 2;
+
+    const sink = new CanvasSink(videoTrack, { width: POSTER_WIDTH });
+    const wrapped = (await sink.getCanvas(timestamp)) ?? (await sink.getCanvas(first));
+    if (!wrapped) return undefined;
+
+    const poster = await toJpeg(wrapped.canvas);
+    return { poster, blurhash: computeBlurhash(wrapped.canvas) };
+  } catch {
+    return undefined;
+  }
+}
+
+async function toJpeg(canvas: HTMLCanvasElement | OffscreenCanvas): Promise<Blob> {
+  if (canvas instanceof OffscreenCanvas) {
+    return canvas.convertToBlob({ type: "image/jpeg", quality: POSTER_QUALITY });
+  }
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error("Failed to encode poster"))),
+      "image/jpeg",
+      POSTER_QUALITY,
+    );
+  });
+}
+
+/** Downscale to a small canvas and encode a 4x3-component blurhash. */
+function computeBlurhash(source: HTMLCanvasElement | OffscreenCanvas): string | undefined {
+  try {
+    const scale = BLURHASH_SAMPLE_WIDTH / source.width;
+    const height = Math.max(1, Math.round(source.height * scale));
+
+    const canvas = new OffscreenCanvas(BLURHASH_SAMPLE_WIDTH, height);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return undefined;
+
+    ctx.drawImage(source, 0, 0, BLURHASH_SAMPLE_WIDTH, height);
+    const { data } = ctx.getImageData(0, 0, BLURHASH_SAMPLE_WIDTH, height);
+
+    return blurhashEncode(data, BLURHASH_SAMPLE_WIDTH, height, 4, 3);
+  } catch {
+    return undefined;
+  }
+}
+
+/** Run the remux or transcode; `null` means upload the original. */
+async function convert(
+  file: File,
+  input: Input,
+  action: Extract<VideoAction, { kind: "remux" | "transcode" }>,
+): Promise<File | null> {
+  const output = new Output({
+    // Fast start: `moov` before `mdat` so playback starts before full download.
+    format: new Mp4OutputFormat({ fastStart: "in-memory" }),
+    target: new BufferTarget(),
+  });
+
+  const conversion = await Conversion.init({
+    input,
+    output,
+    tracks: "primary",
+    // Drop all metadata tags (creation date, GPS).
+    tags: {},
+    ...(action.kind === "transcode"
+      ? {
+        video: {
+          width: action.width,
+          height: action.height,
+          // Dims keep the true aspect within rounding to 16, so fill beats letterboxing.
+          fit: "fill" as const,
+          codec: "avc" as const,
+          bitrate: action.videoBitrate,
+          keyFrameInterval: KEYFRAME_INTERVAL,
+        },
+        audio: audioOptions,
+      }
+      : {}),
+  });
+
+  if (!conversion.isValid) return null;
+
+  // Never silently drop audio.
+  if (conversion.discardedTracks.some((t) => t.track.type === "audio")) return null;
+
+  active = conversion;
+  conversion.onProgress = (progress) => post({ type: "progress", value: progress });
+
+  await conversion.execute();
+
+  const buffer = output.target.buffer;
+  if (!buffer) return null;
+
+  return new File([buffer], replaceExtension(file.name, ".mp4"), { type: "video/mp4" });
+}
+
+/** Copy audio when MP4 can hold it; encode only foreign codecs (e.g. Vorbis). */
+async function audioOptions(track: { codec: AudioCodec | null }) {
+  if (track.codec && MP4_AUDIO_CODECS.has(track.codec)) return {};
+
+  const codec = await getFirstEncodableAudioCodec(["aac", "opus"]);
+  if (!codec) return {};
+
+  return { codec, bitrate: AUDIO_BITRATE };
+}
+
+/** Tags and front cover; http(s) sources are read by range request. Never throws. */
+async function readAudioTags(source: Blob | string): Promise<AudioMetadata> {
+  let input: Input | undefined;
+  try {
+    let src: Source;
+    if (typeof source !== "string") src = new BlobSource(source);
+    else if (source.startsWith("blob:")) src = new BlobSource(await (await fetch(source)).blob());
+    else src = new UrlSource(source);
+
+    input = new Input({ source: src, formats: ALL_FORMATS });
+    const tags = await input.getMetadataTags();
+    const images = (tags.images ?? []).filter((img) => img.mimeType.startsWith("image/"));
+    const art = images.find((img) => img.kind === "coverFront") ?? images[0];
+    return {
+      ...audioTagsFrom(tags),
+      cover: art ? new Blob([art.data as Uint8Array<ArrayBuffer>], { type: art.mimeType }) : undefined,
+    };
+  } catch {
+    return {};
+  } finally {
+    input?.dispose();
+  }
+}
+
+function dimOf(width: number, height: number): string | undefined {
+  return width > 0 && height > 0 ? `${width}x${height}` : undefined;
+}
+
+function replaceExtension(filename: string, ext: string): string {
+  const dot = filename.lastIndexOf(".");
+  return (dot > 0 ? filename.slice(0, dot) : filename) + ext;
+}

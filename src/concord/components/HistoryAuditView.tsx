@@ -1,0 +1,270 @@
+import { Check, ChevronDown, FileCode, Loader2, ShieldCheck } from "lucide-react";
+import { useState } from "react";
+
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Label } from "@/components/ui/label";
+import { WizardShell } from "@/components/onboarding/WizardShell";
+import { cn } from "@/lib/utils";
+import { useHistoryAudit, type AuditPhase } from "@/concord/hooks/useHistoryAudit";
+import type { HistoryReport } from "@/concord/lib/historyAudit";
+import { exportFileName, exportHtmlParts, type ExportModel } from "@/concord/lib/historyExport";
+import type { Community } from "@/concord/lib/types";
+import { common, defineMessage, defineMessages, FormattedMessage, useIntl, type MessageDescriptor } from "@/i18n";
+
+const RANGES: { key: string; label: MessageDescriptor; hours: number | null }[] = [
+  { key: "1d", label: defineMessage({ id: "historyAuditView.range.1d", defaultMessage: "1d" }), hours: 24 },
+  { key: "3d", label: defineMessage({ id: "historyAuditView.range.3d", defaultMessage: "3d" }), hours: 24 * 3 },
+  { key: "7d", label: defineMessage({ id: "historyAuditView.range.7d", defaultMessage: "7d" }), hours: 24 * 7 },
+  { key: "30d", label: defineMessage({ id: "historyAuditView.range.30d", defaultMessage: "30d" }), hours: 24 * 30 },
+  { key: "all", label: defineMessage({ id: "historyAuditView.range.all", defaultMessage: "All" }), hours: null },
+];
+
+const PHASE_LABEL: Record<Exclude<AuditPhase, "idle">, MessageDescriptor> = defineMessages({
+  control: { id: "historyAuditView.phase.control", defaultMessage: "Reading the control plane" },
+  channels: { id: "historyAuditView.phase.channels", defaultMessage: "Reading channels" },
+  profiles: { id: "historyAuditView.phase.profiles", defaultMessage: "Resolving members" },
+  assets: { id: "historyAuditView.phase.assets", defaultMessage: "Embedding media" },
+  done: { id: "historyAuditView.phase.done", defaultMessage: "Done" },
+  error: { id: "historyAuditView.phase.error", defaultMessage: "Failed" },
+});
+
+/** Built as Blob parts, never one string, so large exports can't overflow max string size. */
+function download(model: ExportModel): void {
+  const blob = new Blob(exportHtmlParts(model), { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = exportFileName(model, "html");
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
+/** A relay that actually errored or timed out; the only reason to warn or offer a re-run. */
+function hadRelayFailure(report: HistoryReport): boolean {
+  return report.control.relays.some((r) => r.failed) || report.channels.some((c) => c.relays.some((r) => r.failed));
+}
+
+interface HistoryAuditViewProps {
+  community: Community;
+  onClose: () => void;
+}
+
+/** Routed full-screen history verify/export (outlives the settings dialog). */
+export function HistoryAuditView({ community, onClose }: HistoryAuditViewProps) {
+  const intl = useIntl();
+  const { run, cancel, canRun, progress, result, error, channels } = useHistoryAudit(community);
+  const [embed, setEmbed] = useState(true);
+  const [rangeHours, setRangeHours] = useState<number | null>(null);
+  const [excluded, setExcluded] = useState<Set<string>>(new Set());
+  const [channelsOpen, setChannelsOpen] = useState(false);
+
+  const busy = progress.phase !== "idle" && progress.phase !== "done" && progress.phase !== "error";
+  const pct = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
+  const relayFailure = result ? hadRelayFailure(result.report) : false;
+
+  const selectedIds = channels.filter((c) => !excluded.has(c.idHex)).map((c) => c.idHex);
+  const noneSelected = channels.length > 0 && selectedIds.length === 0;
+  const toggleChannel = (idHex: string) =>
+    setExcluded((prev) => {
+      const next = new Set(prev);
+      if (next.has(idHex)) next.delete(idHex);
+      else next.add(idHex);
+      return next;
+    });
+
+  // Counts reflect what's written (after disappearing and unpicked channels are dropped).
+  const exportChannelCount = result?.model.channels.length ?? 0;
+  const exportMessageCount = result
+    ? result.model.channels.reduce((n, c) => n + c.messages.length, 0)
+    : 0;
+
+  const startRun = () =>
+    void run({
+      embedAssets: embed,
+      ...(rangeHours === null ? {} : { sinceMs: Date.now() - rangeHours * 3_600_000 }),
+      ...(excluded.size ? { channelIds: new Set(selectedIds) } : {}),
+    });
+
+  const close = () => {
+    if (busy) cancel();
+    onClose();
+  };
+
+  return (
+    <WizardShell index={0} total={0} stepKey="history-audit" maxWidth="max-w-xl" zClassName="z-[250]" onClose={close}>
+      <div className="w-full space-y-6">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="grid size-14 place-items-center rounded-2xl bg-secondary text-primary">
+            <ShieldCheck className="size-7" />
+          </div>
+          <div className="space-y-1">
+            <h1 className="font-mono text-2xl font-bold lowercase tracking-tight text-foreground">
+              <FormattedMessage id="historyAuditView.title" defaultMessage="verify & export history" />
+            </h1>
+            <p className="text-sm text-muted-foreground">{community.name}</p>
+          </div>
+        </div>
+
+        <p className="text-center text-sm leading-relaxed text-muted-foreground">
+          <FormattedMessage
+            id="historyAuditView.intro"
+            defaultMessage="Reads the control plane and every channel across all this community's relays, saves what it finds to your local store, and builds a self-contained export from those rumors."
+          />
+        </p>
+
+        {error && (
+          <div className="clip-hairline-lg [--edge:var(--destructive)/0.4] [--fill:var(--destructive)/0.1] [--fill-hover:var(--destructive)/0.1] p-3 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+
+        {busy ? (
+          <div className="space-y-3 clip-hairline-lg [--edge:var(--border)/0.5] [--fill:var(--secondary)/0.4] [--fill-hover:var(--secondary)/0.4] p-4">
+            <div className="flex items-center gap-2.5 text-sm">
+              <Loader2 className="size-4 animate-spin text-primary" />
+              <span>
+                {progress.label || (progress.phase === "idle" ? "" : intl.formatMessage(PHASE_LABEL[progress.phase]))}
+                {progress.total > 1
+                  ? " " + intl.formatMessage(
+                    { id: "historyAuditView.progressCount", defaultMessage: "({done}/{total})" },
+                    { done: progress.done, total: progress.total },
+                  )
+                  : ""}
+              </span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary transition-all duration-300 ease-out"
+                style={{ width: `${progress.total > 1 ? pct : 40}%` }}
+              />
+            </div>
+          </div>
+        ) : result ? (
+          <div className="space-y-4">
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Check className="size-4 text-emerald-500" />
+              <FormattedMessage
+                id="historyAuditView.ready"
+                defaultMessage="{channels, plural, one {# channel} other {# channels}}, {messages, plural, one {# message} other {# messages}} ready to export"
+                values={{ channels: exportChannelCount, messages: exportMessageCount }}
+              />
+            </div>
+
+            {relayFailure && (
+              <p className="text-center text-xs text-warning">
+                <FormattedMessage
+                  id="historyAuditView.relayFailure"
+                  defaultMessage="Some relays didn't respond, so this copy may be missing recent history."
+                />
+              </p>
+            )}
+
+            <div className="flex gap-2">
+              <Button type="button" className="h-11 flex-1 clip-corner-lg" onClick={() => download(result.model)}>
+                <FileCode className="size-4" />
+                <FormattedMessage id="historyAuditView.downloadHtml" defaultMessage="Download HTML" />
+              </Button>
+              {relayFailure && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="h-11 clip-corner-lg"
+                  onClick={startRun}
+                >
+                  <FormattedMessage id="historyAuditView.runAgain" defaultMessage="Run again" />
+                </Button>
+              )}
+            </div>
+
+            <p className="text-center text-xs text-muted-foreground">
+              <FormattedMessage
+                id="historyAuditView.exportHint"
+                defaultMessage="Opens as a self-contained mini-Armada with Chat, Text, and JSON views. Offline, with images embedded."
+              />
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <p className="text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <FormattedMessage id="historyAuditView.timeRange" defaultMessage="Time range" />
+              </p>
+              <div className="flex flex-wrap justify-center gap-1.5">
+                {RANGES.map((r) => (
+                  <Button
+                    key={r.key}
+                    type="button"
+                    size="sm"
+                    variant={rangeHours === r.hours ? "default" : "secondary"}
+                    className="clip-corner-lg"
+                    onClick={() => setRangeHours(r.hours)}
+                  >
+                    <FormattedMessage {...r.label} />
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center justify-center gap-2">
+              <Checkbox id="history-embed" checked={embed} onCheckedChange={(v) => setEmbed(v === true)} />
+              <Label htmlFor="history-embed" className="text-sm font-normal text-muted-foreground">
+                <FormattedMessage id="historyAuditView.embedImages" defaultMessage="Embed images for offline viewing (larger export)" />
+              </Label>
+            </div>
+
+            {channels.length > 1 && (
+              <Collapsible open={channelsOpen} onOpenChange={setChannelsOpen}>
+                <CollapsibleTrigger className="mx-auto flex items-center gap-1 text-xs font-medium uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground">
+                  <FormattedMessage
+                    id="historyAuditView.channels"
+                    defaultMessage="Channels ({selected}/{total})"
+                    values={{ selected: selectedIds.length, total: channels.length }}
+                  />
+                  <ChevronDown className={cn("size-3.5 transition-transform", channelsOpen && "rotate-180")} />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+                  <div className="mt-2 max-h-52 space-y-0.5 overflow-y-auto clip-hairline-lg [--edge:var(--border)/0.5] [--fill:var(--secondary)/0.3] [--fill-hover:var(--secondary)/0.3] p-2">
+                    {channels.map((c) => (
+                      <label
+                        key={c.idHex}
+                        className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-secondary"
+                      >
+                        <Checkbox checked={!excluded.has(c.idHex)} onCheckedChange={() => toggleChannel(c.idHex)} />
+                        <span className="text-muted-foreground">{c.isPrivate ? "🔒" : "#"}</span>
+                        <span className="truncate">{c.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {noneSelected && (
+                    <p className="mt-1.5 text-center text-xs text-warning">
+                      <FormattedMessage id="historyAuditView.selectOne" defaultMessage="Select at least one channel to export." />
+                    </p>
+                  )}
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+          </div>
+        )}
+
+        {busy ? (
+          <Button type="button" size="lg" variant="secondary" className="h-12 w-full clip-corner-lg" onClick={cancel}>
+            <FormattedMessage {...common.cancel} />
+          </Button>
+        ) : !result ? (
+          <Button
+            type="button"
+            size="lg"
+            className="h-12 w-full clip-corner-lg text-base"
+            disabled={!canRun || noneSelected}
+            onClick={startRun}
+          >
+            <FormattedMessage id="historyAuditView.runAudit" defaultMessage="Run audit" />
+          </Button>
+        ) : null}
+      </div>
+    </WizardShell>
+  );
+}

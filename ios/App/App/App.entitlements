@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Universal Links: the iOS counterpart of the Android verified App Links
+	     intent filter (AndroidManifest.xml), so invite/share links on
+	     armada.buzz open in the app instead of Safari. Verified against
+	     https://armada.buzz/.well-known/apple-app-site-association, which ships
+	     in public/.well-known/ and must name <TEAMID>.buzz.armada.app.
+
+	     Requires Associated Domains to be enabled on the App ID in the Apple
+	     developer portal; automatic signing then regenerates a profile carrying
+	     the capability. AppDelegate already proxies `continue userActivity` to
+	     Capacitor, and pathFromDeepLinkUrl() already forwards any https path to
+	     the router, so no app code is involved. -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:armada.buzz</string>
+	</array>
+
+	<!-- ArmadaDB and the push config live in this App Group's container
+	     rather than in the app's own sandbox, because an extension can only
+	     see the group's — and the Notification Service Extension
+	     (NotificationService/, which declares the same group) is a separate
+	     process that has to open both: the config to decrypt with, the
+	     database to write the decrypted message into. The choice was made
+	     before it was needed, and deliberately: moving the file after a
+	     release would strand decrypted Concord and NIP-17 history that exists
+	     nowhere else. ArmadaDbLocation refuses to fall back to the sandbox if
+	     this is missing, since a silent fallback is the same hazard deferred.
+
+	     Requires App Groups to be enabled on the App ID in the Apple developer
+	     portal, with this identifier registered; automatic signing then
+	     regenerates a profile carrying the capability. -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.buzz.armada.app</string>
+	</array>
+
+	<!-- APNs, the app's only route to a notification while it is closed: iOS
+	     has no equivalent of the Android background relay service, and
+	     WKWebView has no Web Push. The device token goes to the same
+	     content-blind nostr-push gateway the web client registers with, as a
+	     `type: "apns"` subscription (ArmadaPushPlugin.swift, useIosPush.ts).
+
+	     The VALUE here is not the environment the app ends up in — Xcode
+	     rewrites it per build, `development` for a locally signed build and
+	     `production` for an App Store/TestFlight one — and a device token is
+	     valid against exactly one APNs host. So the app reads this entitlement
+	     back out of its own embedded provisioning profile at runtime and tells
+	     the gateway which host minted the token, rather than either side
+	     guessing.
+
+	     Requires Push Notifications to be enabled on the App ID in the Apple
+	     developer portal; automatic signing then regenerates a profile carrying
+	     the capability. -->
+	<key>aps-environment</key>
+	<string>development</string>
+
+	<!-- Communication Notifications, which is what lets a decrypted message
+	     show the SENDER rather than the app icon.
+
+	     iOS reserves the person-shaped notification treatment (avatar or name
+	     monogram in place of the app icon, the sender as the source, and
+	     "Allow Notifications From People" in Focus modes) for notifications
+	     rebuilt from a donated INSendMessageIntent — see
+	     NotificationService/CommunicationNotification.swift. Without this
+	     entitlement `UNNotificationContent.updating(from:)` throws, and the
+	     notification silently degrades to an ordinary app notification with
+	     the right text and the wrong icon, which is precisely the state this
+	     was added to fix.
+
+	     Requires the capability on the App ID in the developer portal, like
+	     Push Notifications, App Groups and Associated Domains. It belongs to
+	     the APP even though the extension is what donates the intent: the
+	     extension runs under the app's identity for this purpose, and its own
+	     entitlements file stays minimal. -->
+	<key>com.apple.developer.usernotifications.communication</key>
+	<true/>
+</dict>
+</plist>

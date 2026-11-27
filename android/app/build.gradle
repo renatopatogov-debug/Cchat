@@ -1,0 +1,241 @@
+apply plugin: 'com.android.application'
+apply plugin: 'org.jetbrains.kotlin.android'
+apply plugin: 'org.jetbrains.kotlin.plugin.parcelize'
+
+def keystorePropertiesFile = rootProject.file("key.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+android {
+    namespace = "buzz.armada.app"
+    compileSdk = rootProject.ext.compileSdkVersion
+    // Nothing here is compiled with the NDK: AGP uses its llvm-strip to drop
+    // debug symbols from prebuilt .so files (libsqliteJni.so ships unstripped,
+    // ~0.2 MB per ABI). Without this NDK installed the build still succeeds,
+    // packaging the libs unstripped. The CI image installs the same version.
+    ndkVersion = rootProject.ext.ndkVersion
+    defaultConfig {
+        applicationId "buzz.armada.app"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        // -PapkAbis=armeabi-v7a,arm64-v8a trims the packaged ABIs. Used by
+        // release.yml for the DOWNLOADABLE APK only: it is a universal APK, so
+        // every user pays for all four copies of libsecp256k1-jni.so and
+        // libsqliteJni.so (~2.5 MB per ABI, ~10 MB of an 18 MB APK), and the
+        // x86 pair is emulators and a handful of Chromebooks. The AAB is built
+        // WITHOUT this property so Play keeps splitting all four.
+        def apkAbis = project.findProperty("apkAbis")
+        if (apkAbis) {
+            ndk {
+                abiFilters.clear()
+                abiFilters.addAll(apkAbis.toString().split(",").collect { it.trim() }.findAll { it })
+            }
+        }
+        // -ParmadaProfile=true: a PROFILING build of the notification service
+        // (ServiceProfiler — counters, timers, Perfetto sections, readable
+        // through `dumpsys`). A compile-time constant, so a normal build carries
+        // none of it. scripts/android-profile.sh builds with it.
+        buildConfigField "boolean", "PROFILE", (project.findProperty("armadaProfile") == "true").toString()
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            // Also omitted: the web build's files only a browser reads — PWA
+            // install screenshots and icons (manifest.webmanifest), the OG card,
+            // the iOS home-screen icon, and the Web Push worker (main.tsx
+            // unregisters service workers on native) — and the Twemoji fallback
+            // font, since Android ships Noto Color Emoji, and the landing page's
+            // three.js sea, which SailingSea.tsx doesn't render on Android.
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~' +
+                ':!<dir>screenshots:!og.png:!og.svg:!apple-touch-icon.png:!logo-512.png:!maskable-192.png:!maskable-512.png' +
+                ':!sw.js:!twemoji-*:!sailingScene-*'
+        }
+    }
+    packaging {
+        resources {
+            // Library metadata nothing reads at runtime: Kotlin builtins (for
+            // kotlin-reflect, which isn't a dependency), the coroutines debug
+            // agent's probes, BouncyCastle's X.509 path-review messages (Bitchat
+            // uses only Ed25519), Cordova's allowlist docs, and version stamps.
+            excludes += [
+                '**/*.kotlin_builtins',
+                'DebugProbesKt.bin',
+                'kotlin-tooling-metadata.json',
+                'org/bouncycastle/x509/*.properties',
+                'org/apache/cordova/allowlist/*.html',
+                'META-INF/*.version',
+                'META-INF/androidx/**/LICENSE.txt',
+            ]
+        }
+    }
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+            }
+        }
+    }
+    buildTypes {
+        debug {
+            // A profiling build installs BESIDE the real app, never over it: a
+            // debug-signed APK can't replace a release install without wiping
+            // it (and with it the account and every decrypted message), and the
+            // two keep separate data. Log in to the profiling copy to measure.
+            if (project.findProperty("armadaProfile") == "true") {
+                applicationIdSuffix ".profile"
+            } else if (project.findProperty("armadaDev") == "true") {
+                // -ParmadaDev=true: the same side-by-side install, without the profiler.
+                applicationIdSuffix ".dev"
+            }
+        }
+        release {
+            // Without key.properties the release build is app-release-unsigned.apk,
+            // which is what scripts/verify-build.mjs compares a published APK with.
+            if (keystorePropertiesFile.exists()) {
+                signingConfig signingConfigs.release
+            }
+            // R8: the unminified dex was 5.6 MB of an 18 MB APK, most of it
+            // AndroidX/bitchat/Tink code nothing reaches. Shrinking takes it to
+            // ~1.3 MB. See proguard-rules.pro for what the reflective entry
+            // points (the Capacitor bridge, the JNI loaders, Gson's field
+            // names) need in order to survive it.
+            // `shrinkResources` is deliberately NOT on: it measured ~10 KB here
+            // — the app's UI is a WebView, so there are barely any Android
+            // resources to shrink — against the risk of dropping one a plugin
+            // looks up by name.
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    buildFeatures {
+        // Generate BuildConfig so debug-only logging can be gated behind
+        // BuildConfig.DEBUG (AGP 8 turns this off by default).
+        buildConfig = true
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+    kotlinOptions {
+        jvmTarget = '21'
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+// ArmadaDbTest runs the bundled SQLite for real rather than against a stand-in,
+// which is the only way to test the FTS5 features the schema needs. The android
+// artifact's loader expects its .so to come out of the APK, so for a plain JVM
+// unit test the host-native build is unpacked from the -jvm artifact of the same
+// version and put on java.library.path, where System.loadLibrary finds it.
+def sqliteNativesDir = layout.buildDirectory.dir("sqlite-host-natives")
+
+// A DETACHED configuration: one fixed artifact, wanted only by this task, and
+// never part of any variant. It also keeps AGP's dependency-resolution check
+// out of it — a named configuration resolved while the project is still being
+// configured is flagged, and a Sync task's sources are read as it is configured.
+def sqliteHostNatives = configurations.detachedConfiguration(
+        dependencies.create("androidx.sqlite:sqlite-bundled-jvm:$androidxSqliteVersion"))
+sqliteHostNatives.transitive = false
+
+tasks.register('extractSqliteNatives', Sync) {
+    from({ sqliteHostNatives.collect { zipTree(it) } }) {
+        include 'natives/**'
+    }
+    into sqliteNativesDir
+}
+
+/** The `natives/<platform>` directory this machine's JVM can load. */
+def sqliteHostPlatform = {
+    def os = System.getProperty('os.name').toLowerCase()
+    def arch = System.getProperty('os.arch').toLowerCase()
+    def platform = os.contains('mac') || os.contains('darwin') ? 'osx'
+            : os.contains('windows') ? 'windows' : 'linux'
+    def cpu = arch in ['aarch64', 'arm64'] ? 'arm64' : 'x64'
+    return "${platform}_${cpu}"
+}
+
+tasks.withType(Test).configureEach {
+    dependsOn 'extractSqliteNatives'
+    doFirst {
+        def natives = sqliteNativesDir.get().dir("natives/${sqliteHostPlatform()}").asFile
+        systemProperty 'java.library.path',
+                [natives.absolutePath, System.getProperty('java.library.path')].join(File.pathSeparator)
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.activity:activity:$androidxActivityVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    // Direct Share back-compat: serves the sharing shortcuts through the
+    // legacy ChooserTargetService API on API 24-28 (see the
+    // chooser_target_service meta-data in AndroidManifest.xml).
+    implementation "androidx.sharetarget:sharetarget:1.2.0"
+    // Credential Manager: save the account's nsec to the system password
+    // manager (biometric-gated OS sheet) as a real key backup on onboarding.
+    // API 34+ ONLY. androidx.credentials has no provider of its own below that;
+    // the one Google ships, credentials-play-services-auth, is deliberately NOT
+    // here — it is the sole root of the whole proprietary Play Services subtree
+    // (play-services-{auth,auth-api-phone,auth-base,base,basement,fido,tasks}
+    // plus googleid), and this is the app that has no business shipping it.
+    // Don't re-add it to "fix" older devices: below 34 the platform throws
+    // CreateCredentialProviderConfigurationException, which ArmadaCredentialPlugin
+    // already reports as `saved=false, cancelled=false` so the web layer falls
+    // back to writing the key file (see credentialManager.ts `backUpNsec`).
+    implementation "androidx.credentials:credentials:1.3.0"
+    // okhttp powers the background notification service's persistent relay
+    // WebSocket (instant Nostr push without FCM/Google).
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation project(':capacitor-android')
+    // --- Bitchat Bluetooth mesh layer (com.bitchat.android.*) runtime deps ---
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2"
+    implementation "org.bouncycastle:bcprov-jdk18on:1.86"
+    implementation "androidx.security:security-crypto:1.1.0-beta01"
+    implementation "com.google.code.gson:gson:2.13.1"
+    implementation "androidx.lifecycle:lifecycle-process:2.8.7"
+    // secp256k1: ACINQ's Kotlin/JNI bindings over the audited libsecp256k1 C
+    // library (the same one Bitcoin Core and Amethyst use) for BIP-340 Schnorr
+    // sign/verify and NIP-44 ECDH — see NostrCrypto. The -android artifact
+    // bundles the native .so per ABI; the -jvm artifact provides a host-loadable
+    // native so the pure-JVM unit tests (NostrCryptoTest) can exercise it.
+    implementation "fr.acinq.secp256k1:secp256k1-kmp-jni-android:0.23.0"
+    testImplementation "fr.acinq.secp256k1:secp256k1-kmp-jni-jvm:0.23.0"
+    // ArmadaDB (buzz.armada.app.db) needs a SQLite with FTS5 that supports
+    // `contentless_delete` (3.43+) and JSON1. The platform's
+    // android.database.sqlite is 3.9 on minSdk 24 and has neither, so the
+    // engine is bundled instead of borrowed: sqlite-bundled ships SQLite
+    // 3.50.1 per ABI and is the same artifact on the JVM, which is what lets
+    // ArmadaDbConformanceTest run the real engine as an ordinary unit test.
+    implementation "androidx.sqlite:sqlite:$androidxSqliteVersion"
+    implementation "androidx.sqlite:sqlite-bundled:$androidxSqliteVersion"
+    testImplementation "androidx.sqlite:sqlite-bundled:$androidxSqliteVersion"
+    testImplementation "junit:junit:$junitVersion"
+    // org.json on the JVM, for unit-testing pure-Java classes (ProfileStore)
+    // that use the Android-bundled org.json at runtime.
+    testImplementation "org.json:json:20240303"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+// NOTE: Capacitor's template ends with a `google-services.json` probe that
+// applies the com.google.gms.google-services plugin for FCM. It is removed
+// along with its buildscript classpath (see the root build.gradle): Armada has
+// no google-services.json and never will — notifications are a persistent
+// okhttp WebSocket to the user's own relays (NotificationRelayService), not FCM.

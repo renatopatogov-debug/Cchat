@@ -1,0 +1,204 @@
+/**
+ * Event verification that pays the Schnorr check ONCE per event id (relays
+ * serve many duplicate copies). Sound because an id is the content's sha256:
+ *  - The id is ALWAYS recomputed from the copy in hand first; that binds this
+ *    copy to the memoized verdict.
+ *  - Then the Schnorr verify may be skipped. A duplicate with a mangled sig is
+ *    accepted deliberately — the content is authentic and stores strip `sig`.
+ *  - FAILED verifies are never memoized, so forgeries can't poison an id.
+ */
+import { schnorr } from "@noble/curves/secp256k1.js";
+import { hexToBytes } from "@noble/hashes/utils.js";
+import { getEventHash } from "nostr-tools/pure";
+
+import { IdLog, type IdLogKV } from "@/lib/db/idLog";
+import { perfCount } from "@/lib/perf";
+
+import type { NostrEvent } from "@nostrify/nostrify";
+
+/**
+ * The memo keys on the first 128 bits of the id; the full id is still checked
+ * by {@link hashGate}, so reusing a verdict needs a 128-bit second preimage.
+ */
+const MEMO_KEY_CHARS = 32;
+const memoKey = (id: string): string => id.slice(0, MEMO_KEY_CHARS);
+
+/** Ids per persisted KV chunk (kept small: the open chunk is rewritten whole each flush), and chunks kept. */
+const CHUNK_IDS = 256;
+const KEEP_CHUNKS = 96;
+
+/** Bounded FIFO, sized to what the persisted chunks can refill. */
+const MAX_IDS = CHUNK_IDS * KEEP_CHUNKS;
+const verified = new Set<string>();
+
+/** The single insertion path (and eviction contract) for both sync and batched verifies. */
+function rememberVerified(id: string): void {
+  const key = memoKey(id);
+  if (verified.has(key)) return;
+  if (verified.size >= MAX_IDS) {
+    const oldest = verified.keys().next();
+    if (!oldest.done) verified.delete(oldest.value);
+  }
+  verified.add(key);
+  persistence?.log.add(key);
+}
+
+// Verdicts persist across launches in an append-only KV log (IdLog). They're
+// facts about content, so not account-scoped; purged with ArmadaDB.
+
+let persistence: { log: IdLog; started: boolean } | undefined;
+
+/**
+ * Keep verdicts across launches in `kv`. Loaded lazily on the first verify and
+ * merged in as they land.
+ */
+export function persistVerifiedIds(kv: () => IdLogKV): void {
+  if (persistence) return;
+  persistence = {
+    log: new IdLog(kv, { prefix: "verified-ids:", idChars: MEMO_KEY_CHARS, chunkIds: CHUNK_IDS, keepChunks: KEEP_CHUNKS, flushMs: 10_000 }),
+    started: false,
+  };
+}
+
+function startPersistence(): void {
+  if (!persistence || persistence.started) return;
+  persistence.started = true;
+  void persistence.log.load().then((saved) => {
+    // Saved verdicts go first so the FIFO evicts previous sessions' before this one's.
+    const session = [...verified];
+    verified.clear();
+    for (const key of saved) verified.add(key);
+    for (const key of session) verified.add(key);
+    while (verified.size > MAX_IDS) {
+      const oldest = verified.keys().next();
+      if (oldest.done) break;
+      verified.delete(oldest.value);
+    }
+  });
+}
+
+/**
+ * Main-thread hash binding shared by both verify paths: `"decided"` (final
+ * `result`) or `"needs-ec"` (hash-bound, not memoized — Schnorr must run).
+ * Never moved to a worker: recomputing the hash here IS the security argument.
+ */
+function hashGate(event: NostrEvent): { state: "decided"; result: boolean } | { state: "needs-ec" } {
+  startPersistence();
+  let hash: string;
+  try {
+    // Malformed events make getEventHash THROW; they must read as unverified
+    // (e.g. `openWrap` seals parsed from decrypted payloads).
+    hash = getEventHash(event);
+  } catch {
+    return { state: "decided", result: false };
+  }
+  if (hash !== event.id) return { state: "decided", result: false };
+  if (verified.has(memoKey(event.id))) return { state: "decided", result: true };
+  return { state: "needs-ec" };
+}
+
+/** Verify `event`, skipping the Schnorr check for an id already verified. */
+export function verifyEventOnce(event: NostrEvent): boolean {
+  const start = performance.now();
+
+  const gate = hashGate(event);
+  if (gate.state === "decided") {
+    perfCount(
+      gate.result ? "crypto.verifyEvent (memo hit)" : "crypto.verifyEvent",
+      performance.now() - start,
+      1,
+      "events",
+    );
+    return gate.result;
+  }
+
+  let ok = false;
+  try {
+    ok = schnorr.verify(hexToBytes(event.sig), hexToBytes(event.id), hexToBytes(event.pubkey));
+  } catch {
+    ok = false;
+  }
+  if (ok) rememberVerified(event.id);
+  perfCount("crypto.verifyEvent", performance.now() - start, 1, "events");
+  // Counts every Schnorr verify actually performed.
+  perfCount("crypto.ec.verify (sync)", 0, 1, "verifies");
+  return ok;
+}
+
+/** The three fields an out-of-process EC verifier needs, and nothing else. */
+export interface VerifyTriple {
+  sig: string;
+  id: string;
+  pubkey: string;
+}
+
+/**
+ * Pluggable Schnorr batch verifier: one boolean per `(sig, id, pubkey)` triple,
+ * in order. EC only — the hash bind and memo stay here. `verifyPool.ts`
+ * supplies a worker-backed one.
+ */
+export type EcVerifyBatch = (triples: VerifyTriple[]) => Promise<boolean[]>;
+
+/**
+ * Batched, memoized verification: hash-bind and memo-check on THIS thread; only
+ * the residue goes to `ecVerify`. One boolean per event in order; an `ecVerify`
+ * failure reads as unverified, never throws.
+ *
+ * The residue dedupes by the WHOLE triple, not the id: keyed by id alone, a
+ * keyholder-minted mangled-sig copy would pass its false verdict to the honest
+ * copy, which `openChatBatch` then memoizes for the session.
+ */
+export async function verifyEventsOnce(
+  events: NostrEvent[],
+  ecVerify: EcVerifyBatch,
+): Promise<boolean[]> {
+  const start = performance.now();
+  const result = new Array<boolean>(events.length);
+  const residue: VerifyTriple[] = [];
+  // Result slots each residue triple answers (identical duplicates share one).
+  const residueSlots: number[][] = [];
+  const residueByTriple = new Map<string, number>();
+
+  for (let i = 0; i < events.length; i++) {
+    const gate = hashGate(events[i]);
+    if (gate.state === "decided") {
+      result[i] = gate.result;
+      continue;
+    }
+    const key = `${events[i].id}|${events[i].sig}|${events[i].pubkey}`;
+    const at = residueByTriple.get(key);
+    if (at !== undefined) {
+      residueSlots[at].push(i);
+      continue;
+    }
+    residueByTriple.set(key, residue.length);
+    residue.push({ sig: events[i].sig, id: events[i].id, pubkey: events[i].pubkey });
+    residueSlots.push([i]);
+  }
+
+  // Main-thread cost only; the EC verify may be off-thread.
+  perfCount("crypto.verifyEvents", performance.now() - start, events.length, "events");
+
+  if (residue.length > 0) {
+    perfCount("crypto.ec.verify (batched)", 0, residue.length, "verifies");
+    let oks: boolean[];
+    try {
+      oks = await ecVerify(residue);
+    } catch {
+      oks = residue.map(() => false);
+    }
+    for (let j = 0; j < residue.length; j++) {
+      const ok = oks[j] === true;
+      for (const slot of residueSlots[j]) result[slot] = ok;
+      if (ok) rememberVerified(residue[j].id);
+    }
+  }
+
+  return result;
+}
+
+/** Test seam: forget every verified id, and stop persisting. */
+export function _resetVerifyCacheForTests(): void {
+  verified.clear();
+  persistence = undefined;
+}

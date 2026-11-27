@@ -1,0 +1,1032 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Rail labels are useful with a mouse, but touch focuses the trigger and makes
+ * Radix briefly flash the label after navigation. Keep them hover-only while
+ * preserving each trigger's aria-label for assistive technology. */
+.rail-tooltip-content {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rail-tooltip-content {
+    display: block;
+  }
+}
+
+/*
+ * Theme color tokens (--background, --primary, …) are injected at runtime into
+ * <style id="theme-vars"> by:
+ *   - public/theme.js  (synchronously in <head>, before first paint)
+ *   - useApplyTheme()  (AppProvider, reactive to config changes)
+ * derived from 3 core colors via deriveTokensFromCore(). See src/themes.ts.
+ *
+ * They are intentionally NOT defined here: this build does not emit CSS
+ * cascade layers, so a static `:root { --background … }` here would be an
+ * equal-specificity, equal-origin rule competing with the injected
+ * stylesheet on source order — which would override the selected theme.
+ *
+ * Only non-themed layout sizing tokens live here.
+ */
+@layer base {
+  :root {
+    /*
+     * Two-radii system (Armada). Shape carries meaning:
+     *   --radius        — soft, for human/content surfaces (avatars, composer,
+     *                     message bubbles, cards). "the people."
+     *   --radius-chrome — near-sharp, for structural chrome (rails, sidebars,
+     *                     headers, panels, the top bar). "the hull."
+     * The tension between a framed hull and round content is the posture.
+     */
+    --radius: 0.75rem;
+    --radius-chrome: 0.1875rem; /* 3px */
+    --top-bar-height: 3rem;
+    --bottom-nav-height: 3.25rem;
+    /* Bottom inset for persistent bottom chrome (composer, sidebar footers, the
+     * server rail), resolved as max(base gap, real inset).
+     *
+     * Why max() and not "gap + inset": stacking a base gap ON TOP of the full
+     * inset over-pads — the raw iOS home-indicator (~34px) plus a gap reads as a
+     * void under the chrome. But hard-CAPPING the inset (the previous approach,
+     * min(inset, 20px)) is worse: it CLIPS on devices with genuinely tall bottom
+     * bars (Android 3-button nav ~48px, larger gesture bars), so the chrome sat
+     * under the system bar. max(gap, inset) keeps a comfortable minimum gap on
+     * no-/small-inset devices (Android gesture, desktop, PWA) AND fully clears
+     * the bar on tall-inset devices — consistent spacing across every device,
+     * and it tracks live on rotation because the inset is native env(). */
+    --safe-area-pad-bottom: max(0.75rem, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+    /* Tight variant for the multi-pane (>=900px "sidebar") layout, which uses a
+     * small 0.25rem base gap. A phone in LANDSCAPE is wider than 900px, so it
+     * takes the sidebar layout — but it still has a real bottom inset (gesture
+     * bar). A flat desktop pb-1 (4px) there left the composer under the nav bar.
+     * max(0.25rem, inset) keeps the tight desktop look while clearing the bar on
+     * a landscape phone. */
+    --safe-area-pad-bottom-tight: max(0.25rem, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+    /* Under the mobile composer, the rail's settings button and the account
+     * switcher, so all three end on one line: 8px when nothing is below (the
+     * keyboard is up), the system bar plus a little air when one is. */
+    --bottom-chrome-pad: calc(max(0.5rem, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))) + min(0.375rem, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))));
+    /* The desktop grid. Panes sit on 12px side gutters; top bars span 12-60px and
+     * bottom bars end 12px up. Below a top bar, content steps by 20px (`stack`), so
+     * it starts at 80px, where the rail's second entry starts too (48px icons, 20px
+     * gaps, a divider adding one more gap). Phones share the 12px gutter, the
+     * same inset as their rail icons and sidebar footers, and keep an 8px stack. */
+    --gutter: 0.75rem;
+    --stack: 0.5rem;
+    /* System emoji first; the bundled Twemoji only fills what they lack. Read
+     * by Tailwind's `font-sans`/`font-emoji` and the emoji picker's shadow DOM.
+     * Flags go to Twemoji ahead of Segoe UI Emoji, which has the glyphs but draws
+     * them as letter pairs, so a browser never falls past it. */
+    --emoji-fonts: "Apple Color Emoji", "Armada Twemoji Flags", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", "Android Emoji", "Armada Twemoji";
+  }
+  @media (min-width: 900px) {
+    :root {
+      --stack: 1.25rem;
+    }
+  }
+}
+
+/* Fallback for systems with no (or an outdated) emoji font. The unicode-range
+ * keeps it from downloading for anything but emoji; ASCII and ©®™ are left
+ * out so keycap bases and text symbols never trigger it. */
+@font-face {
+  font-family: "Armada Twemoji";
+  src: url("twemoji-colr-font/twemoji.woff2") format("woff2");
+  font-display: swap;
+  unicode-range: U+200D, U+203C, U+2049, U+20E3, U+2139, U+2194-21AA, U+231A-23FA, U+24C2, U+25AA-27BF, U+2934-2935, U+2B05-2B55, U+3030, U+303D, U+3297, U+3299, U+FE0F, U+1F000-1FAFF, U+E0020-E007F;
+}
+
+/* The same file, claimed only for the regional-indicator pairs that make flags. */
+@font-face {
+  font-family: "Armada Twemoji Flags";
+  src: url("twemoji-colr-font/twemoji.woff2") format("woff2");
+  font-display: swap;
+  unicode-range: U+1F1E6-1F1FF;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    /* Firefox: a visible, grabbable thumb. WebKit/Chromium styling below. */
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.4) transparent;
+  }
+
+  /*
+   * WebKit/Chromium scrollbars. The default OS overlay scrollbar is thin and
+   * often invisible, so we draw an explicit, rounded, padded thumb that reads
+   * as clickable and brightens on hover/active for clear affordance.
+   */
+  *::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.35);
+    border-radius: 9999px;
+    /* Transparent border + background-clip insets the thumb, giving it a gutter
+     * so it looks like a distinct, tappable pill rather than a flush edge. */
+    border: 3px solid transparent;
+    background-clip: padding-box;
+    transition: background-color 0.15s ease;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.6);
+  }
+  *::-webkit-scrollbar-thumb:active {
+    background-color: hsl(var(--muted-foreground) / 0.8);
+  }
+  /* Don't render the little arrow buttons or the dead corner square. */
+  *::-webkit-scrollbar-button {
+    display: none;
+  }
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    /* Unclassed text follows the Text size setting too (`lib/fontScale.ts`). */
+    font-size: calc(1rem * var(--font-scale, 1));
+  }
+
+  html, body, #root {
+    height: 100%;
+  }
+
+  /*
+   * Landscape side cutouts (notch/camera on the long edge when the phone is
+   * held sideways) and any left/right safe-area inset. The whole multi-pane app
+   * lives inside #root, so padding its left/right edges shifts the entire layout
+   * into the safe box: the leftmost pane (server rail) clears a left cutout and
+   * the rightmost content clears a right one, WITHOUT adding gaps between panes.
+   * env() is 0 when there's no cutout (portrait, no-notch, desktop), so this is
+   * inert there, and it tracks live on rotation because env() is re-evaluated by
+   * the engine. Top/bottom insets are handled per-pane (each mobile pane owns
+   * its own status-bar / bottom-bar clearance), so only left/right go here.
+   */
+  #root {
+    box-sizing: border-box;
+    padding-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
+    padding-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
+  }
+
+  /*
+   * iOS home-screen PWA (html.standalone, set by an inline script in
+   * index.html). WebKit can leave the layout viewport scrolled after the
+   * on-screen keyboard dismisses: the whole app stays shifted up, exposing a
+   * dead band of document backdrop above the home indicator that no
+   * padding/height rule can remove. Pin the shell in a fixed, non-scrollable
+   * box so the document can never scroll.
+   *
+   * The pin lives on <html>, NOT <body>: Radix (dropdowns, popovers, tooltips)
+   * portals its `position: fixed` content into <body>. When <body> itself is
+   * `position: fixed`, iOS WebKit drops the rest of the body subtree (#root —
+   * the whole app) from paint the moment such a portal mounts, so opening the
+   * 3-dot menu blanks the page behind the popover. Fixing <html> instead
+   * leaves <body> in normal flow, so portaled popovers render over the app.
+   *
+   * Deliberately NOT `100dvh`: standalone dvh can over-report the visible
+   * frame and push bottom chrome off-screen (see the abandoned
+   * fix/ios-padding+other-stuff attempts).
+   */
+  html.standalone {
+    position: fixed;
+    inset: 0;
+    height: auto;
+    overflow: hidden;
+  }
+  html.standalone body,
+  html.standalone #root {
+    height: 100%;
+  }
+
+  /*
+   * Native-app feel resets. Applied in the Capacitor APK (`html.native`) and on
+   * coarse-pointer touch devices generally. These switch off the browser
+   * behaviors that read as "a web page in a box":
+   *   - the grey tap-flash on every tappable element,
+   *   - long-press text selection / the magnifier on chrome and controls,
+   *   - rubber-band / bounce overscroll of the whole document,
+   *   - the iOS callout (copy/define) menu on long-press.
+   * Text selection is re-enabled on actual content (messages, inputs, code).
+   */
+  html.native,
+  html.native body {
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+  html.native {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  @media (pointer: coarse) {
+    body {
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior-y: none;
+    }
+    button, a, [role="button"], label {
+      -webkit-tap-highlight-color: transparent;
+    }
+  }
+  /* Re-enable selection where reading/copying text is the point. */
+  html.native input,
+  html.native textarea,
+  html.native [contenteditable],
+  html.native p,
+  html.native pre,
+  html.native code,
+  html.native .select-text,
+  html.native [data-selectable] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  /*
+   * On touch the OS draws thin overlay scrollbars; the fat 12px desktop pill we
+   * draw below reads as a desktop web page. Collapse our custom scrollbars to
+   * the native overlay on coarse-pointer devices and in the APK.
+   */
+  @media (pointer: coarse) {
+    * {
+      scrollbar-width: none;
+    }
+    *::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+    }
+  }
+  html.native *::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+  html.native * {
+    scrollbar-width: none;
+  }
+
+  /*
+   * Native date/time inputs. Tie `color-scheme` to the active theme so the
+   * browser draws the calendar-picker indicator with a glyph that contrasts
+   * against the input (on dark themes the default near-black indicator is
+   * invisible — it reads as "cut off"). The indicator also gets an obvious
+   * pointer cursor and a touch of padding so it's never flush against the edge.
+   */
+  /*
+   * Native date/time inputs. Tie `color-scheme` to the active theme so the
+   * text and dropdown render legibly. We hide the native calendar-picker
+   * indicator entirely — it crops inside our fixed-height styled input.
+   */
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="time"],
+  input[type="month"],
+  input[type="week"] {
+    color-scheme: light;
+  }
+  .dark input[type="date"],
+  .dark input[type="datetime-local"],
+  .dark input[type="time"],
+  .dark input[type="month"],
+  .dark input[type="week"] {
+    color-scheme: dark;
+  }
+}
+
+@layer utilities {
+  /*
+   * A timeline row the browser may skip laying out while offscreen: a long
+   * scroll-back keeps thousands of rows mounted, and every page then forced a
+   * layout of all of them. Skippable only once `data-settled` (MessageTimeline),
+   * i.e. after one real layout recorded its size: an estimated row resizes as it
+   * scrolls into view and shifts what the reader is looking at. `auto` implies
+   * paint containment, which clips at the padding box, so the row reaches up
+   * over the one above for the hover toolbar (MessageRow, `-top-4`) and down
+   * over the one below for an avatar's Ultra halo; those reaches pass pointers
+   * through. The parent is a flex column, so the two negative margins add
+   * rather than collapse.
+   */
+  .timeline-row {
+    contain-intrinsic-size: auto 4rem;
+    padding-top: 1.25rem;
+    margin-top: -1.25rem;
+    padding-bottom: 0.5rem;
+    margin-bottom: -0.5rem;
+    pointer-events: none;
+  }
+  .timeline-row[data-settled] {
+    content-visibility: auto;
+  }
+  .timeline-row > * {
+    pointer-events: auto;
+  }
+
+  /*
+   * Always-visible, styled, grabbable scrollbar for primary scroll regions
+   * (chat message lists, thread panels). Reserves a stable gutter so the bar
+   * doesn't overlay content or vanish (macOS overlay scrollbars otherwise hide
+   * it). The thumb is a padded rounded pill that brightens on hover/active.
+   */
+  .scrollbar-stable {
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.45) transparent;
+  }
+  .scrollbar-stable::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  .scrollbar-stable::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-stable::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.45);
+    border-radius: 9999px;
+    border: 3px solid transparent;
+    background-clip: padding-box;
+    transition: background-color 0.15s ease;
+  }
+  .scrollbar-stable:hover::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.6);
+  }
+  .scrollbar-stable::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.75);
+  }
+  .scrollbar-stable::-webkit-scrollbar-thumb:active {
+    background-color: hsl(var(--muted-foreground) / 0.9);
+  }
+  .scrollbar-stable::-webkit-scrollbar-button {
+    display: none;
+  }
+
+  /*
+   * Safe-area helpers. On the web the Capacitor-injected --safe-area-inset-*
+   * vars are absent, so these fall back to the standard env() values (which
+   * require <meta viewport-fit=cover>, already set in index.html).
+   */
+  .safe-area-top {
+    padding-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  }
+  .safe-area-bottom {
+    padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+  }
+  /* Like safe-area-bottom, but always keeps a comfortable minimum gap so content
+   * never sits flush against the screen edge, while fully clearing tall system
+   * bars. See --safe-area-pad-bottom for the max(gap, inset) rationale.
+   *
+   * Responsive base to stay CONSISTENT with the composer across layouts: in the
+   * single-pane mobile layout every bottom surface uses the 0.75rem base; in the
+   * multi-pane (>=900px "sidebar") layout — which a landscape phone also takes —
+   * they all drop to the 0.25rem tight base so the account switcher, channel
+   * list footer, composer and rail all sit at the SAME bottom line (whichever of
+   * base/inset wins, they win it identically). Previously .pb-safe kept the
+   * 0.75rem base while the composer used the tight base, so with a small/zero
+   * inset the panes ended at different heights. */
+  .pb-safe {
+    padding-bottom: var(--safe-area-pad-bottom);
+  }
+  @media (width >= 900px) {
+    .pb-safe {
+      padding-bottom: var(--safe-area-pad-bottom-tight);
+    }
+  }
+
+  /* Top of the mobile content, just below the fixed top bar + its inset. */
+  .top-mobile-bar {
+    top: calc(var(--top-bar-height) + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)));
+  }
+
+  /* Absolute-position a control below the top safe-area inset (status bar /
+   * notch), keeping a base 1rem gap. Used by the fullscreen lightbox close
+   * button so it clears the APK status bar instead of hiding behind it. */
+  .top-safe-4 {
+    top: calc(1rem + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)));
+  }
+
+  /* Bottom padding so content clears the fixed bottom nav + home-indicator. */
+  .pb-mobile-nav {
+    padding-bottom: calc(var(--bottom-nav-height) + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+  }
+
+  /* Position a fixed element just above the bottom nav (e.g. a FAB). */
+  .bottom-mobile-nav {
+    bottom: calc(var(--bottom-nav-height) + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+  }
+
+  /* Slide-away transform for the auto-hiding mobile chrome. */
+  .nav-hidden-up {
+    transform: translateY(calc(-1 * (var(--top-bar-height) + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)))));
+  }
+  .nav-hidden-down {
+    transform: translateY(calc(var(--bottom-nav-height) + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))));
+  }
+}
+
+@layer utilities {
+  /*
+   * ── Chrome surfaces ──────────────────────────────────────────────────
+   * Structural framing (top bar, server rail, channel sidebar, member
+   * roster, call bar). Previously a hardcoded `bg-black/3x` overlay: a
+   * recessed hull on dark themes, but a muddy grey on light ones. Now driven
+   * by theme tokens derived per-mode in deriveTokensFromCore(): the chrome
+   * shade is the background darkened while *keeping the theme hue*, so it
+   * reads as a recessed, tinted plane on both dark and light themes. Dark
+   * stays visually identical to the old overlay; light no longer goes grey.
+   */
+  .bg-chrome { background-color: hsl(var(--chrome)); }
+  .bg-chrome-deep { background-color: hsl(var(--chrome-deep)); }
+  .bg-chrome-divider { background-color: hsl(var(--chrome-divider)); }
+  .border-chrome { border-color: hsl(var(--chrome-divider)); }
+}
+
+/*
+ * ── Armada "Corsair" — angular neon HUD primitives ───────────────────────
+ * A duelist's deck under neon. These build on the runtime --primary token so
+ * the glow / accents retint automatically with any selected theme.
+ *
+ *   .neon-glow / .neon-glow-strong  — rose-magenta halo for active/focus.
+ *   .clip-corner / .clip-corner-lg  — cut-corner (beveled) dueling-HUD panels.
+ *   .gutter-tick                    — glowing left tick for chart-rule nav,
+ *                                     hidden until .is-active or :hover.
+ */
+@layer utilities {
+  .neon-glow {
+    box-shadow:
+      0 0 0 1px hsl(var(--primary) / 0.5),
+      0 0 12px -2px hsl(var(--primary) / 0.45);
+  }
+  .neon-glow-strong {
+    box-shadow:
+      0 0 0 1px hsl(var(--primary) / 0.7),
+      0 0 8px -1px hsl(var(--primary) / 0.55),
+      0 0 22px -3px hsl(var(--primary) / 0.4);
+  }
+  /* Neon text/icon for crests and active labels. */
+  .neon-text {
+    color: hsl(var(--primary));
+    text-shadow: 0 0 8px hsl(var(--primary) / 0.55);
+  }
+  /* Phosphor-cyan wake — the cold counter-accent glow. */
+  .wake-glow {
+    box-shadow: 0 0 0 1px hsl(var(--accent2) / 0.5), 0 0 12px -2px hsl(var(--accent2) / 0.5);
+  }
+  .wake-text {
+    color: hsl(var(--accent2));
+    text-shadow: 0 0 8px hsl(var(--accent2) / 0.5);
+  }
+
+  /*
+   * Cut-corner panel — the single consistent "vessel" shape. The body is
+   * rounded (border-radius on the rounded corners) while two opposite corners
+   * are sliced into a flat diagonal chamfer. Achieved by rounding the whole
+   * element and then clipping the two cut corners with a polygon; the rounded
+   * corners survive because the polygon leaves them at full extent. Used for
+   * ALL chrome: server icons, the floating top bar, and the roster card.
+   * People (avatars) stay round; vessels and chrome are cut-square.
+   */
+  .clip-corner-lg {
+    --cut: 0.7rem;
+    border-radius: 0.55rem;
+    clip-path: polygon(
+      var(--cut) 0,
+      100% 0,
+      100% calc(100% - var(--cut)),
+      calc(100% - var(--cut)) 100%,
+      0 100%,
+      0 var(--cut)
+    );
+  }
+  /* The same chamfer at row scale: menu items, toast actions, small icons. */
+  .clip-corner {
+    --cut: 0.375rem;
+    border-radius: 0.3rem;
+    clip-path: polygon(
+      var(--cut) 0,
+      100% 0,
+      100% calc(100% - var(--cut)),
+      calc(100% - var(--cut)) 100%,
+      0 100%,
+      0 var(--cut)
+    );
+  }
+
+  /*
+   * A floating cut-corner vessel with a hairline (menus, tooltips, toasts). The edge is
+   * an inset shadow plus a diagonal stroke painted into each chamfer, all
+   * BACKGROUND layers, so it stays put when the element scrolls — a
+   * pseudo-element frame (clip-hairline-lg) would scroll away with a long
+   * menu's content. clip-path cuts any shadow of its own; lift it with
+   * `.vessel-lift` on a parent.
+   */
+  .vessel {
+    --cut: var(--vessel-cut, 0.6rem);
+    border-radius: 0.5rem;
+    clip-path: polygon(
+      var(--cut) 0,
+      100% 0,
+      100% calc(100% - var(--cut)),
+      calc(100% - var(--cut)) 100%,
+      0 100%,
+      0 var(--cut)
+    );
+    background:
+      linear-gradient(135deg, transparent calc(50% - 1px), var(--vessel-edge, hsl(var(--border) / 0.45)) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px)) top left / var(--cut) var(--cut) no-repeat,
+      linear-gradient(135deg, transparent calc(50% - 1px), var(--vessel-edge, hsl(var(--border) / 0.45)) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px)) bottom right / var(--cut) var(--cut) no-repeat,
+      var(--vessel-fill, hsl(var(--popover)));
+    box-shadow: inset 0 0 0 1px var(--vessel-edge, hsl(var(--border) / 0.45));
+  }
+  /* A 2px edge for a `clip-corner-lg` tile, diagonals included (an inset ring alone
+     stops at the chamfers). Lay it over the tile as an overlay. */
+  .clip-corner-lg-ring {
+    --cut: 0.7rem;
+    border-radius: 0.55rem;
+    background:
+      linear-gradient(135deg, transparent 50%, var(--ring-edge) 50% calc(50% + 2px), transparent calc(50% + 2px)) top left / var(--cut) var(--cut) no-repeat,
+      linear-gradient(135deg, transparent calc(50% - 2px), var(--ring-edge) calc(50% - 2px) 50%, transparent 50%) bottom right / var(--cut) var(--cut) no-repeat;
+    box-shadow: inset 0 0 0 2px var(--ring-edge);
+  }
+  .vessel-lift {
+    filter: drop-shadow(0 10px 22px rgb(0 0 0 / 0.32)) drop-shadow(0 2px 5px rgb(0 0 0 / 0.22));
+  }
+  /* Radix positions menus inside a wrapper it renders itself. */
+  [data-radix-popper-content-wrapper]:has(> .vessel) {
+    filter: drop-shadow(0 10px 22px rgb(0 0 0 / 0.32)) drop-shadow(0 2px 5px rgb(0 0 0 / 0.22));
+  }
+
+  /* Menu row: chamfered highlight plus the gutter tick, lit by Radix's
+     data-highlighted so keyboard focus shows it as well as hover. The cut and
+     radius sit concentric inside a `.vessel` at its 4px (`p-1`) padding: a 45°
+     chamfer inset by d shrinks by d·(2−√2). */
+  .menu-row {
+    --cut: calc(var(--vessel-cut, 0.6rem) - 0.15rem);
+    border-radius: 0.25rem;
+  }
+  .menu-row::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 2px;
+    height: 0;
+    border-radius: 2px;
+    transform: translateY(-50%);
+    background: hsl(var(--primary));
+    box-shadow: 0 0 8px hsl(var(--primary) / 0.7);
+    opacity: 0;
+    transition: height 120ms ease, opacity 120ms ease;
+  }
+  .menu-row[data-highlighted]::before,
+  .menu-row[data-selected="true"]::before,
+  .menu-row[data-state="open"]::before {
+    height: 55%;
+    opacity: 1;
+  }
+
+  /*
+   * A hairline frame for a cut-corner vessel. A plain `border` CANNOT be used
+   * with clip-corner-*: clip-path slices the rectangular border off along the
+   * two chamfered corners, leaving them bare — the shorter the element, the
+   * more of it that is. This traces the chamfer instead. The element's own
+   * background is the frame colour and fills the whole clipped shape; an inset
+   * ::before, clipped to the SAME polygon on a 1px-smaller box, lays the
+   * translucent fill back over everything but a 1px edge that follows the cut.
+   * `--fill`/`--edge` are overridable; content stays above the fill (the pseudo
+   * is at z-index:-1 within the element's own isolated stacking context).
+   */
+  .clip-hairline-lg {
+    --cut: 0.7rem;
+    --fill: var(--background) / 0.4;
+    --fill-hover: var(--background) / 0.6;
+    --edge: var(--border) / 0.6;
+    /* What a translucent fill sits on. Without it the fill composites over the
+       edge colour, and every card reads as a tint of the border. */
+    --fill-base: var(--background);
+    isolation: isolate;
+    border-radius: 0.55rem;
+    clip-path: polygon(
+      var(--cut) 0,
+      100% 0,
+      100% calc(100% - var(--cut)),
+      calc(100% - var(--cut)) 100%,
+      0 100%,
+      0 var(--cut)
+    );
+    background: hsl(var(--edge));
+  }
+  /* Anchors the ::before. Zero specificity, so `absolute` or `fixed` on the
+     same element still positions it; this rule is emitted after them. */
+  :where(.clip-hairline-lg) {
+    position: relative;
+  }
+  .clip-hairline-lg::before {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    z-index: -1;
+    /* The frame's radius less the 1px edge, so the fill follows the two
+       rounded corners too. Square, it painted straight over the edge along
+       each curve and the hairline vanished there. */
+    border-radius: calc(0.55rem - 1px);
+    clip-path: polygon(
+      var(--cut) 0,
+      100% 0,
+      100% calc(100% - var(--cut)),
+      calc(100% - var(--cut)) 100%,
+      0 100%,
+      0 var(--cut)
+    );
+    background-color: hsl(var(--fill-base));
+    background-image: linear-gradient(hsl(var(--fill)), hsl(var(--fill)));
+  }
+  .clip-hairline-lg:hover::before {
+    background-image: linear-gradient(hsl(var(--fill-hover)), hsl(var(--fill-hover)));
+  }
+  :is(.bg-chrome, .chrome-dialog) .clip-hairline-lg {
+    --fill-base: var(--chrome);
+  }
+  .bg-chrome-deep .clip-hairline-lg {
+    --fill-base: var(--chrome-deep);
+  }
+  .vessel .clip-hairline-lg {
+    --fill-base: var(--popover);
+  }
+
+  /*
+   * Chart-rule gutter tick. Apply to a relatively-positioned row; the ::before
+   * is a thin vertical bar in the left gutter that lights up on hover and
+   * glows when the row also has .is-active. Replaces full-bleed hover blocks.
+   */
+  .gutter-tick {
+    position: relative;
+  }
+  .gutter-tick::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 0;
+    width: 2px;
+    border-radius: 2px;
+    background: hsl(var(--primary));
+    opacity: 0;
+    transition: height 120ms ease, opacity 120ms ease, box-shadow 120ms ease;
+  }
+  .gutter-tick:hover::before {
+    height: 45%;
+    opacity: 0.6;
+  }
+  .gutter-tick.is-active::before {
+    height: 70%;
+    opacity: 1;
+    box-shadow: 0 0 8px hsl(var(--primary) / 0.7);
+  }
+
+  /*
+   * Reply connector — a thin elbow that runs up from the replying message's
+   * round avatar to the quoted-reply preview above it, anchoring the two
+   * WITHOUT sitting on either. Geometry tracks MessageRow: the avatar is
+   * size-10 (2.5rem, centre 1.25rem from the row's left) and the body starts
+   * after gap-3 at 3.25rem. The preview is relatively positioned ABOVE the
+   * avatar with room around it (its own padding + margin); the vertical stops at
+   * the preview's bottom (a clear gap to the avatar below) and the horizontal
+   * stops short of the preview avatar — it never overlaps a round avatar. A
+   * hairline accent, not a full-bleed block — the same restraint as .gutter-tick.
+   */
+  .chat-reply-connector {
+    position: absolute;
+    left: 1.25rem;               /* centre of the message avatar below */
+    top: 50%;                    /* meet the preview at the name's baseline */
+    bottom: 0;                   /* stop at the preview bottom, clear of the avatar */
+    width: 1.5rem;               /* run toward — but short of — the preview avatar */
+    border-left: 2px solid hsl(var(--muted-foreground) / 0.3);
+    border-top: 2px solid hsl(var(--muted-foreground) / 0.3);
+    border-top-left-radius: 0.5rem;
+    pointer-events: none;
+    transition: border-color 120ms ease;
+  }
+  .chat-reply:hover .chat-reply-connector {
+    border-color: hsl(var(--primary) / 0.7);
+  }
+
+  /*
+   * ── Cut-corner chrome dialog ──────────────────────────────────────────
+   * The single modal idiom: a "terminal square with cut edges" vessel card.
+   * `.chrome-dialog` establishes an inline-size container so its contents can
+   * size off the *card's* width (cqw) instead of the viewport — that's what
+   * keeps the big lowercase headings from overflowing a narrow phone. The
+   * heading uses clamp() so it scales with the card but never gets silly on a
+   * wide screen, and `overflow-wrap: anywhere` guarantees a long unbroken
+   * token (e.g. a pasted URL) can't push the card wider than the screen.
+   */
+  .chrome-dialog {
+    container-type: inline-size;
+  }
+  .chrome-dialog-title {
+    /* ~9cqw of the card width, clamped to a sane min/max. */
+    font-size: clamp(1.25rem, 9cqw, 1.6rem);
+    overflow-wrap: anywhere;
+  }
+
+  /*
+   * Terminal-style expand: the picker overlay unfurls from the top. Kept to a
+   * cheap GPU-composited transform + opacity (no `filter`, which forces a
+   * full-subtree repaint every frame and made opening the heavy calendar lag).
+   */
+  @keyframes terminal-expand {
+    from {
+      transform: scaleY(0.4);
+      opacity: 0;
+    }
+    to {
+      transform: scaleY(1);
+      opacity: 1;
+    }
+  }
+  .animate-terminal-expand {
+    /* No `will-change`: the browser already promotes an element for the life of
+       an active transform/opacity animation, and the hint would otherwise
+       outlive this 0.16s one-shot for as long as the element stays mounted. */
+    animation: terminal-expand 0.16s ease-out;
+  }
+}
+
+/* Settings search (src/components/settings/settingsSearch.ts). An attribute
+   rather than `hidden`, which a row's own `flex` class would override. */
+[data-search-hidden] {
+  display: none !important;
+}
+::highlight(settings-search) {
+  background-color: hsl(var(--primary) / 0.35);
+  color: inherit;
+}
+
+/* Relay status lights (src/components/RelayLed.tsx). steps(1,end) makes each
+   change a hard switch, a blink rather than a breath. OPACITY ONLY: the glow is
+   a static shadow that dims with it, since animating box-shadow runs on the
+   main thread and restyles the page every frame. */
+
+/* A live relay: lit, with one brief dip per cycle. RelayLed sets the period
+   from the response time, so a quicker beat is a quicker relay. */
+@keyframes armada-led-up {
+  0%   { opacity: 1; }
+  88%  { opacity: 0.25; }
+  94%  { opacity: 1; }
+}
+
+/* A dead relay: one short pulse per cycle, same beat every time. */
+@keyframes armada-led-fault {
+  0%   { opacity: 1; }
+  22%  { opacity: 0.15; }
+  100% { opacity: 0.15; }
+}
+
+/*
+ * Syntax highlighting for fenced code blocks — highlight.js scope classes,
+ * emitted by lowlight in src/lib/highlighter.ts and rendered as spans by
+ * CodeBlock. Scopes with a natural counterpart in the theme take it (keywords
+ * → primary, strings → success, comments → muted, deletions → destructive) so
+ * every user theme stays coherent; the remaining hues are fixed and carry a
+ * `.dark` variant, tuned against the muted code-block surface.
+ */
+@layer components {
+  .hljs-comment,
+  .hljs-quote,
+  .hljs-meta {
+    color: hsl(var(--muted-foreground));
+  }
+  .hljs-comment,
+  .hljs-quote,
+  .hljs-emphasis {
+    font-style: italic;
+  }
+  .hljs-strong {
+    font-weight: 600;
+  }
+  .hljs-keyword,
+  .hljs-selector-tag,
+  .hljs-literal,
+  .hljs-doctag,
+  .hljs-template-tag,
+  .hljs-meta .hljs-keyword,
+  .hljs-variable.language_ {
+    color: hsl(var(--primary));
+  }
+  .hljs-string,
+  .hljs-regexp,
+  .hljs-addition,
+  .hljs-link,
+  .hljs-meta .hljs-string,
+  .hljs-char.escape_ {
+    color: hsl(var(--success));
+  }
+  .hljs-deletion {
+    color: hsl(var(--destructive));
+  }
+  .hljs-number,
+  .hljs-symbol,
+  .hljs-bullet,
+  .hljs-selector-attr,
+  .hljs-selector-pseudo,
+  .hljs-template-variable {
+    color: hsl(30 85% 36%);
+  }
+  .hljs-title,
+  .hljs-section,
+  .hljs-name,
+  .hljs-selector-id,
+  .hljs-selector-class {
+    color: hsl(265 60% 46%);
+  }
+  .hljs-attr,
+  .hljs-attribute,
+  .hljs-property,
+  .hljs-variable {
+    color: hsl(200 85% 30%);
+  }
+  .hljs-built_in,
+  .hljs-type,
+  .hljs-class {
+    color: hsl(175 70% 28%);
+  }
+
+  .dark .hljs-number,
+  .dark .hljs-symbol,
+  .dark .hljs-bullet,
+  .dark .hljs-selector-attr,
+  .dark .hljs-selector-pseudo,
+  .dark .hljs-template-variable {
+    color: hsl(35 90% 68%);
+  }
+  .dark .hljs-title,
+  .dark .hljs-section,
+  .dark .hljs-name,
+  .dark .hljs-selector-id,
+  .dark .hljs-selector-class {
+    color: hsl(265 85% 80%);
+  }
+  .dark .hljs-attr,
+  .dark .hljs-attribute,
+  .dark .hljs-property,
+  .dark .hljs-variable {
+    color: hsl(195 80% 72%);
+  }
+  .dark .hljs-built_in,
+  .dark .hljs-type,
+  .dark .hljs-class {
+    color: hsl(172 60% 62%);
+  }
+}
+
+/*
+ * Theme background image. Each opaque surface repaints the same fixed image under
+ * its own tint, so layers beneath it (swipe panels, overlays) stay hidden. Any
+ * transform on an ancestor (even translate-x-0) detaches `fixed` and the surface
+ * paints its own misaligned copy: slide panels rest at `transform-none`.
+ */
+html.theme-bg body,
+html.theme-bg #root .bg-background {
+  background:
+    linear-gradient(hsl(var(--background) / 0.9), hsl(var(--background) / 0.9)),
+    var(--theme-bg-image) center / var(--theme-bg-size) var(--theme-bg-repeat) fixed,
+    hsl(var(--background));
+}
+html.theme-bg #root .bg-chrome {
+  background:
+    linear-gradient(hsl(var(--chrome) / 0.93), hsl(var(--chrome) / 0.93)),
+    var(--theme-bg-image) center / var(--theme-bg-size) var(--theme-bg-repeat) fixed,
+    hsl(var(--chrome));
+}
+html.theme-bg #root .bg-chrome-deep {
+  background:
+    linear-gradient(hsl(var(--chrome-deep) / 0.95), hsl(var(--chrome-deep) / 0.95)),
+    var(--theme-bg-image) center / var(--theme-bg-size) var(--theme-bg-repeat) fixed,
+    hsl(var(--chrome-deep));
+}
+html.theme-bg #root .theme-scope,
+html.theme-bg #root .theme-scope .bg-background {
+  background: hsl(var(--background));
+}
+
+/* RichTextarea: the textarea keeps the caret and selection, its overlay draws
+ * the text. Overlay styles must not change advance widths, or the caret drifts
+ * off the glyphs: bold is a stroke, italic a skew, never a different face. */
+.rt-input {
+  color: transparent;
+  caret-color: hsl(var(--foreground));
+}
+.rt-input::selection {
+  color: transparent;
+  background-color: hsl(var(--primary) / 0.3);
+}
+.rt-overlay .rt-bold {
+  -webkit-text-stroke: 0.03em currentColor;
+}
+/* The pill's padding is a shadow: real padding would widen the mention. */
+.rt-overlay .rt-mention {
+  border-radius: 0.25rem;
+  color: hsl(var(--primary));
+  background-color: hsl(var(--primary) / 0.15);
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.15);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.rt-overlay .rt-spoiler {
+  border-radius: 0.25rem;
+  background-color: hsl(var(--foreground) / 0.12);
+  box-shadow: 0 0 0 2px hsl(var(--foreground) / 0.12);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.rt-overlay .rt-emoji-img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1.3em;
+  height: 1.3em;
+  max-width: none;
+  object-fit: contain;
+  transform: translate(-50%, -50%);
+}
+.rt-overlay .rt-u {
+  text-decoration-line: underline;
+}
+.rt-overlay .rt-s {
+  text-decoration-line: line-through;
+}
+.rt-overlay .rt-u.rt-s {
+  text-decoration-line: underline line-through;
+}
+/* The overlay's text is laid out exactly as the textarea's and never painted;
+ * each line's styled runs are drawn over it as .rt-piece, in their own order. */
+.rt-overlay .rt-inner {
+  -webkit-text-fill-color: transparent;
+  /* The scrollbar gutter that keeps the overlay's text as narrow as the textarea's. */
+  scrollbar-color: transparent transparent;
+}
+.rt-overlay .rt-piece {
+  position: absolute;
+  white-space: pre;
+  text-indent: 0;
+  unicode-bidi: bidi-override;
+  -webkit-text-fill-color: currentColor;
+}
+.rt-overlay .rt-italic {
+  transform: skewX(-12deg);
+}
+.rt-overlay .rt-inner::-webkit-scrollbar-thumb,
+.rt-overlay .rt-inner::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Member rows (MemberList): in a tight row a badge keeps its icon, and its
+ * label stays for screen readers only, so the name keeps the room. */
+.member-row {
+  container-type: inline-size;
+}
+@container (max-width: 18rem) {
+  .member-pill-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
+/* Reduce motion (src/lib/reducedMotion.ts): set by the app switch or the OS.
+ * Animations end at once rather than being removed, so their end state still
+ * lands and Radix exits still see `animationend`. Transitions get 0s: with the
+ * default `transition-property: all`, any nonzero duration transitions every
+ * property of every element, so a style read right after a write sees the old
+ * value (RichTextarea's overlay). A 0s transition fires no `transitionend`. */
+html[data-reduce-motion],
+html[data-reduce-motion] *,
+html[data-reduce-motion] *::before,
+html[data-reduce-motion] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  animation-delay: 0ms !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+  scroll-behavior: auto !important;
+}
+/* Reduce blur: backdrop blur is re-rendered under every scroll and is the
+ * costliest paint on a weak GPU. */
+html[data-reduce-blur] * {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Desktop window hidden or minimized (src/lib/trayRest.ts): nothing is seen,
+ * so no animation may keep asking for frames. */
+html[data-resting] *,
+html[data-resting] *::before,
+html[data-resting] *::after {
+  animation-play-state: paused !important;
+}

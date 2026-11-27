@@ -1,0 +1,60 @@
+// NOTE: This file is stable and usually should not be modified.
+// It is important that all functionality in this file is preserved, and should only be modified if explicitly requested.
+
+import { useState } from 'react';
+import { Button } from '@/components/ui/button.tsx';
+import LoginScreen from './LoginScreen';
+import SignupDialog from './SignupDialog';
+import { useLoggedInAccounts } from '@/hooks/useLoggedInAccounts';
+import { AccountSwitcher } from './AccountSwitcher';
+import { cn } from '@/lib/utils';
+import { FormattedMessage } from '@/i18n';
+
+export interface LoginAreaProps {
+  className?: string;
+}
+
+export function LoginArea({ className }: LoginAreaProps) {
+  const { currentUser } = useLoggedInAccounts();
+  const [loginOpen, setLoginDialogOpen] = useState(false);
+  const [signupDialogOpen, setSignupDialogOpen] = useState(false);
+
+  const handleLogin = () => {
+    setLoginDialogOpen(false);
+  };
+
+  return (
+    <div className={cn("inline-flex items-center justify-center", className)}>
+      {currentUser ? (
+        <AccountSwitcher onAddAccountClick={() => setLoginDialogOpen(true)} />
+      ) : (
+        <div className="flex gap-3 justify-center">
+          <Button
+            onClick={() => setLoginDialogOpen(true)}
+            className='flex items-center gap-2 px-4 py-2 clip-corner-lg bg-primary text-primary-foreground w-full font-medium transition-all hover:bg-primary/90'
+          >
+            <span className='truncate'><FormattedMessage id="loginArea.logIn" defaultMessage="Log in" /></span>
+          </Button><Button
+            onClick={() => setSignupDialogOpen(true)}
+            variant="outline"
+            className="flex items-center gap-2 px-4 py-2 clip-corner-lg font-medium transition-all"
+          >
+            <span><FormattedMessage id="loginArea.signUp" defaultMessage="Sign up" /></span>
+          </Button>
+        </div>
+      )}
+
+      <LoginScreen
+        isOpen={loginOpen}
+        onClose={() => setLoginDialogOpen(false)}
+        onLogin={handleLogin}
+        onSignupClick={() => setSignupDialogOpen(true)}
+      />
+
+      <SignupDialog
+        isOpen={signupDialogOpen}
+        onClose={() => setSignupDialogOpen(false)}
+      />
+    </div>
+  );
+}

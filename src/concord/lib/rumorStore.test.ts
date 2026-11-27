@@ -1,0 +1,1213 @@
+import { IDBFactory } from "fake-indexeddb";
+import { finalizeEvent, generateSecretKey, getPublicKey } from "nostr-tools/pure";
+import type { EventTemplate, NostrEvent } from "nostr-tools/pure";
+import { describe, expect, it, vi } from "vitest";
+
+import { bytesToHex, channelGroupKey, voiceGroupKey, voiceMediaKey } from "@/concord/lib/derive";
+import { foldTimeline, openChatBatch, type OpenedChat } from "@/concord/lib/chat";
+import { decryptWithDisclosedKeys, discloseKeysFor } from "@/concord/lib/nip44keys";
+import { KIND_DELETE, KIND_EDIT, KIND_MESSAGE, KIND_REACTION, KIND_SEAL_ENCRYPTED, KIND_SEAL_PLAINTEXT } from "@/concord/lib/kinds";
+import { buildRumor, channelBindingTags, openWrap, rewrapSeal, sealRumor, wrapSeal } from "@/concord/lib/stream";
+import type { NostrRumor } from "@/lib/nostrRumor";
+import type { Channel } from "@/concord/lib/types";
+import { onWireScopes } from "@/wire/bus";
+import { getArmadaDB } from "@/lib/db/armadaDB";
+import { buildJoinRumor, sealGuestbook } from "@/concord/lib/guestbook";
+import { openPlaneWraps } from "@/concord/lib/planeSync";
+import {
+  ackPendingWraps,
+  heldPostAfter,
+  heldWriterPostSince,
+  onFreshChat,
+  openedToStored,
+  pendingChatRows,
+  parkPendingWraps,
+  peekPendingWraps,
+  queryChannelFirstSeen,
+  queryChannelFirstSeenCached,
+  queryChannelPageBefore,
+  queryChannelRumors,
+  queryChannelRumorsByIds,
+  queryChannelWindow,
+  queryMentionRumors,
+  queryPlane,
+  queryReplyParents,
+  queryRumorsByChannel,
+  queryWebxdcRumors,
+  readControlSnapshot,
+  readStoredSeal,
+  readStreamCursor,
+  storedToOpened,
+  storedToOpenedChat,
+  sweepExpiredCommunityRumors,
+  updateStreamCursor,
+  writeOpened,
+  writeRumors,
+} from "@/concord/lib/rumorStore";
+
+// The removed-message list reads localStorage, which this environment lacks.
+const removedIds = vi.hoisted(() => new Set<string>());
+vi.mock("@/lib/removedMessages", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/removedMessages")>()),
+  isRemovedMessageId: (id: string) => removedIds.has(id),
+}));
+
+// A clean IndexedDB for the suite (the store singleton opens against it lazily).
+(globalThis as unknown as { indexedDB: IDBFactory }).indexedDB = new IDBFactory();
+
+const root = new Uint8Array(32).fill(3);
+
+/**
+ * The community whose tenant this suite reads and writes. Every test in the
+ * file shares it: the tenant boundary is exercised by `ArmadaDB.test.ts`, while
+ * these tests are about the codec, the tag queries, and the write-time
+ * validation that still has to hold WITHIN one community.
+ */
+const CID = "ab".repeat(32);
+
+/** Each test gets a distinct channel id so the shared store can't cross-talk. */
+let nextChannelByte = 5;
+function makeChannel(): { channel: Channel; idHex: string } {
+  const channelId = new Uint8Array(32).fill(nextChannelByte++);
+  const idHex = bytesToHex(channelId);
+  const group = channelGroupKey(root, channelId, 0);
+  const stream = { epoch: 0n, group };
+  const voice = { room: voiceGroupKey(root, channelId, 0), mediaKey: voiceMediaKey(root, channelId, 0) };
+  return {
+    channel: { id: channelId, idHex, name: "general", isPrivate: false, voice, streams: [stream], current: stream },
+    idHex,
+  };
+}
+
+/** `finalizeEvent` tags events with a non-enumerable-in-JSON `verified` symbol; strip it. */
+function plain(event: NostrEvent): NostrEvent {
+  return JSON.parse(JSON.stringify(event)) as NostrEvent;
+}
+
+function signer(sk = generateSecretKey()) {
+  return { sk, pubkey: getPublicKey(sk), signEvent: async (t: EventTemplate) => finalizeEvent(t, sk) };
+}
+
+async function wrapChat(rumor: NostrRumor, channel: Channel, s: ReturnType<typeof signer>): Promise<NostrEvent> {
+  return await wrapSeal(await sealRumor(rumor, KIND_SEAL_ENCRYPTED, channel.current.group, s), channel.current.group);
+}
+
+function chatRumor(
+  idHex: string,
+  s: ReturnType<typeof signer>,
+  kind: number,
+  content: string,
+  ms: number,
+  extra: string[][] = [],
+): NostrRumor {
+  return buildRumor({
+    kind,
+    content,
+    tags: [...channelBindingTags(idHex, 0n), ...extra],
+    pubkey: s.pubkey,
+    ms,
+  });
+}
+
+/** Poll until a condition holds (writes flush via requestIdleCallback/timeout). */
+async function eventually<T>(fn: () => Promise<T>, pred: (v: T) => boolean, ms = 2000): Promise<T> {
+  const start = Date.now();
+  for (;;) {
+    const v = await fn();
+    if (pred(v)) return v;
+    if (Date.now() - start > ms) return v;
+    await new Promise((r) => setTimeout(r, 10));
+  }
+}
+
+describe("concord rumor store", () => {
+  it("round-trips an OpenedChat through the stored rumor codec", () => {
+    const { idHex } = makeChannel();
+    const s = signer();
+    const rumor = chatRumor(idHex, s, KIND_MESSAGE, "hello", 1234500 /* ms */);
+    const opened: OpenedChat = {
+      rumorId: rumor.id,
+      author: s.pubkey,
+      kind: KIND_MESSAGE,
+      content: "hello",
+      tags: rumor.tags,
+      ms: 1234500,
+      createdAt: rumor.created_at,
+      wrapId: "w",
+      streamPk: "sp",
+      sealKind: KIND_SEAL_ENCRYPTED,
+      seal: {} as NostrEvent,
+      channelIdHex: idHex,
+      epoch: 0n,
+    };
+    const stored = openedToStored(opened);
+    expect(stored.id).toBe(rumor.id);
+    // A rumor, not an event: there is no `sig` field to carry a placeholder in.
+    expect("sig" in stored).toBe(false);
+    expect(stored.kind).toBe(KIND_MESSAGE);
+    expect(stored.pubkey).toBe(s.pubkey);
+
+    const back = storedToOpenedChat(stored, idHex);
+    expect(back.rumorId).toBe(rumor.id);
+    expect(back.content).toBe("hello");
+    expect(back.ms).toBe(1234500);
+    expect(back.author).toBe(s.pubkey);
+    expect(back.epoch).toBe(0n);
+    expect(back.channelIdHex).toBe(idHex);
+  });
+
+  it("finds an author's post in any Channel after a time, to the millisecond", async () => {
+    const { channel, idHex } = makeChannel();
+    const alice = signer();
+    writeRumors(CID, await openChatBatch([await wrapChat(chatRumor(idHex, alice, KIND_MESSAGE, "back", 5_000_500), channel, alice)], channel));
+    await eventually(() => queryChannelRumors(CID, idHex, { limit: 10 }), (r) => r.length === 1);
+    expect(await heldPostAfter(CID, alice.pubkey, 5_000_000)).toBe(true);
+    expect(await heldPostAfter(CID, alice.pubkey, 5_000_500)).toBe(false);
+    expect(await heldPostAfter(CID, signer().pubkey, 0)).toBe(false);
+  });
+
+  it("finds a writer post however many ordinary posts its author sent after it (Vector `posts_since_by` is unbounded)", async () => {
+    const { idHex } = makeChannel();
+    const author = signer().pubkey;
+    const row = (i: number, tags: string[][] = []): OpenedChat => {
+      const ms = 6_000_000_000 + i * 1000;
+      const rumor = buildRumor({ kind: KIND_MESSAGE, content: `#${i}`, tags: [...channelBindingTags(idHex, 0n), ...tags], pubkey: author, ms });
+      return { rumorId: rumor.id, author, kind: KIND_MESSAGE, content: rumor.content, tags: rumor.tags, ms, createdAt: rumor.created_at, channelIdHex: idHex, epoch: 0n };
+    };
+    writeRumors(CID, [row(0, [["wepoch", "1"]]), ...Array.from({ length: 60 }, (_, i) => row(i + 1))]);
+    await eventually(() => queryChannelRumors(CID, idHex, { limit: 100 }), (r) => r.length === 61);
+    expect(await heldWriterPostSince(CID, idHex, author, 6_000_000_000)).toBe(true);
+    expect(await heldWriterPostSince(CID, idHex, author, 6_000_000_001)).toBe(false);
+  });
+
+  it("finds a writer post dated ahead that the timeline still holds back (Vector `holds_wraps_at`)", async () => {
+    const { idHex } = makeChannel();
+    const author = signer().pubkey;
+    const ms = Date.now() + 30 * 60_000;
+    const rumor = buildRumor({ kind: KIND_MESSAGE, content: "early", tags: [...channelBindingTags(idHex, 0n), ["wepoch", "1"]], pubkey: author, ms });
+    writeRumors(CID, [{ rumorId: rumor.id, author, kind: KIND_MESSAGE, content: rumor.content, tags: rumor.tags, ms, createdAt: rumor.created_at, channelIdHex: idHex, epoch: 0n }]);
+    await eventually(() => queryChannelRumors(CID, idHex, { limit: 10 }), (r) => r.length === 1);
+    expect(await heldWriterPostSince(CID, idHex, author, Date.now())).toBe(true);
+  });
+
+  it("queries rumors by channel tag with { kinds, #channel }", async () => {
+    const { channel, idHex } = makeChannel();
+    const alice = signer();
+    const bob = signer();
+
+    const wraps = await Promise.all([
+      wrapChat(chatRumor(idHex, alice, KIND_MESSAGE, "first", 1000), channel, alice),
+      wrapChat(chatRumor(idHex, bob, KIND_MESSAGE, "second", 2000), channel, bob),
+      wrapChat(chatRumor(idHex, alice, KIND_REACTION, "🔥", 2100, [["e", "x"]]), channel, alice),
+    ]);
+    const opened = await openChatBatch(wraps, channel);
+    writeRumors(CID, opened);
+
+    const got = await eventually(
+      () => queryChannelRumors(CID, idHex, { limit: 100 }),
+      (r) => r.length === 3,
+    );
+    expect(got.length).toBe(3);
+    const msgs = got.filter((m) => m.kind === KIND_MESSAGE).map((m) => m.content).sort();
+    expect(msgs).toEqual(["first", "second"]);
+
+    const firstId = opened.find((event) => event.content === "first")!.rumorId;
+    expect((await queryChannelRumorsByIds(CID, idHex, [firstId])).map((event) => event.content))
+      .toEqual(["first"]);
+    // Route ids are tenant-wide input; the channel constraint prevents an id
+    // from another room in the same community from crossing into this one.
+    expect(await queryChannelRumorsByIds(CID, "ff".repeat(32), [firstId])).toEqual([]);
+
+    // A different channel id matches nothing.
+    const none = await queryChannelRumors(CID, "ff".repeat(32), { limit: 100 });
+    expect(none.length).toBe(0);
+  });
+
+  it("pages rows below a cursor with the side-events that decorate them", async () => {
+    const { channel, idHex } = makeChannel();
+    const alice = signer();
+    const bob = signer();
+
+    const m1 = chatRumor(idHex, alice, KIND_MESSAGE, "m1", 1_000_000);
+    const m2 = chatRumor(idHex, alice, KIND_MESSAGE, "m2", 2_000_000);
+    const m3 = chatRumor(idHex, bob, KIND_MESSAGE, "m3", 2_000_500);
+    const m4 = chatRumor(idHex, bob, KIND_MESSAGE, "m4", 3_000_000);
+    // A reaction added long after its row, and a moderator's delete of it.
+    const react = chatRumor(idHex, bob, KIND_REACTION, "🔥", 10_000_000, [["e", m1.id]]);
+    const unreact = chatRumor(idHex, alice, KIND_DELETE, "", 11_000_000, [["e", react.id], ["k", "7"]]);
+    const all = [m1, m2, m3, m4, react, unreact];
+    writeRumors(
+      CID,
+      await openChatBatch(
+        await Promise.all(all.map((r) => wrapChat(r, channel, r.pubkey === alice.pubkey ? alice : bob))),
+        channel,
+      ),
+    );
+    // Another room's reaction naming m1 never decorates this one.
+    const other = makeChannel();
+    const stray = chatRumor(other.idHex, bob, KIND_REACTION, "🧊", 12_000_000, [["e", m1.id]]);
+    writeRumors(CID, await openChatBatch([await wrapChat(stray, other.channel, bob)], other.channel));
+    await eventually(() => queryChannelRumors(CID, other.idHex, { limit: 100 }), (r) => r.length === 1);
+    await eventually(() => queryChannelRumors(CID, idHex, { limit: 100 }), (r) => r.length === all.length);
+
+    // m3 shares m2's second and is already loaded: it is skipped, m2 is not.
+    const page = await queryChannelPageBefore(CID, idHex, {
+      until: m3.created_at,
+      skip: new Set([m3.id]),
+      limit: 10,
+    });
+    expect(page.events.map((e) => e.content).sort()).toEqual(["", "m1", "m2", "🔥"]);
+    expect(page.events.some((e) => e.rumorId === unreact.id)).toBe(true);
+    expect(page.full).toBe(false);
+
+    const short = await queryChannelPageBefore(CID, idHex, {
+      until: m4.created_at,
+      skip: new Set([m4.id]),
+      limit: 1,
+    });
+    expect(short.events.filter((e) => e.kind === KIND_MESSAGE)).toHaveLength(1);
+    expect(short.full).toBe(true);
+  });
+
+  it("reads a time window whole or reports it incomplete", async () => {
+    const { channel, idHex } = makeChannel();
+    const alice = signer();
+    const m1 = chatRumor(idHex, alice, KIND_MESSAGE, "w1", 1_000_000);
+    const m2 = chatRumor(idHex, alice, KIND_MESSAGE, "w2", 2_000_000);
+    const m3 = chatRumor(idHex, alice, KIND_MESSAGE, "w3", 3_000_000);
+    const react = chatRumor(idHex, alice, KIND_REACTION, "🔥", 9_000_000, [["e", m2.id]]);
+    const all = [m1, m2, m3, react];
+    writeRumors(CID, await openChatBatch(await Promise.all(all.map((r) => wrapChat(r, channel, alice))), channel));
+    await eventually(() => queryChannelRumors(CID, idHex, { limit: 100 }), (r) => r.length === all.length);
+
+    // Bounded on both sides, with the reaction found by reference, not time.
+    const whole = await queryChannelWindow(CID, idHex, { since: m2.created_at, until: m3.created_at, limit: 5 });
+    expect(whole.complete).toBe(true);
+    expect(whole.events.map((e) => e.content).sort()).toEqual(["w2", "w3", "🔥"]);
+
+    // More rows than the limit: a newest-first truncation hides the oldest, so nothing is returned.
+    const over = await queryChannelWindow(CID, idHex, { since: m1.created_at, until: m3.created_at, limit: 2 });
+    expect(over).toEqual({ events: [], complete: false });
+  });
+
+  it("reads a single second whole however many rows it holds", async () => {
+    const { channel, idHex } = makeChannel();
+    const alice = signer();
+    const burst = ["s1", "s2", "s3"].map((c) => chatRumor(idHex, alice, KIND_MESSAGE, c, 4_000_000));
+    writeRumors(CID, await openChatBatch(await Promise.all(burst.map((r) => wrapChat(r, channel, alice))), channel));
+    await eventually(() => queryChannelRumors(CID, idHex, { limit: 100 }), (r) => r.length === burst.length);
+
+    const at = burst[0].created_at;
+    const second = await queryChannelWindow(CID, idHex, { since: at, until: at, limit: 1 });
+    expect(second.complete).toBe(true);
+    expect(second.events.map((e) => e.content).sort()).toEqual(["s1", "s2", "s3"]);
+  });
+
+  it("reads reply parents by id with the edits that fold over them", async () => {
+    const { channel, idHex } = makeChannel();
+    const alice = signer();
+    const bob = signer();
+
+    const parent = chatRumor(idHex, alice, KIND_MESSAGE, "original", 1_000_000);
+    const edit = chatRumor(idHex, alice, KIND_EDIT, "edited", 5_000_000, [["e", parent.id]]);
+    const hijack = chatRumor(idHex, bob, KIND_EDIT, "not yours", 6_000_000, [["e", parent.id]]);
+    const reaction = chatRumor(idHex, bob, KIND_REACTION, "🔥", 7_000_000, [["e", parent.id]]);
+    const all = [parent, edit, hijack, reaction];
+    writeRumors(
+      CID,
+      await openChatBatch(
+        await Promise.all(all.map((r) => wrapChat(r, channel, r.pubkey === alice.pubkey ? alice : bob))),
+        channel,
+      ),
+    );
+    await eventually(() => queryChannelRumors(CID, idHex, { limit: 100 }), (r) => r.length === all.length);
+
+    const got = await queryReplyParents(CID, idHex, [parent.id, "00".repeat(32)]);
+    // Rows plus their edits; decoration like reactions is not a parent's concern.
+    expect(got.map((e) => e.rumorId).sort()).toEqual([parent.id, edit.id, hijack.id].sort());
+    expect(foldTimeline(got).messages.map((m) => m.content)).toEqual(["edited"]);
+    // Channel-scoped: another room's id space can't reach this row.
+    expect(await queryReplyParents(CID, "ff".repeat(32), [parent.id])).toEqual([]);
+  });
+
+  it("delete=delete: a self kind-5 physically removes its target", async () => {
+    const { channel, idHex } = makeChannel();
+    const alice = signer();
+
+    const msg = chatRumor(idHex, alice, KIND_MESSAGE, "gone soon", 1000);
+    const del = chatRumor(idHex, alice, KIND_DELETE, "", 2000, [["e", msg.id], ["k", "9"]]);
+
+    writeRumors(CID, await openChatBatch([await wrapChat(msg, channel, alice)], channel));
+    await eventually(() => queryChannelRumors(CID, idHex, { limit: 100 }), (r) => r.length === 1);
+
+    writeRumors(CID, await openChatBatch([await wrapChat(del, channel, alice)], channel));
+    // The delete rumor is stored; NIP-09 removes the targeted message.
+    const after = await eventually(
+      () => queryChannelRumors(CID, idHex, { limit: 100 }),
+      (r) => !r.some((m) => m.rumorId === msg.id),
+    );
+    expect(after.some((m) => m.rumorId === msg.id)).toBe(false);
+  });
+
+  it("shares one store read of the control plane until the next write to it", async () => {
+    const cid = "cd".repeat(32);
+    const alice = signer();
+    const control = channelGroupKey(new Uint8Array(32).fill(9), new Uint8Array(32).fill(2), 0);
+    const edition = async (eid: string) => {
+      const rumor = buildRumor({
+        kind: 3308,
+        content: "{}",
+        tags: [["vsk", "0"], ["eid", eid], ["ev", "1"]],
+        pubkey: alice.pubkey,
+        ms: null,
+      });
+      return openWrap(await wrapSeal(await sealRumor(rumor, KIND_SEAL_PLAINTEXT, control, alice), control), control);
+    };
+    await writeOpened(cid, [await edition("01".repeat(32))], "control");
+
+    const store = getArmadaDB().tenant(`c2:${cid}`);
+    const query = vi.spyOn(store.constructor.prototype, "query");
+    try {
+      const reads = await Promise.all([queryPlane(cid, "control"), queryPlane(cid, "control")]);
+      await queryPlane(cid, "control");
+      expect(query).toHaveBeenCalledTimes(1);
+      expect(reads[0]).toHaveLength(1);
+      // Each reader gets its own objects.
+      expect(reads[0][0]).not.toBe(reads[1][0]);
+
+      // A write issued while a read is in flight is still seen by the next read.
+      const inFlight = queryPlane(cid, "control");
+      await writeOpened(cid, [await edition("02".repeat(32))], "control");
+      await inFlight;
+      expect(await queryPlane(cid, "control")).toHaveLength(2);
+    } finally {
+      query.mockRestore();
+    }
+  });
+
+  it("hands an open timeline a write's rows before its commit, minus a message removed from this device", async () => {
+    const { channel, idHex } = makeChannel();
+    const alice = signer();
+    const kept = chatRumor(idHex, alice, KIND_MESSAGE, "kept", Date.now());
+    const gone = chatRumor(idHex, alice, KIND_MESSAGE, "removed", Date.now() + 1);
+    removedIds.add(gone.id);
+    const opened = await openChatBatch([await wrapChat(kept, channel, alice), await wrapChat(gone, channel, alice)], channel);
+    const heard: string[][] = [];
+    const off = onFreshChat(idHex, (rows) => heard.push(rows.map((r) => r.rumorId)));
+    try {
+      const write = writeRumors(CID, opened);
+      // Before the write settles: that is the point.
+      expect(heard).toEqual([[kept.id]]);
+      // Held for a store read in the meantime, until the write settles.
+      expect(pendingChatRows(idHex).map((r) => r.rumorId)).toEqual([kept.id]);
+      expect(await write).toBe(true);
+      expect(pendingChatRows(idHex)).toEqual([]);
+    } finally {
+      off();
+      removedIds.delete(gone.id);
+    }
+    // Unsubscribed: a later write reaches nobody.
+    writeRumors(CID, await openChatBatch([await wrapChat(chatRumor(idHex, alice, KIND_MESSAGE, "later", Date.now() + 2), channel, alice)], channel));
+    expect(heard).toHaveLength(1);
+  });
+
+  it("keeps a Guestbook plane read across chat writes, and drops it for a delete, which can reach any kind", async () => {
+    const cid = "ce".repeat(32);
+    const alice = signer();
+    const group = channelGroupKey(new Uint8Array(32).fill(8), new Uint8Array(32).fill(4), 0);
+    const join = openPlaneWraps([await sealGuestbook(buildJoinRumor(alice.pubkey, Date.now()), group, alice)], [group]);
+    await writeOpened(cid, join, "guestbook");
+    const { channel, idHex } = makeChannel();
+
+    const store = getArmadaDB().tenant(`c2:${cid}`);
+    const query = vi.spyOn(store.constructor.prototype, "query");
+    try {
+      await queryPlane(cid, "guestbook");
+      const msg = chatRumor(idHex, alice, KIND_MESSAGE, "hi", Date.now());
+      await writeRumors(cid, await openChatBatch([await wrapChat(msg, channel, alice)], channel));
+      expect(await queryPlane(cid, "guestbook")).toHaveLength(1);
+      expect(query).toHaveBeenCalledTimes(1);
+
+      const del = chatRumor(idHex, alice, KIND_DELETE, "", Date.now(), [["e", join[0].rumorId]]);
+      await writeRumors(cid, await openChatBatch([await wrapChat(del, channel, alice)], channel));
+      await queryPlane(cid, "guestbook");
+      expect(query).toHaveBeenCalledTimes(2);
+    } finally {
+      query.mockRestore();
+    }
+  });
+
+  it("preserves the full signed seal in KV, not in the stored rumor (control compaction)", async () => {
+    const alice = signer();
+    const control = channelGroupKey(new Uint8Array(32).fill(9), new Uint8Array(32).fill(1), 0);
+    // A plaintext-sealed control-style edition.
+    const rumor = buildRumor({
+      kind: 3308,
+      content: "{}",
+      tags: [["vsk", "0"], ["eid", "ab".repeat(32)], ["ev", "1"]],
+      pubkey: alice.pubkey,
+      ms: null,
+    });
+    const seal = await sealRumor(rumor, KIND_SEAL_PLAINTEXT, control, alice);
+    const wrap = await wrapSeal(seal, control);
+    const opened = openWrap(wrap, control);
+
+    // The rumor is stored as its author wrote it: no seal folded into its tags.
+    expect(openedToStored(opened).tags.some((t) => t[0] === "seal")).toBe(false);
+    expect(openedToStored(opened).tags).toEqual(rumor.tags);
+
+    writeOpened(CID, [opened], "control");
+    const back = await eventually(
+      () => queryPlane(CID, "control").then((r) => r.find((e) => e.rumorId === opened.rumorId)),
+      (e) => !!e,
+    );
+    expect(back!.author).toBe(alice.pubkey);
+    // The envelope is not stored at all: the seal form is implied by the kind
+    // and was checked once, at ingest.
+    expect(back!.sealKind).toBeUndefined();
+    expect(back!.wrapId).toBeUndefined();
+    expect(back!.streamPk).toBeUndefined();
+    expect(back!.seal).toBeUndefined();
+
+    // The seal read back out of KV is byte-identical and re-wrappable.
+    const stored = await eventually(() => readStoredSeal(CID, opened.rumorId), (s) => !!s);
+    expect(stored).toEqual(plain(seal));
+    const rewrapped = await rewrapSeal(stored!, control);
+    expect(openWrap(rewrapped, control).rumorId).toBe(opened.rumorId);
+  });
+
+  it("holds a chat message's encrypted seal for the session without storing it — a Pin proves a message FROM its seal", async () => {
+    // A pin carries the original seal verbatim (CORD-04 §7). Stored for every
+    // message it grew without bound; an older message's is fetched again instead.
+    const { channel, idHex } = makeChannel();
+    const alice = signer();
+    const rumor = chatRumor(idHex, alice, KIND_MESSAGE, "chat", 1000);
+
+    writeRumors(CID, await openChatBatch([await wrapChat(rumor, channel, alice)], channel));
+    await eventually(() => queryChannelRumors(CID, idHex, { limit: 10 }), (r) => r.length === 1);
+
+    const seal = await eventually(
+      () => readStoredSeal(CID, rumor.id),
+      (s) => s !== undefined,
+    );
+    expect(seal?.kind).toBe(KIND_SEAL_ENCRYPTED);
+    // And it is the real thing: the disclosure opens it back to the message.
+    const keys = discloseKeysFor(seal!.content, channel.current.group.convKey)!;
+    expect(keys).toBeDefined();
+    expect(JSON.parse(decryptWithDisclosedKeys(seal!.content, keys)!).content).toBe("chat");
+    expect(await getArmadaDB().kv.get(`c2seal:${CID}:${rumor.id}`)).toBeUndefined();
+  });
+
+  it("reads back the rumor verbatim, with the envelope absent unless supplied", () => {
+    const alice = signer();
+    const rumor = buildRumor({
+      kind: 3308,
+      content: "{}",
+      tags: [["vsk", "0"], ["eid", "ef".repeat(32)], ["ev", "1"]],
+      pubkey: alice.pubkey,
+      ms: null,
+    });
+    const stored = openedToStored({
+      rumorId: rumor.id,
+      author: alice.pubkey,
+      kind: rumor.kind,
+      content: rumor.content,
+      tags: rumor.tags,
+      ms: rumor.created_at * 1000,
+      createdAt: rumor.created_at,
+      wrapId: "w",
+      streamPk: "sp",
+      sealKind: KIND_SEAL_PLAINTEXT,
+    });
+    // Nothing about the wrap reaches the row…
+    expect(stored.tags).toEqual(rumor.tags);
+    // …so a row read back claims no envelope AT ALL, rather than inheriting
+    // whatever the rumor's own tags happen to spell — or a blank that reads
+    // like a real, empty stream address.
+    const bare = storedToOpened(stored);
+    expect(bare.tags).toEqual(rumor.tags);
+    expect([bare.streamPk, bare.wrapId, bare.sealKind]).toEqual([undefined, undefined, undefined]);
+  });
+
+  it("parks, peeks (non-destructively), and acks raw wraps", async () => {
+    const alice = signer();
+    const control = channelGroupKey(new Uint8Array(32).fill(7), new Uint8Array(32).fill(2), 0);
+    const rumor = buildRumor({ kind: 3308, content: "{}", tags: [["vsk", "0"], ["eid", "cd".repeat(32)], ["ev", "1"]], pubkey: alice.pubkey, ms: null });
+    const wrap = await wrapSeal(await sealRumor(rumor, KIND_SEAL_PLAINTEXT, control, alice), control);
+
+    parkPendingWraps([wrap]);
+    const peeked = await eventually(() => peekPendingWraps([control.pk]), (r) => r.length === 1);
+    expect(peeked.map((w) => w.id)).toEqual([wrap.id]);
+    // The wrap SIGNATURE survives the round trip. The tenant stores rumors
+    // (`Omit<NostrEvent, "sig">`), so it rides in KV beside the row — and it is
+    // load-bearing rather than decoration: a write-restricted Control Plane
+    // stream (CORD-01, CORD-02 §5) has `openWrap` verify it against
+    // `control_pk`, so a signature-less parked wrap could never be opened at
+    // all, and every control edition delivered by this path was stuck until the
+    // 14-day prune.
+    expect(peeked[0].sig).toBe(wrap.sig);
+    // Peeking is non-destructive: an interrupted decode round must be able to
+    // find the wrap again (issue #19 — a notified message must never be
+    // locally destructible before its rumor is stored).
+    const again = await peekPendingWraps([control.pk]);
+    expect(again.map((w) => w.id)).toEqual([wrap.id]);
+    // Only an explicit ack (after the decoded rumor is safely stored) removes it.
+    ackPendingWraps([wrap.id]);
+    const after = await eventually(() => peekPendingWraps([control.pk]), (r) => r.length === 0);
+    expect(after.length).toBe(0);
+  });
+
+  it("peeks wraps parked in a PREVIOUS session (restart before the key arrived)", async () => {
+    const alice = signer();
+    const control = channelGroupKey(new Uint8Array(32).fill(8), new Uint8Array(32).fill(4), 0);
+    const rumor = buildRumor({ kind: 3308, content: "{}", tags: [["vsk", "0"], ["eid", "ef".repeat(32)], ["ev", "1"]], pubkey: alice.pubkey, ms: null });
+    const wrap = await wrapSeal(await sealRumor(rumor, KIND_SEAL_PLAINTEXT, control, alice), control);
+
+    // Session 1: the wrap arrives for a stream we hold no key for and is
+    // parked. The app is then killed before the key ever resolves.
+    parkPendingWraps([wrap]);
+    await eventually(() => peekPendingWraps([control.pk]), (r) => r.length === 1);
+
+    // Session 2: fresh module state (app restart), SAME durable IndexedDB.
+    // The key arrives NOW, so the drain peeks — it must still see the wrap
+    // parked last session. (Regression: a session-scoped "ever parked" flag
+    // made this peek return [] until something new happened to park, leaving
+    // last session's wraps invisible even once their key was available.)
+    vi.resetModules();
+    const fresh = await import("@/concord/lib/rumorStore");
+    const parked = await fresh.peekPendingWraps([control.pk]);
+    expect(parked.map((w) => w.id)).toEqual([wrap.id]);
+    // The signature is durable too — it is in KV, not module state.
+    expect(parked[0].sig).toBe(wrap.sig);
+  });
+
+  it("surfaces a mention buried DEEPER than the per-channel scan window", async () => {
+    const { channel, idHex } = makeChannel();
+    const alice = signer();
+    const me = signer();
+
+    // The mention is the OLDEST message, buried under 20 newer ones — deeper
+    // than a shallow newest-window scan reaches.
+    const rumors = [
+      chatRumor(idHex, alice, KIND_MESSAGE, "hey @me", 1000, [["p", me.pubkey]]),
+      ...Array.from({ length: 20 }, (_, i) =>
+        chatRumor(idHex, alice, KIND_MESSAGE, `chatter ${i}`, 2000 + i * 1000),
+      ),
+    ];
+    const wraps = await Promise.all(rumors.map((r) => wrapChat(r, channel, alice)));
+    writeRumors(CID, await openChatBatch(wraps, channel));
+    await eventually(() => queryChannelRumors(CID, idHex, { limit: 100 }), (r) => r.length === 21);
+
+    // A newest-window community scan (as used by unread/threads) misses it…
+    const windowed = await queryRumorsByChannel(CID, [idHex], { perChannel: 10 });
+    expect(windowed.get(idHex)?.some((r) => r.content === "hey @me")).toBe(false);
+
+    // …but the mentions view must still find it: its own index-backed `#p`
+    // filter reaches the whole store. (Regression: deriving mentions from the
+    // shared per-channel window silently dropped mentions older than a busy
+    // channel's newest page.)
+    const mentions = await queryMentionRumors(CID, [idHex], me.pubkey, { limit: 200 });
+    expect(mentions.map((r) => r.content)).toEqual(["hey @me"]);
+    expect(mentions[0].channelIdHex).toBe(idHex);
+  });
+
+  it("returns authorized-author messages as mass-mention candidates", async () => {
+    const { channel, idHex } = makeChannel();
+    const moderator = signer();
+    const me = signer();
+    const rumors = [
+      chatRumor(idHex, moderator, KIND_MESSAGE, "Heads up @everyone", 1000),
+      chatRumor(idHex, moderator, KIND_MESSAGE, "ordinary moderator chatter", 2000),
+    ];
+    writeRumors(
+      CID,
+      await openChatBatch(await Promise.all(rumors.map((r) => wrapChat(r, channel, moderator))), channel),
+    );
+    await eventually(() => queryChannelRumors(CID, idHex, { limit: 10 }), (r) => r.length === 2);
+
+    const candidates = await queryMentionRumors(CID, [idHex], me.pubkey, {
+      limit: 200,
+      everyoneAuthors: [moderator.pubkey],
+    });
+    expect(candidates.map((r) => r.content).sort()).toEqual([
+      "Heads up @everyone",
+      "ordinary moderator chatter",
+    ]);
+  });
+
+  it("returns anyone's @everyone as a candidate once @everyone may mention everyone", async () => {
+    const { channel, idHex } = makeChannel();
+    const member = signer();
+    const me = signer();
+    const rumors = [
+      chatRumor(idHex, member, KIND_MESSAGE, "Heads up @everyone", 1000),
+      chatRumor(idHex, member, KIND_MESSAGE, "ordinary chatter", 2000),
+    ];
+    writeRumors(CID, await openChatBatch(await Promise.all(rumors.map((r) => wrapChat(r, channel, member))), channel));
+    await eventually(() => queryChannelRumors(CID, idHex, { limit: 10 }), (r) => r.length === 2);
+    const candidates = await queryMentionRumors(CID, [idHex], me.pubkey, { limit: 200, everyoneAnyone: true });
+    expect(candidates.map((r) => r.content)).toContain("Heads up @everyone");
+  });
+
+  // ── Cross-plane splice ────────────────────────────────────────────────────
+  //
+  // The chat decode path proves a rumor's `channel` tag matches the key that
+  // decrypted its wrap (`checkChannelBinding`). The PLANE openers do not — they
+  // bind nothing but the stream address and filter no kinds. Since both write
+  // into this one store, and chat reads are `{ kinds, #channel }`, a plane
+  // rumor carrying a `channel` tag would be served into that channel's timeline.
+
+  it("refuses a plane rumor carrying a channel tag (cross-plane splice)", async () => {
+    const { channel, idHex } = makeChannel();
+    const alice = signer();
+    const mallory = signer();
+
+    // A legitimate message, so the channel isn't trivially empty.
+    writeRumors(
+      CID,
+      await openChatBatch([await wrapChat(chatRumor(idHex, alice, KIND_MESSAGE, "real", 1000), channel, alice)], channel),
+    );
+    await eventually(() => queryChannelRumors(CID, idHex, { limit: 100 }), (r) => r.length === 1);
+
+    // Mallory holds a COMMUNITY-wide plane key (control/guestbook/rekey) but no
+    // key for this channel. She wraps a chat-kind rumor on her plane, tagged
+    // with the victim channel's id.
+    const plane = channelGroupKey(new Uint8Array(32).fill(9), new Uint8Array(32).fill(9), 0);
+    const spliced = buildRumor({
+      kind: KIND_MESSAGE,
+      content: "spliced",
+      tags: channelBindingTags(idHex, 0n),
+      pubkey: mallory.pubkey,
+      ms: 9000,
+    });
+    const wrap = await wrapSeal(await sealRumor(spliced, KIND_SEAL_PLAINTEXT, plane, mallory), plane);
+    await writeOpened(CID, [openWrap(wrap, plane)], "control");
+
+    const got = await eventually(() => queryChannelRumors(CID, idHex, { limit: 100 }), (r) => r.length > 1);
+    expect(got.map((r) => r.content)).toEqual(["real"]);
+  });
+
+  it("refuses a rumor whose kind is not one the plane it arrived on may carry", async () => {
+    const alice = signer();
+    const mallory = signer();
+    const control = channelGroupKey(new Uint8Array(32).fill(10), new Uint8Array(32).fill(10), 0);
+    const guestbook = channelGroupKey(new Uint8Array(32).fill(11), new Uint8Array(32).fill(11), 0);
+
+    // Mallory holds the GUESTBOOK stream key and wraps a CONTROL edition on it.
+    // The read side is a kind query, so nothing downstream could tell the
+    // difference: the refusal has to happen here, against the keys that
+    // actually opened the wrap.
+    const forged = buildRumor({
+      kind: 3308,
+      content: "{}",
+      tags: [["vsk", "0"], ["eid", "ab".repeat(32)], ["ev", "1"]],
+      pubkey: mallory.pubkey,
+      ms: null,
+    });
+    await writeOpened(
+      CID,
+      [openWrap(await wrapSeal(await sealRumor(forged, KIND_SEAL_PLAINTEXT, guestbook, mallory), guestbook), guestbook)],
+      "guestbook",
+    );
+
+    // An honest edition on the control plane, written after, as the barrier
+    // that proves the read ran late enough to have seen the forgery.
+    const honest = buildRumor({
+      kind: 3308,
+      content: "{}",
+      tags: [["vsk", "0"], ["eid", "ba".repeat(32)], ["ev", "1"]],
+      pubkey: alice.pubkey,
+      ms: null,
+    });
+    await writeOpened(
+      CID,
+      [openWrap(await wrapSeal(await sealRumor(honest, KIND_SEAL_PLAINTEXT, control, alice), control), control)],
+      "control",
+    );
+
+    const got = await eventually(
+      () => queryPlane(CID, "control"),
+      (r) => r.some((e) => e.rumorId === honest.id),
+    );
+    expect(got.some((e) => e.rumorId === honest.id)).toBe(true);
+    expect(got.some((e) => e.rumorId === forged.id)).toBe(false);
+  });
+
+  it("refuses a CHAT rumor whose kind belongs to another plane (the reverse splice)", async () => {
+    const { channel, idHex } = makeChannel();
+    const alice = signer();
+    const mallory = signer();
+
+    // Mallory is an ordinary member of this channel — she holds its stream key
+    // legitimately, and `checkChannelBinding` has nothing to object to. What she
+    // wraps is a CONTROL edition, correctly bound to the channel. The plane read
+    // is a kind query, and a stored rumor keeps no seal, so `parseEdition` has
+    // no seal form left to reject it by: the refusal has to happen at the chat
+    // ingress, or this is a control edition anyone in any channel can mint.
+    const forged = chatRumor(idHex, mallory, 3308, "{}", 9000, [
+      ["vsk", "0"],
+      ["eid", "cd".repeat(32)],
+      ["ev", "1"],
+    ]);
+    writeRumors(CID, await openChatBatch([await wrapChat(forged, channel, mallory)], channel));
+
+    // An honest edition on the real control plane, written after, as the
+    // barrier proving the read ran late enough to have seen the forgery.
+    const control = channelGroupKey(new Uint8Array(32).fill(13), new Uint8Array(32).fill(13), 0);
+    const honest = buildRumor({
+      kind: 3308,
+      content: "{}",
+      tags: [["vsk", "0"], ["eid", "dc".repeat(32)], ["ev", "1"]],
+      pubkey: alice.pubkey,
+      ms: null,
+    });
+    await writeOpened(
+      CID,
+      [openWrap(await wrapSeal(await sealRumor(honest, KIND_SEAL_PLAINTEXT, control, alice), control), control)],
+      "control",
+    );
+
+    const got = await eventually(
+      () => queryPlane(CID, "control"),
+      (r) => r.some((e) => e.rumorId === honest.id),
+    );
+    expect(got.some((e) => e.rumorId === honest.id)).toBe(true);
+    expect(got.some((e) => e.rumorId === forged.id)).toBe(false);
+
+    // Nor does it reach the timeline it was bound to — refused, not relocated.
+    const timeline = await queryChannelRumors(CID, idHex, { limit: 100 });
+    expect(timeline.some((r) => r.rumorId === forged.id)).toBe(false);
+  });
+
+  it("keeps chat kinds the plane sets don't claim, including ones added later", async () => {
+    const { channel, idHex } = makeChannel();
+    const alice = signer();
+
+    // The refusal is a denylist of the plane kinds, so a chat kind outside
+    // CHAT_KINDS (3310, the WebXDC signal — stored but never in the timeline)
+    // still stores. An allowlist would have dropped it.
+    const webxdc = chatRumor(idHex, alice, 3310, "state", 1000, [["i", "uuid-1"]]);
+    writeRumors(CID, await openChatBatch([await wrapChat(webxdc, channel, alice)], channel));
+
+    const got = await eventually(
+      () => queryWebxdcRumors(CID, idHex, "uuid-1"),
+      (r) => r.length === 1,
+    );
+    expect(got.map((r) => r.rumorId)).toEqual([webxdc.id]);
+  });
+
+  it("keeps reactions from displacing messages out of the channel window", async () => {
+    const { channel, idHex } = makeChannel();
+    const alice = signer();
+    const reactor = signer();
+
+    // Five messages, then a newer wall of reactions. Under one shared limit
+    // the newest N rumors were all reactions — the flood detector's evidence
+    // and the reader's rows displaced by decoration a bot mints for free
+    // against its own spam.
+    const msgs = Array.from({ length: 5 }, (_, i) =>
+      chatRumor(idHex, alice, KIND_MESSAGE, `note ${i}`, 1000 + i * 1000),
+    );
+    const reacts = Array.from({ length: 12 }, (_, i) =>
+      chatRumor(idHex, reactor, KIND_REACTION, "+", 50_000 + i * 1000, [["e", "ab".repeat(32)]]),
+    );
+    const wraps = [
+      ...(await Promise.all(msgs.map((r) => wrapChat(r, channel, alice)))),
+      ...(await Promise.all(reacts.map((r) => wrapChat(r, channel, reactor)))),
+    ];
+    writeRumors(CID, await openChatBatch(wraps, channel));
+
+    const got = await eventually(
+      () => queryChannelRumors(CID, idHex, { limit: 6 }),
+      (r) => r.filter((x) => x.kind === KIND_MESSAGE).length === 5,
+    );
+    expect(got.filter((r) => r.kind === KIND_MESSAGE).length).toBe(5);
+    // The side-events still ride along, under their own budget.
+    expect(got.some((r) => r.kind === KIND_REACTION)).toBe(true);
+
+    // Same guarantee on the community-wide read the badges derive from.
+    const grouped = await queryRumorsByChannel(CID, [idHex], { perChannel: 6 });
+    expect((grouped.get(idHex) ?? []).filter((r) => r.kind === KIND_MESSAGE).length).toBe(5);
+  });
+
+  it("dates an author's channel arrival by visible rows, never by reactions", async () => {
+    const { channel, idHex } = makeChannel();
+    const reactor = signer();
+    const speaker = signer();
+
+    // A reaction renders no row and costs nothing, which is why a warming bot
+    // reacts to its own messages: dating keys by it walks a sybil set past
+    // every arrival rule before it says a word.
+    const react = chatRumor(idHex, reactor, KIND_REACTION, "+", 1_000_000, [["e", "ab".repeat(32)]]);
+    const speech = chatRumor(idHex, speaker, KIND_MESSAGE, "hello there", 2_000_000);
+    writeRumors(
+      CID,
+      await openChatBatch(
+        [await wrapChat(react, channel, reactor), await wrapChat(speech, channel, speaker)],
+        channel,
+      ),
+    );
+
+    const map = await eventually(
+      () => queryChannelFirstSeen(CID, idHex, { sinceMs: 0, limit: 100 }),
+      (m) => m.size > 0,
+    );
+    expect(map.get(speaker.pubkey)).toBe(2_000_000);
+    expect(map.has(reactor.pubkey)).toBe(false);
+  });
+
+  it("keeps the presence map in a persisted snapshot and folds later writes into it", async () => {
+    const { channel, idHex } = makeChannel();
+    const a = signer();
+    const b = signer();
+    writeRumors(
+      CID,
+      await openChatBatch([await wrapChat(chatRumor(idHex, a, KIND_MESSAGE, "hi", 2_000_000), channel, a)], channel),
+    );
+    const first = await eventually(
+      () => queryChannelFirstSeenCached(CID, idHex, { sinceMs: 0, limit: 100 }),
+      (m) => m.size > 0,
+    );
+    expect(first.get(a.pubkey)).toBe(2_000_000);
+
+    const snap = await eventually(
+      () => getArmadaDB().kv.get<{ v: number; scannedToMs: number; entries: [string, number][] }>(`c2fs:${CID}:${idHex}`),
+      (s) => s !== undefined,
+    );
+    expect(snap?.v).toBe(1);
+    expect(snap?.entries).toEqual([[a.pubkey, 2_000_000]]);
+    expect(snap?.scannedToMs).toBeGreaterThan(0);
+
+    // Rows dated below the watermark, written after the snapshot: an incremental
+    // scan misses both, so the write path must carry them to the next read.
+    writeRumors(
+      CID,
+      await openChatBatch(
+        [
+          await wrapChat(chatRumor(idHex, a, KIND_MESSAGE, "earlier", 1_000_000), channel, a),
+          await wrapChat(chatRumor(idHex, b, KIND_MESSAGE, "yo", 3_000_000), channel, b),
+        ],
+        channel,
+      ),
+    );
+    const second = await eventually(
+      () => queryChannelFirstSeenCached(CID, idHex, { sinceMs: 0, limit: 100 }),
+      (m) => m.size === 2 && m.get(a.pubkey) === 1_000_000,
+    );
+    expect(second.get(a.pubkey)).toBe(1_000_000);
+    expect(second.get(b.pubkey)).toBe(3_000_000);
+
+    const reactor = signer();
+    writeRumors(
+      CID,
+      await openChatBatch(
+        [await wrapChat(chatRumor(idHex, reactor, KIND_REACTION, "+", 4_000_000, [["e", "ab".repeat(32)]]), channel, reactor)],
+        channel,
+      ),
+    );
+    const third = await queryChannelFirstSeenCached(CID, idHex, { sinceMs: 0, limit: 100 });
+    expect(third.has(reactor.pubkey)).toBe(false);
+    expect(third.size).toBe(2);
+  });
+
+  it("refuses a control edition that did not arrive under a plaintext seal", async () => {
+    const alice = signer();
+    const mallory = signer();
+    const control = channelGroupKey(new Uint8Array(32).fill(12), new Uint8Array(32).fill(12), 0);
+
+    // CORD-02 §5: an encrypted-seal edition could never survive a compaction
+    // re-wrap, so honoring it would mint state that vanishes for every fresh
+    // joiner at the next Refounding.
+    const sealedWrong = buildRumor({
+      kind: 3308,
+      content: "{}",
+      tags: [["vsk", "0"], ["eid", "cd".repeat(32)], ["ev", "1"]],
+      pubkey: mallory.pubkey,
+      ms: null,
+    });
+    await writeOpened(
+      CID,
+      [openWrap(await wrapSeal(await sealRumor(sealedWrong, KIND_SEAL_ENCRYPTED, control, mallory), control), control)],
+      "control",
+    );
+
+    const honest = buildRumor({
+      kind: 3308,
+      content: "{}",
+      tags: [["vsk", "0"], ["eid", "dc".repeat(32)], ["ev", "1"]],
+      pubkey: alice.pubkey,
+      ms: null,
+    });
+    await writeOpened(
+      CID,
+      [openWrap(await wrapSeal(await sealRumor(honest, KIND_SEAL_PLAINTEXT, control, alice), control), control)],
+      "control",
+    );
+
+    const got = await eventually(
+      () => queryPlane(CID, "control"),
+      (r) => r.some((e) => e.rumorId === honest.id),
+    );
+    expect(got.some((e) => e.rumorId === sealedWrong.id)).toBe(false);
+  });
+
+  it("records which control stream an edition arrived on, so a re-wrap is attributable", async () => {
+    const alice = signer();
+    const oldEpoch = channelGroupKey(new Uint8Array(32).fill(13), new Uint8Array(32).fill(13), 0);
+    const newEpoch = channelGroupKey(new Uint8Array(32).fill(13), new Uint8Array(32).fill(13), 1);
+
+    // The SAME rumor, re-wrapped verbatim under the new epoch's address — the
+    // one fact a stored rumor can never carry, because both wraps carry
+    // identical bytes.
+    const rumor = buildRumor({
+      kind: 3308,
+      content: "{}",
+      tags: [["vsk", "0"], ["eid", "ef".repeat(32)], ["ev", "1"]],
+      pubkey: alice.pubkey,
+      ms: null,
+    });
+    const plainSeal = await sealRumor(rumor, KIND_SEAL_PLAINTEXT, oldEpoch, alice);
+    await writeOpened(CID, [openWrap(await wrapSeal(plainSeal, oldEpoch), oldEpoch)], "control");
+
+    const beforeRewrap = await eventually(
+      () => readControlSnapshot(CID, oldEpoch.pk),
+      (s) => Boolean(s?.has(rumor.id)),
+    );
+    expect(beforeRewrap?.has(rumor.id)).toBe(true);
+    expect(await readControlSnapshot(CID, newEpoch.pk)).toBeUndefined();
+
+    await writeOpened(CID, [openWrap(await rewrapSeal(plain(plainSeal), newEpoch), newEpoch)], "control");
+    const afterRewrap = await eventually(
+      () => readControlSnapshot(CID, newEpoch.pk),
+      (s) => Boolean(s?.has(rumor.id)),
+    );
+    expect(afterRewrap?.has(rumor.id)).toBe(true);
+  });
+
+  it("records every edition of two control batches stored at once (a seen wrap is never offered again)", async () => {
+    const alice = signer();
+    const control = channelGroupKey(new Uint8Array(32).fill(15), new Uint8Array(32).fill(15), 1);
+    const edition = async (eid: string) => {
+      const rumor = buildRumor({ kind: 3308, content: "{}", tags: [["vsk", "0"], ["eid", eid], ["ev", "1"]], pubkey: alice.pubkey, ms: null });
+      return { id: rumor.id, opened: openWrap(await wrapSeal(await sealRumor(rumor, KIND_SEAL_PLAINTEXT, control, alice), control), control) };
+    };
+    const [a, b] = await Promise.all([edition("a1".repeat(32)), edition("b1".repeat(32))]);
+    await Promise.all([writeOpened(CID, [a.opened], "control"), writeOpened(CID, [b.opened], "control")]);
+    expect([...((await readControlSnapshot(CID, control.pk)) ?? [])].sort()).toEqual([a.id, b.id].sort());
+  });
+
+  it("keeps no snapshot for a community that has never rotated its root", async () => {
+    // Nothing reads the set for such a community — there is no compaction to
+    // tell from old-root fragments — so writing one was an id list growing per
+    // edition, forever, for nobody.
+    const alice = signer();
+    const control = channelGroupKey(new Uint8Array(32).fill(14), new Uint8Array(32).fill(14), 0);
+    const rumor = buildRumor({
+      kind: 3308,
+      content: "{}",
+      tags: [["vsk", "0"], ["eid", "fe".repeat(32)], ["ev", "1"]],
+      pubkey: alice.pubkey,
+      ms: null,
+    });
+    const opened = openWrap(
+      await wrapSeal(await sealRumor(rumor, KIND_SEAL_PLAINTEXT, control, alice), control),
+      control,
+    );
+
+    await writeOpened(CID, [opened], "control", { refounded: false });
+
+    // The edition itself is stored exactly as before — only the bookkeeping is
+    // skipped.
+    const back = await eventually(
+      () => queryPlane(CID, "control"),
+      (r) => r.some((e) => e.rumorId === rumor.id),
+    );
+    expect(back.some((e) => e.rumorId === rumor.id)).toBe(true);
+    expect(await readControlSnapshot(CID, control.pk)).toBeUndefined();
+  });
+});
+
+describe("stream cursors", () => {
+  it("merges concurrent updates instead of letting the last writer win", async () => {
+    // The scheduler's `c2:` round and a `loadOlder` scroll-up write the same
+    // channel's cursor from different call stacks. Unserialized, all three
+    // read the same (absent) cursor and only the last write survives — losing
+    // a deeper `oldest` or a sticky `exhausted` and costing a redundant round.
+    const scope = "cursor-race";
+    await Promise.all([
+      updateStreamCursor(scope, { newest: 500, oldest: 100 }),
+      updateStreamCursor(scope, { exhausted: true }),
+      updateStreamCursor(scope, { oldest: 50 }),
+    ]);
+
+    expect(await readStreamCursor(scope)).toEqual({ newest: 500, oldest: 50, exhausted: true });
+  });
+
+  it("keeps the queue moving when one write fails", async () => {
+    const scope = "cursor-throws";
+    await updateStreamCursor(scope, { newest: 10 });
+    // A rejected mutation must release the lock rather than wedge the scope.
+    await expect(
+      updateStreamCursor(scope, {
+        get newest(): number {
+          throw new Error("boom");
+        },
+      }),
+    ).rejects.toThrow("boom");
+    await updateStreamCursor(scope, { oldest: 7 });
+
+    expect(await readStreamCursor(scope)).toEqual({ newest: 10, oldest: 7, exhausted: false });
+  });
+});
+
+describe("disappearing messages (CORD-08 §3)", () => {
+  it("refuses expired at ingest, hides at read, and physically sweeps", async () => {
+    const { channel, idHex } = makeChannel();
+    const alice = signer();
+    const realNow = Date.now();
+    const nowSecs = Math.floor(realNow / 1000);
+
+    const dead = chatRumor(idHex, alice, KIND_MESSAGE, "dead on arrival", realNow, [["expiration", String(nowSecs - 10)]]);
+    const live = chatRumor(idHex, alice, KIND_MESSAGE, "still here", realNow + 1, [["expiration", String(nowSecs + 30)]]);
+    const forever = chatRumor(idHex, alice, KIND_MESSAGE, "forever", realNow + 2);
+
+    const wraps = await Promise.all([
+      wrapChat(dead, channel, alice),
+      wrapChat(live, channel, alice),
+      wrapChat(forever, channel, alice),
+    ]);
+    const opened = await openChatBatch(wraps.map(plain), channel);
+    expect(opened).toHaveLength(3);
+    await writeRumors(CID, opened);
+
+    // The already-expired rumor never landed.
+    let rows = await queryChannelRumors(CID, idHex, { limit: 10 });
+    expect(rows.map((r) => r.content).sort()).toEqual(["forever", "still here"]);
+
+    // Cross the live one's deadline: the read filter hides it…
+    const clock = vi.spyOn(Date, "now").mockReturnValue(realNow + 60_000);
+    try {
+      rows = await queryChannelRumors(CID, idHex, { limit: 10 });
+      expect(rows.map((r) => r.content)).toEqual(["forever"]);
+      // …and the sweep removes the plaintext itself.
+      expect(await sweepExpiredCommunityRumors(CID)).toBe(1);
+    } finally {
+      clock.mockRestore();
+    }
+
+    // Back at REAL time — before the deadline, when the read filter would NOT
+    // hide a surviving row — the message is gone: deleted, not merely hidden.
+    rows = await queryChannelRumors(CID, idHex, { limit: 10 });
+    expect(rows.map((r) => r.content)).toEqual(["forever"]);
+  });
+
+  it("runs again at the next open after a sweep was cancelled", async () => {
+    // Its own community: the sweep is self-gated per community.
+    const SWEEP_CID = "ef".repeat(32);
+    const { channel, idHex } = makeChannel();
+    const alice = signer();
+    const realNow = Date.now();
+    const soon = chatRumor(idHex, alice, KIND_MESSAGE, "soon", realNow, [["expiration", String(Math.floor(realNow / 1000) + 30)]]);
+    await writeRumors(SWEEP_CID, await openChatBatch([plain(await wrapChat(soon, channel, alice))], channel));
+
+    const clock = vi.spyOn(Date, "now").mockReturnValue(realNow + 60_000);
+    try {
+      const cancelled = new AbortController();
+      cancelled.abort();
+      await sweepExpiredCommunityRumors(SWEEP_CID, { signal: cancelled.signal }).catch(() => undefined);
+      expect(await sweepExpiredCommunityRumors(SWEEP_CID)).toBe(1);
+    } finally {
+      clock.mockRestore();
+    }
+    expect(await queryChannelRumors(SWEEP_CID, idHex, { limit: 10 })).toEqual([]);
+  });
+});
+
+/**
+ * The wire bus is the live path for every in-process write, and the rail's
+ * per-community backstop poll is only redundant with it if that path is
+ * complete. So this pins the load-bearing guarantee: a committed chat write —
+ * and a sweep that deletes — rings `c2:<channel>` for every channel it touched.
+ *
+ * The ring is a SUPERSET, not an exact set: `writeStored` reports a completed
+ * write as committed whether or not any row was actually new, so a re-write of
+ * already-stored rumors rings too. That is the safe direction — over-ringing
+ * costs a redundant re-read, never a missed change. What would make the
+ * backstop non-redundant is the opposite: a writer that committed a change
+ * WITHOUT ringing, which a bus-driven consumer would silently miss. This suite
+ * is the tripwire for that under-ring.
+ */
+describe("concord rumor store — wire bus emission", () => {
+  /** Collect scope rings until `want` has been announced (bus coalesces on 50ms). */
+  async function ringsFor(want: string, run: () => unknown): Promise<Set<string>> {
+    const seen = new Set<string>();
+    const off = onWireScopes((scopes) => {
+      for (const s of scopes) seen.add(s);
+    });
+    try {
+      await run();
+      await eventually(async () => seen, (s) => s.has(want));
+    } finally {
+      off();
+    }
+    return seen;
+  }
+
+  it("rings c2:<channel> once a chat write commits", async () => {
+    const { channel, idHex } = makeChannel();
+    const alice = signer();
+    const opened = await openChatBatch(
+      [await wrapChat(chatRumor(idHex, alice, KIND_MESSAGE, "hi", 1000), channel, alice)],
+      channel,
+    );
+
+    const seen = await ringsFor(`c2:${idHex}`, () => writeRumors(CID, opened));
+    expect(seen.has(`c2:${idHex}`)).toBe(true);
+  });
+
+  it("rings every channel a multi-channel batch commits", async () => {
+    const a = makeChannel();
+    const b = makeChannel();
+    const alice = signer();
+    const opened = [
+      ...await openChatBatch([await wrapChat(chatRumor(a.idHex, alice, KIND_MESSAGE, "in a", 1000), a.channel, alice)], a.channel),
+      ...await openChatBatch([await wrapChat(chatRumor(b.idHex, alice, KIND_MESSAGE, "in b", 1000), b.channel, alice)], b.channel),
+    ];
+
+    const seen = await ringsFor(`c2:${b.idHex}`, () => writeRumors(CID, opened));
+    expect(seen.has(`c2:${a.idHex}`)).toBe(true);
+    expect(seen.has(`c2:${b.idHex}`)).toBe(true);
+  });
+
+  it("rings c2:<channel> for a channel the expiry sweep deleted from", async () => {
+    // Its own community: the sweep is self-gated to one run per community per
+    // interval (module-level `lastSweepAt`), and the file's expiry test already
+    // spent that budget for `CID`.
+    const SWEEP_CID = "cd".repeat(32);
+    const { channel, idHex } = makeChannel();
+    const alice = signer();
+    const realNow = Date.now();
+    const nowSecs = Math.floor(realNow / 1000);
+
+    // A live-then-expired message plus a permanent one, so the sweep has exactly
+    // one row to remove from this channel.
+    const soon = chatRumor(idHex, alice, KIND_MESSAGE, "soon", realNow, [["expiration", String(nowSecs + 30)]]);
+    const forever = chatRumor(idHex, alice, KIND_MESSAGE, "forever", realNow + 1);
+    const opened = await openChatBatch(
+      [await wrapChat(soon, channel, alice), await wrapChat(forever, channel, alice)].map(plain),
+      channel,
+    );
+    await ringsFor(`c2:${idHex}`, () => writeRumors(SWEEP_CID, opened));
+    await eventually(() => queryChannelRumors(SWEEP_CID, idHex, { limit: 10 }), (r) => r.length === 2);
+
+    const clock = vi.spyOn(Date, "now").mockReturnValue(realNow + 60_000);
+    try {
+      const seen = await ringsFor(`c2:${idHex}`, async () => {
+        expect(await sweepExpiredCommunityRumors(SWEEP_CID)).toBe(1);
+      });
+      expect(seen.has(`c2:${idHex}`)).toBe(true);
+    } finally {
+      clock.mockRestore();
+    }
+  });
+});

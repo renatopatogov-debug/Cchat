@@ -1,0 +1,74 @@
+node_modules/
+dist/
+# scripts/perf-profile.mjs: the profiling build and its reports.
+dist-perf/
+perf-reports/
+.DS_Store
+.eslintcache
+*.local
+.env
+data/
+.tsbuildinfo
+Trace-*.json
+
+# Android signing material — never commit. Injected via CI/CD variables.
+**/key.properties
+*.jks
+*.keystore
+android/app/google-services.json
+
+# Desktop (Electron) build outputs.
+electron/dist/
+electron/release/
+electron/generated/hevc/
+# Built from src/lib/db by vite.config.electron.ts (npm run build:electron-db).
+electron/db.cjs
+# Built from src/lib/desktopUpdate.ts by vite.config.electron-update.ts
+# (npm run build:electron-update).
+electron/updateFeed.cjs
+# Chromium profile for `npm run electron:dev` (its own, so a dev build never
+# writes an installed Armada's armada.db).
+electron/.dev-profile/
+
+# SwiftPM build output for the iOS packages (the vendored SQLite and libsecp256k1
+# sources under Sources/ ARE committed; this is only what building them makes).
+# Root-owned when the suites are run through a Swift container, which is why git
+# warns rather than ignoring quietly if only one of them is listed.
+ios/ArmadaDB/.build/
+ios/ArmadaNotify/.build/
+
+# Local diagnostic scratch (may hold invite secrets) — never commit.
+scratch/
+
+# Local deploy script (personal hosts/paths).
+deploy.sh
+
+# Left by a manual `go build` in the publisher package; the packaged binary
+# is written to electron/generated/hevc/ by scripts/build-hevc-publisher.sh.
+electron/hevc-publisher/hevc-publisher
+
+# wasm build output
+crates/webxdc-rt/pkg*/
+crates/webxdc-rt/target/
+src/wasm/
+
+# Release-event artifacts staged by CI (see .ngit/act/workflows/release.yml).
+.release-artifacts/
+
+# flatpak-builder leaves these in the cwd when the desktop bundle is built
+# (electron/flatpak/build.sh). The state dir alone is ~1GB of cached sources.
+.flatpak-builder/
+.flatpak-build-tools/
+
+# Playwright e2e outputs (npm run test:e2e). The browsers install to
+# ~/.cache/ms-playwright, not the repo; these are only the run artifacts.
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
+# Hostile-relay comparison: generated per machine by scripts/hostile/setup.sh
+scripts/hostile/tls/
+scripts/hostile/vector-driver/target/
+scripts/hostile/vector-driver/vendor/
+scripts/hostile/vector-driver/Cargo.lock

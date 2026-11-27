@@ -1,0 +1,429 @@
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Copy,
+  KeyRound,
+  QrCode,
+  RefreshCw,
+  ShieldCheck,
+  Unlock,
+} from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { QRCodeCanvas } from "@/components/ui/qrcode";
+import { toast } from "@/hooks/useToast";
+import {
+  ORDER_STATUS_LABELS,
+  canonicalOrderSeed,
+  computeCommitment,
+  deriveOrderSecret,
+  encodeConfirmDeliveryCall,
+  encodeOpenDisputeCall,
+  encodeRefundArbiterTimeoutCall,
+  encodeRefundBySellerCall,
+  encodeRefundTimeoutCall,
+  fetchOnchainOrder,
+  formatTokenAmount,
+  resolveActiveChainAndTokens,
+  type DeliveryConfirmQr,
+  type Hex,
+  type OnchainOrder,
+} from "@/lib/escrowClient";
+import { unlockEvmPrivateKey } from "@/lib/evmWallet";
+import { enqueueMeshEscrowPacket } from "@/lib/meshOutbox";
+
+export interface EscrowOrderCardProps {
+  chainId: number;
+  escrowAddress: Hex;
+  orderId: bigint;
+  myAddress?: Hex;
+  nostrPubkey?: string;
+  /** Código + salt caso já estejam em memória na sessão atual. */
+  buyerSecret?: { code: string; salt: Hex };
+  /** Callback opcional para enviar calldata via Paymaster / carteira conectada. */
+  onExecuteCalldata?: (to: Hex, data: Hex, label: string) => Promise<void>;
+}
+
+const GRACE_PERIOD_SEC = 24 * 3600;
+const ARBITER_TIMEOUT_SEC = 15 * 24 * 3600;
+
+export function EscrowOrderCard({
+  chainId,
+  escrowAddress,
+  orderId,
+  myAddress,
+  nostrPubkey,
+  buyerSecret,
+  onExecuteCalldata,
+}: EscrowOrderCardProps) {
+  const [order, setOrder] = useState<OnchainOrder | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showQr, setShowQr] = useState(false);
+  const [unlockPin, setUnlockPin] = useState("");
+  const [recoveredSecret, setRecoveredSecret] = useState<{ code: string; salt: Hex } | null>(null);
+  const [manualCode, setManualCode] = useState("");
+  const [manualSalt, setManualSalt] = useState("");
+
+  const { chain, tokens } = resolveActiveChainAndTokens(chainId);
+  const activeSecret = buyerSecret ?? recoveredSecret;
+
+  const refreshOnchain = useCallback(async () => {
+    if (!chain || escrowAddress === "0x0000000000000000000000000000000000000000") {
+      setError("Contrato de escrow ainda não configurado para esta rede.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchOnchainOrder(chain.rpcUrls[0], escrowAddress, orderId);
+      setOrder(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Falha ao verificar pedido na blockchain.");
+    } finally {
+      setLoading(false);
+    }
+  }, [chain, escrowAddress, orderId]);
+
+  useEffect(() => {
+    void refreshOnchain();
+  }, [refreshOnchain]);
+
+  const tokenMeta = order
+    ? tokens.find((t) => t.address.toLowerCase() === order.token.toLowerCase())
+    : undefined;
+
+  const isBuyer =
+    !!order && !!myAddress && order.buyer.toLowerCase() === myAddress.toLowerCase();
+  const isSeller =
+    !!order && !!myAddress && order.seller.toLowerCase() === myAddress.toLowerCase();
+
+  const handleRecoverBuyerCode = async () => {
+    if (!order || !nostrPubkey) return;
+    try {
+      const priv = await unlockEvmPrivateKey(nostrPubkey, unlockPin);
+      try {
+        const seed = canonicalOrderSeed({
+          chainId,
+          escrow: escrowAddress,
+          seller: order.seller,
+          token: order.token,
+          amount: order.amount,
+          deliveryDeadline: order.deliveryDeadline,
+        });
+        const derived = deriveOrderSecret(priv, seed);
+        if (derived.commitment.toLowerCase() !== order.codeCommitment.toLowerCase()) {
+          toast({
+            title: "Código não corresponde a esta carteira",
+            description: "Este pedido foi criado com outra semente ou carteira.",
+            variant: "destructive",
+          });
+          return;
+        }
+        setRecoveredSecret({ code: derived.code, salt: derived.salt });
+        setUnlockPin("");
+      } finally {
+        priv.fill(0);
+      }
+    } catch (e) {
+      toast({
+        title: "Falha ao desbloquear código",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deliveryQrPayload: DeliveryConfirmQr | null =
+    activeSecret && order
+      ? {
+          v: 2,
+          type: "delivery-confirm",
+          chainId,
+          escrow: escrowAddress,
+          orderId: orderId.toString(),
+          code: activeSecret.code,
+          salt: activeSecret.salt,
+          exp: Math.floor(Date.now() / 1000) + 600,
+        }
+      : null;
+
+  const handleConfirmDelivery = async () => {
+    if (!order) return;
+    if (!/^\d{6}$/.test(manualCode)) {
+      toast({ title: "Código inválido", description: "Informe exatamente 6 dígitos.", variant: "destructive" });
+      return;
+    }
+    const saltHex = (manualSalt.startsWith("0x") ? manualSalt : `0x${manualSalt}`) as Hex;
+    try {
+      const commitment = computeCommitment(manualCode, saltHex);
+      if (commitment.toLowerCase() !== order.codeCommitment.toLowerCase()) {
+        toast({
+          title: "Código não confere",
+          description: "O par código + salt não bate com o commitment gravado na blockchain.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!navigator.onLine) {
+        await enqueueMeshEscrowPacket({
+          kind: "confirm-delivery",
+          chainId,
+          escrow: escrowAddress,
+          orderId: orderId.toString(),
+          code: manualCode,
+          salt: saltHex,
+        });
+        toast({
+          title: "Salvo na fila offline",
+          description: "Sem internet: o código foi salvo em disco para envio automático ao reconectar.",
+        });
+        return;
+      }
+
+      const calldata = encodeConfirmDeliveryCall(orderId, manualCode, saltHex);
+      if (onExecuteCalldata) {
+        await onExecuteCalldata(escrowAddress, calldata, "Confirmar entrega");
+        await refreshOnchain();
+      } else {
+        await navigator.clipboard?.writeText(calldata);
+        toast({
+          title: "Calldata gerado",
+          description: "Dados de confirmDelivery copiados (prontos para Remix/Paymaster).",
+        });
+      }
+    } catch (e) {
+      toast({
+        title: "Erro ao confirmar",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "destructive",
+      });
+    }
+  };
+
+  const nowSec = Math.floor(Date.now() / 1000);
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm space-y-3 max-w-md">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="size-5 text-emerald-500" />
+          <div>
+            <p className="text-sm font-semibold">Pedido Escrow #{orderId.toString()}</p>
+            <p className="text-xs text-muted-foreground">{chain.name}</p>
+          </div>
+        </div>
+        <Button type="button" variant="ghost" size="icon" onClick={() => void refreshOnchain()} disabled={loading}>
+          <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
+        </Button>
+      </div>
+
+      {error && (
+        <div className="flex items-start gap-2 rounded-lg bg-destructive/10 p-2.5 text-xs text-destructive">
+          <AlertTriangle className="size-4 shrink-0 mt-0.5" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {order && (
+        <>
+          <div className="rounded-lg bg-muted/50 p-3 space-y-1 text-xs">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Status on-chain:</span>
+              <span className="font-semibold text-foreground">{ORDER_STATUS_LABELS[order.status]}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Valor travado:</span>
+              <span className="font-semibold">
+                {tokenMeta
+                  ? `${formatTokenAmount(order.amount, tokenMeta.decimals)} ${tokenMeta.symbol}`
+                  : `${order.amount.toString()} (token fora da whitelist)`}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Prazo de entrega:</span>
+              <span>{new Date(order.deliveryDeadline * 1000).toLocaleString()}</span>
+            </div>
+          </div>
+
+          {/* Comprador: Recuperar código em outro aparelho usando apenas PIN + dados on-chain */}
+          {isBuyer && !activeSecret && nostrPubkey && (order.status === 1 || order.status === 3) && (
+            <div className="flex items-center gap-2 pt-1">
+              <Input
+                type="password"
+                value={unlockPin}
+                onChange={(e) => setUnlockPin(e.target.value)}
+                placeholder="PIN para revelar código"
+              />
+              <Button type="button" size="sm" onClick={() => void handleRecoverBuyerCode()}>
+                <KeyRound className="size-3.5 mr-1.5" />
+                Revelar
+              </Button>
+            </div>
+          )}
+
+          {/* Área do Comprador: Código estilo iFood + QR presencial */}
+          {isBuyer && activeSecret && (order.status === 1 || order.status === 3) && (
+            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-emerald-400">
+                  Seu código de entrega (mostre só ao receber)
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowQr((s) => !s)}
+                >
+                  <QrCode className="size-3.5 mr-1.5" />
+                  {showQr ? "Ocultar QR" : "Mostrar QR"}
+                </Button>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-2xl font-bold tracking-[0.25em] text-foreground">
+                  {activeSecret.code}
+                </span>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => {
+                    void navigator.clipboard?.writeText(activeSecret.code);
+                    toast({ title: "Código copiado" });
+                  }}
+                >
+                  <Copy className="size-4" />
+                </Button>
+              </div>
+              {showQr && deliveryQrPayload && (
+                <div className="flex flex-col items-center gap-2 pt-2">
+                  <div className="rounded-lg bg-white p-2">
+                    <QRCodeCanvas value={JSON.stringify(deliveryQrPayload)} size={180} />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground text-center">
+                    Exiba apenas presencialmente. Nunca envie este QR pelo chat antes da entrega.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Área do Vendedor: Digitar código ou cancelar amigavelmente */}
+          {isSeller && (order.status === 1 || order.status === 3) && (
+            <div className="space-y-2 pt-1">
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  value={manualCode}
+                  onChange={(e) => setManualCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="Código 6 dígitos"
+                  inputMode="numeric"
+                />
+                <Input
+                  value={manualSalt}
+                  onChange={(e) => setManualSalt(e.target.value.trim())}
+                  placeholder="Salt (0x...)"
+                />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" size="sm" onClick={() => void handleConfirmDelivery()}>
+                  <CheckCircle2 className="size-4 mr-1.5" />
+                  Confirmar Entrega
+                </Button>
+                {onExecuteCalldata && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      void onExecuteCalldata(
+                        escrowAddress,
+                        encodeRefundBySellerCall(orderId),
+                        "Cancelar e reembolsar comprador",
+                      ).then(refreshOnchain)
+                    }
+                  >
+                    Devolver 100%
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Ações de Disputa e Timeouts */}
+          {(order.status === 1 || order.status === 3) && onExecuteCalldata && (
+            <div className="flex flex-wrap gap-2 pt-1 border-t border-border/60">
+              {order.status === 1 &&
+                order.arbiter !== "0x0000000000000000000000000000000000000000" &&
+                (isBuyer || isSeller) && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    onClick={() =>
+                      void onExecuteCalldata(
+                        escrowAddress,
+                        encodeOpenDisputeCall(orderId),
+                        "Abrir disputa",
+                      ).then(refreshOnchain)
+                    }
+                  >
+                    Abrir Disputa
+                  </Button>
+                )}
+
+              {order.status === 1 && isBuyer && nowSec > order.deliveryDeadline + GRACE_PERIOD_SEC && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={() =>
+                    void onExecuteCalldata(
+                      escrowAddress,
+                      encodeRefundTimeoutCall(orderId),
+                      "Sacar reembolso por prazo vencido",
+                    ).then(refreshOnchain)
+                  }
+                >
+                  <Clock className="size-4 mr-1.5" />
+                  Resgatar Timeout
+                </Button>
+              )}
+
+              {order.status === 3 &&
+                isBuyer &&
+                order.disputedAt > 0 &&
+                nowSec > order.disputedAt + ARBITER_TIMEOUT_SEC && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() =>
+                      void onExecuteCalldata(
+                        escrowAddress,
+                        encodeRefundArbiterTimeoutCall(orderId),
+                        "Resgatar por inatividade do árbitro (15d)",
+                      ).then(refreshOnchain)
+                    }
+                  >
+                    <Clock className="size-4 mr-1.5" />
+                    Resgatar Disputa Abandonada
+                  </Button>
+                )}
+            </div>
+          )}
+
+          {order.status === 2 && (
+            <div className="flex items-center gap-2 text-xs text-emerald-500">
+              <Unlock className="size-4" />
+              <span>Entrega confirmada e valor liberado ao vendedor.</span>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}

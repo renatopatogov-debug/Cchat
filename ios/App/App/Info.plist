@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CAPACITOR_DEBUG</key>
+	<string>$(CAPACITOR_DEBUG)</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+        <string>Armada</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>de</string>
+		<string>es</string>
+		<string>fr</string>
+		<string>it</string>
+		<string>nl</string>
+		<string>ja</string>
+	</array>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<!-- Armada bundles its own E2EE — ChaCha20 authenticated with HMAC-SHA256
+	     (NIP-44 v2, NOT ChaCha20-Poly1305), HKDF-SHA256, and secp256k1, all
+	     via @noble/* — rather than using only the OS crypto, so it does not
+	     qualify for the "OS encryption only" Category 5 Part 2 exemption. The
+	     AES-256-GCM that encrypts Concord attachments is by contrast the OS's
+	     own, reached through WebCrypto. Standard published algorithms
+	     throughout; nothing proprietary.
+
+	     Export posture is the PUBLISHED SOURCE route, not self-classification,
+	     and it carries NO filing at all. The chain, read off the current EAR
+	     text: publishing alone does not free encryption software (15 CFR
+	     734.7(b) — published 5D002 software "remains subject to the EAR"
+	     unless its source meets 742.15(b)); 742.15(b)(1) puts publicly
+	     available 5D002 SOURCE outside the EAR; and the note to 734.3(b)(3)
+	     extends that status to the corresponding OBJECT code, i.e. this
+	     binary. Armada's source is public, so all three are satisfied.
+
+	     The 742.15(b)(2) email to BIS and NSA ENC is NOT owed. Since the 2016
+	     amendment (81 FR 64673) that paragraph is titled "Notification
+	     requirement for 'non-standard cryptography'" and reaches only source
+	     performing non-standard crypto — proprietary or unpublished
+	     functionality. Every primitive here is standard and published
+	     (RFC 8439, RFC 2104/FIPS 180-4, RFC 5869, SEC 2/BIP-340), and NIP-44
+	     v2 and Concord are published specifications, so nothing qualifies.
+	     Much online guidance still describes the pre-2016 rule, where the
+	     notification WAS universal; don't restore it from that. Nor from the
+	     5D992.c / 740.17(b)(1) route this file once claimed, which would have
+	     obliged an ERN plus a self-classification report every February 1.
+
+	     One standing duty, and it is the whole basis of the position: the
+	     source must STAY publicly available. If the bundled crypto ever
+	     became non-standard, 742.15(b)(2) would attach and would then also
+	     require re-notifying whenever the notified source URL moves.
+
+	     Declared FALSE, on the same published-source ground. The key asks
+	     whether the app uses NON-EXEMPT encryption under Category 5 Part 2,
+	     not whether it bundles non-OS crypto: once 742.15(b)(1) and the note
+	     to 734.3(b)(3) put this binary outside the EAR, no Category 5 Part 2
+	     control is left for it to be non-exempt from. Bundling @noble/*
+	     defeats the "OS crypto only" exemption above; it does not by itself
+	     make this key true.
+
+	     It is also the only value that uploads. Under true, App Store Connect
+	     demands an ITSEncryptionExportComplianceCode matching an APPROVED App
+	     Encryption Declaration and rejects the build without one — error
+	     90592, "the export compliance key value [] ... doesn't match the key
+	     value of the app's export compliance documentation", reproduced on
+	     0.50.0 both before and after a declaration existed. That code comes
+	     only from an ERN, i.e. exactly the filing this posture says is not
+	     owed, so true both fails the upload and contradicts the reasoning
+	     above. Don't restore it. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<!-- Surface the app's Documents directory (where saved images/files land via
+	     @capacitor/filesystem) as the "Armada" folder in the Files app, and let
+	     the user manage those files in place. -->
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<!-- Voice/video rooms (LiveKit via getUserMedia) and voice messages. Also
+	     covers the WebView file input's "Take Photo or Video" option. -->
+	<key>NSCameraUsageDescription</key>
+	<string>Armada uses the camera for video calls and to attach photos you take to messages.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Armada uses the microphone for voice rooms, calls, and voice messages.</string>
+	<!-- Required alongside the Communication Notifications entitlement
+	     (ITMS-90894): the extension donates INSendMessageIntent to show the
+	     sender on a notification. -->
+	<key>NSUserActivityTypes</key>
+	<array>
+		<string>INSendMessageIntent</string>
+	</array>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIMainStoryboardFile</key>
+	<string>Main</string>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>arm64</string>
+	</array>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<true/>
+</dict>
+</plist>

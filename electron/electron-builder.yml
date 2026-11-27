@@ -1,0 +1,232 @@
+# electron-builder config for the Armada desktop app.
+#
+# The app SOURCE is this directory (electron/): main.js + preload.js + the
+# bundled web build (dist/, copied in by CI). The shell serves dist/ over a
+# custom secure scheme (see main.js), so the app is fully standalone — not tied
+# to any hosted domain.
+#
+# Built in CI on version tags; see ../.ngit/act/workflows/release.yml.
+
+appId: buzz.armada.app
+productName: Armada
+executableName: armada
+copyright: Copyright © 2026 Soapbox Technology LLC
+
+directories:
+  # Installers are written here. (The bundled web build lives in ./dist, so the
+  # builder output must NOT be ./dist.)
+  output: release
+  buildResources: build
+
+# Both native integrations ship N-API prebuilds pinned in package-lock.json:
+# uiohook-napi for every desktop OS/architecture and venmic for Linux. Rebuild
+# would discard that portability and require platform SDK headers in release
+# jobs (and cross-compiling the Windows hook from Linux cannot work at all).
+npmRebuild: false
+
+# Refuse to create an installer from a stale/partial staging directory. CI and
+# npm lifecycle scripts build these first; the hook protects direct `npx
+# electron-builder` invocations as well.
+beforePack: scripts/before-pack.cjs
+
+# What ships inside the app: the shell's own files plus the bundled web build.
+# electron + node_modules are provided by the builder runtime and not listed.
+#
+# build/ is buildResources (the installer/app icon the builder reads), but main
+# .js ALSO loads icons from it at runtime — the window icon and the tray art —
+# so it has to be listed here too. Unlisted, those paths don't exist inside the
+# asar and the shell silently falls back: the default Electron window icon, and
+# an EMPTY tray image (a blank slot in the panel).
+files:
+  # flatpak-builder leaves an OSTree cache beside this config. It contains
+  # host-only absolute symlinks such as /app/bin/zypak-wrapper.sh and must
+  # never be traversed by cross-platform packaging.
+  - "!.flatpak-builder{,/**/*}"
+  - main.js
+  - appOrigin.js
+  - desktopIntegration.js
+  - updateSupport.js
+  # The updater's release feed: the electron-updater Provider and the bundled
+  # build of src/lib/desktopUpdate.ts it reads the release event and the site
+  # manifest through. Unlisted, the app still boots, on its shipped web bundle
+  # forever, and every update check fails — a shipped app that can never update
+  # itself again, which is the harder failure to notice.
+  - nostrUpdateProvider.js
+  - updateFeed.cjs
+  - linuxAudioSources.js
+  # venmic's host process, forked by main.js on the first screen-share audio
+  # request; unlisted, Linux screen shares quietly lose their audio.
+  - linuxAudioWorker.js
+  - linuxVideoAcceleration.js
+  - displayMediaPolicy.js
+  - youtubeEmbedIdentity.js
+  # Required by main.js at startup; unlisted, the shell cannot boot.
+  - permissionPolicy.js
+  - hevcScreenShare.js
+  - linuxGlobalShortcuts.js
+  - linuxStatusNotifier.js
+  - pushToTalk.js
+  - traySupport.js
+  # Launch-at-login settings. main.js requires it at startup; unlisted, the
+  # require fails inside the asar and the shell cannot boot at all.
+  - autoLaunch.js
+  # Low memory mode, read by main.js at startup; unlisted, the shell cannot boot.
+  - lowMemory.js
+  # Image bytes for hosts without CORS; required by main.js at startup.
+  - imageFetch.js
+  - preload.js
+  # Loads, verifies and updates the web app app:// serves from Armada's nsite.
+  # Unlisted, the require fails inside the asar and the shell cannot boot.
+  - webSite.js
+  # Required by main.js at startup: which deploys the web track follows.
+  - webUpdateChannel.js
+  # The shell API level web bundles are checked against; required at startup.
+  - desktopApi.json
+  # The ArmadaDB store, built from src/lib/db by vite.config.electron.ts. main.js
+  # requires it at startup; unlisted, the require fails inside the asar and the
+  # app silently falls back to IndexedDB with the user's data in the wrong place.
+  - db.cjs
+  - package.json
+  # main.js uses these at runtime. buildResources alone supplies installer
+  # artwork; it does not put the files inside app.asar. linux-icon.png is the
+  # window icon on Linux and the source of the hicolor icons the AppImage
+  # installs for itself (desktopIntegration.js).
+  - build/icon.png
+  - build/linux-icon.png
+  - dist/**/*
+  - build/**/*
+  - "!**/*.map"
+asarUnpack:
+  - node_modules/@vencord/venmic/prebuilds/**/*
+  - node_modules/uiohook-napi/prebuilds/**/*
+
+# Not a feed: main.js overrides it with setFeedURL and the release-event
+# provider, and the url is never fetched. It has to stay because electron-builder
+# only packages app-update.yml when a publish config exists, and electron-updater
+# reads that file on every download (updaterCacheDirName). Deleting it leaves the
+# update check passing and the download throwing ENOENT.
+# publishAutoUpdate: false stops latest*.yml being generated.
+publish:
+  provider: generic
+  publishAutoUpdate: false
+  url: https://armada.buzz/downloads/desktop
+
+# Flipped right before signing. Without them ELECTRON_RUN_AS_NODE, NODE_OPTIONS
+# or --inspect run arbitrary code as this signed binary, under its macOS TCC
+# grants. RunAsNode off breaks child_process.fork in main; use utilityProcess.
+# Asar integrity is validated on macOS and Windows only.
+electronFuses:
+  runAsNode: false
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  onlyLoadAppFromAsar: true
+  enableEmbeddedAsarIntegrityValidation: true
+  grantFileProtocolExtraPrivileges: false
+
+# ── Linux ─────────────────────────────────────────────────────────────────────
+linux:
+  category: Network
+  maintainer: Soapbox <contact@soapbox.pub>
+  # Preserve Armada's clipped-corner tile instead of letting launchers wrap
+  # the plain square logo in their generic application background.
+  icon: build/linux-icon.png
+  # The same static publisher is shared by AppImage, deb and the Flatpak that
+  # repackages this AppImage. FFmpeg itself stays platform-provided because
+  # VA-API must load the host/runtime's matching libva, libdrm and GPU driver.
+  extraResources:
+    - from: generated/hevc/${arch}/armada-hevc-publisher
+      to: armada-hevc-publisher
+  syncDesktopName: true
+  target:
+    - AppImage
+    - deb
+  desktop:
+    entry:
+      Name: Armada
+      Comment: Sovereign encrypted communities and chat
+      Categories: Network;Chat;InstantMessaging;
+
+# Replaces electron-builder's default Depends, which omits libasound.so.2 and
+# libgbm.so.1 though the Electron binary links both. libasound2t64 is the
+# post-t64 name (Debian 13, Ubuntu 24.04); older releases take libasound2.
+deb:
+  depends:
+    - libgtk-3-0
+    - libnotify4
+    - libnss3
+    - libxss1
+    - libxtst6
+    - xdg-utils
+    - libatspi2.0-0
+    - libuuid1
+    - libsecret-1-0
+    - libasound2t64 | libasound2
+    - libgbm1
+
+# ── Windows ────────────────────────────────────────────────────────────────────
+win:
+  # venmic + DBus are Linux/PipeWire-only. Excluding them here prevents their
+  # native Linux payloads and transitive dependencies from entering Windows.
+  files:
+    - "!.flatpak-builder{,/**/*}"
+    - "!flatpak{,/**/*}"
+    - "!generated{,/**/*}"
+    - "!hevc-publisher{,/**/*}"
+    - "!node_modules/@vencord/venmic{,/**/*}"
+    - "!node_modules/@jellybrick/dbus-next{,/**/*}"
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+
+# The %TEMP% directory the portable exe unpacks into. Unset, electron-builder
+# names it with a fresh random KSUID per build, so no two builds of a commit
+# would be the same program (scripts/verify-build.mjs compares it whole).
+portable:
+  unpackDirName: armada-${version}
+
+nsis:
+  # The app's languages that share one dialog font. Each further font set
+  # (Japanese, CJK, RTL) gets its own copy of the dialogs, which makensis
+  # numbers in a different order from build to build, so no two builds of a
+  # commit would be the same installer (scripts/verify-build.mjs). Japanese
+  # installs see this English installer; the app itself is still Japanese.
+  installerLanguages: [en_US, de_DE, es_ES, fr_FR, it_IT, nl_NL, pt_BR]
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  artifactName: ${productName}-${version}-Setup.${ext}
+
+# ── macOS ─────────────────────────────────────────────────────────────────────
+# Builds an UNSIGNED .dmg unless Apple Developer ID certs are provided via the
+# usual electron-builder env vars (CSC_LINK / CSC_KEY_PASSWORD) plus notarization
+# (APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID). Unsigned builds run
+# only after a Gatekeeper override on the user's machine.
+mac:
+  category: public.app-category.social-networking
+  files:
+    - "!.flatpak-builder{,/**/*}"
+    - "!flatpak{,/**/*}"
+    - "!generated{,/**/*}"
+    - "!hevc-publisher{,/**/*}"
+    - "!node_modules/@vencord/venmic{,/**/*}"
+    - "!node_modules/@jellybrick/dbus-next{,/**/*}"
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+    # electron-updater's macOS feed installs the signed zip; the dmg remains
+    # the human-facing first-install artifact.
+    - target: zip
+      arch: [x64, arm64]
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  # macOS TCC requires these usage strings in Info.plist; without them the
+  # process is killed the first time getUserMedia touches the mic/camera.
+  extendInfo:
+    NSMicrophoneUsageDescription: Armada uses the microphone for voice calls.
+    NSCameraUsageDescription: Armada uses the camera for video calls.
+    NSAudioCaptureUsageDescription: Armada shares system audio when you choose it while sharing your screen.
+
+# Stable, predictable artifact names for the CI upload step.
+artifactName: ${productName}-${version}-${os}-${arch}.${ext}

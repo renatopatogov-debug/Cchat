@@ -2,10 +2,8 @@ import { Compass, Plus, Settings, Users } from "lucide-react";
 import { useContext } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { SignalBottomNav } from "@/components/layout/SignalBottomNav";
 import { Button } from "@/components/ui/button";
 import { useLiveCommunities } from "@/concord/hooks/useCommunityList";
-import { useHasUnreadDMs } from "@/hooks/useDirectMessages";
 import { useNip29Servers } from "@/hooks/useNip29Servers";
 import { relayToRouteParam } from "@/lib/platform";
 import { SettingsOverlayContext } from "@/lib/settingsOverlay";
@@ -19,7 +17,6 @@ export function CommunitiesHubPage() {
   const settings = useContext(SettingsOverlayContext);
   const communities = useLiveCommunities();
   const nip29Servers = useNip29Servers();
-  const hasUnreadDms = useHasUnreadDMs();
 
   return (
     <div className="flex flex-1 flex-col min-h-0 bg-background">
@@ -64,7 +61,7 @@ export function CommunitiesHubPage() {
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 max-w-2xl w-full mx-auto">
+      <div className="flex-1 overflow-y-auto p-4 pb-8 sidebar:pb-6 space-y-4 max-w-2xl w-full mx-auto">
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
@@ -105,7 +102,7 @@ export function CommunitiesHubPage() {
                 <button
                   key={c.community_id}
                   type="button"
-                  onClick={() => navigate(`/c/${encodeURIComponent(c.community_id)}`)}
+                  onClick={() => navigate(`/cc/${encodeURIComponent(c.community_id)}`)}
                   className="w-full rounded-2xl border border-border bg-card hover:bg-secondary/60 transition p-3.5 flex items-center gap-3 text-left"
                 >
                   <span className="size-11 rounded-2xl bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center shrink-0">
@@ -143,8 +140,6 @@ export function CommunitiesHubPage() {
           </div>
         )}
       </div>
-
-      <SignalBottomNav unreadCount={hasUnreadDms ? 1 : 0} />
     </div>
   );
 }

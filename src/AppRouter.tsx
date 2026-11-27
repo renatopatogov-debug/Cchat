@@ -45,11 +45,11 @@ import { routeOpensBootGate } from "@/lib/bootGateRoute";
 // deploy into a one-time reload instead of a crash.
 
 // Lazy: nothing in the frame is usable by a signed-out visitor.
-const MainLayout = lazy(lazyWithReload(() => import("@/components/layout/MainLayout").then((m) => ({ default: m.MainLayout }))));
+const AppShell = lazy(lazyWithReload(() => import("@/components/layout/AppShell").then((m) => ({ default: m.AppShell }))));
 
-// Prefetch the frame on a signed-in launch so lazy MainLayout doesn't slow it.
+// Prefetch the frame on a signed-in launch so lazy AppShell doesn't slow it.
 if (likelySignedIn()) {
-  void import("@/components/layout/MainLayout").catch(() => undefined);
+  void import("@/components/layout/AppShell").catch(() => undefined);
 }
 
 const LazySignedInRouterServices = lazy(() =>
@@ -83,6 +83,7 @@ const SupportPage = lazy(lazyWithReload(() => import("@/pages/SupportPage").then
 const TermsPage = lazy(lazyWithReload(() => import("@/pages/TermsPage").then((m) => ({ default: m.TermsPage }))));
 const WalletPage = lazy(lazyWithReload(() => import("@/pages/WalletPage").then((m) => ({ default: m.WalletPage }))));
 const CommunitiesHubPage = lazy(lazyWithReload(() => import("@/pages/CommunitiesHubPage").then((m) => ({ default: m.CommunitiesHubPage }))));
+const CommunityScreen = lazy(lazyWithReload(() => import("@/pages/CommunityScreen").then((m) => ({ default: m.CommunityScreen }))));
 
 /** Dispatch `/invite/<segment>`: an naddr is a Concord invite, anything else a relay (Buzz) invite. */
 function InviteRoute() {
@@ -289,12 +290,12 @@ function AppRoutes() {
   const routes = useMemo(
     () => (
         <Routes location={target}>
-          {/* Outside <MainLayout> so the landing and pure redirects don't fetch the frame. */}
+          {/* Outside <AppShell> so the landing and pure redirects don't fetch the frame. */}
           <Route path="/" element={<HomeRedirect />} />
           {/* Old landing address; bookmarks and older builds' logout still use it. */}
           <Route path="/welcome" element={<Navigate to="/" replace />} />
           <Route path="/join" element={<JoinRoute />} />
-          <Route element={<MainLayout />}>
+          <Route element={<AppShell />}>
             <Route path="/s/:server" element={<ServerPage />} />
             <Route path="/s/:server/projects" element={<ProjectsPage />} />
             <Route path="/s/:server/inbox" element={<RequireAuth><InboxPage /></RequireAuth>} />
@@ -339,6 +340,9 @@ function AppRoutes() {
             <Route path="/dm/:peer/m/:messageId" element={<RequireDms><DMsPage /></RequireDms>} />
             <Route path="/wallet" element={<RequireAuth><WalletPage /></RequireAuth>} />
             <Route path="/communities" element={<RequireAuth><CommunitiesHubPage /></RequireAuth>} />
+            <Route path="/cc/:communityId" element={<RequireAuth><CommunityScreen /></RequireAuth>} />
+            <Route path="/cc/:communityId/:channelId" element={<RequireAuth><CommunityScreen /></RequireAuth>} />
+            <Route path="/cc/:communityId/:channelId/m/:messageId" element={<RequireAuth><CommunityScreen /></RequireAuth>} />
             {/* Must precede `/:user`, which would swallow `/dms`. */}
             <Route path="/dms" element={<LegacyDmRedirect />} />
             <Route path="/dms/:peer" element={<LegacyDmRedirect />} />

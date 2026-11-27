@@ -2,7 +2,7 @@ name: CI & Android APK (Cloud Build)
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, signal-ui]
   pull_request:
   workflow_dispatch:
 
@@ -71,3 +71,25 @@ jobs:
         with:
           name: armada-debug-apk
           path: android/app/build/outputs/apk/debug/*.apk
+
+  i18n-sync:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies & Prune i18n Catalogs
+        run: |
+          npm ci
+          node scripts/i18n.mjs prune
+
+      - name: Upload Synced i18n Locales
+        uses: actions/upload-artifact@v6
+        with:
+          name: cchat-i18n-locales
+          path: src/i18n/locales/*.json

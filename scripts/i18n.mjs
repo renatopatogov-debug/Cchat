@@ -365,20 +365,43 @@ function check() {
 
 const [command, arg] = process.argv.slice(2);
 switch (command) {
-  case "extract": {
+  case "extract":
+  case "prune": {
+    const pruneOrphans = command === "prune";
     const source = extract();
     let previous = {};
     try {
       previous = readCatalog("en");
     } catch { /* first extraction */ }
     const changed = Object.keys(source).filter((id) => id in previous && previous[id] !== source[id]);
-    if (changed.length) {
-      for (const locale of TRANSLATED) {
-        const catalog = readCatalog(locale);
-        for (const id of changed) delete catalog[id];
+    let prunedCount = 0;
+    for (const locale of TRANSLATED) {
+      const catalog = readCatalog(locale);
+      let modified = false;
+      for (const id of changed) {
+        if (id in catalog) {
+          delete catalog[id];
+          modified = true;
+        }
+      }
+      if (pruneOrphans) {
+        for (const id of Object.keys(catalog)) {
+          if (!(id in source)) {
+            delete catalog[id];
+            modified = true;
+            prunedCount += 1;
+          }
+        }
+      }
+      if (modified || pruneOrphans) {
         writeFileSync(join(localesDir, `${locale}.json`), serialize(catalog));
       }
+    }
+    if (changed.length) {
       console.log(`English changed, translations dropped for retranslation:\n  ${changed.join("\n  ")}`);
+    }
+    if (pruneOrphans) {
+      console.log(`Pruned ${prunedCount} orphan translation entries across ${TRANSLATED.length} catalogs.`);
     }
     writeFileSync(join(localesDir, "en.json"), serialize(source));
     break;
@@ -406,6 +429,6 @@ switch (command) {
     break;
   }
   default:
-    console.error("usage: node scripts/i18n.mjs extract|check|format|missing [locale]");
+    console.error("usage: node scripts/i18n.mjs extract|prune|check|format|missing [locale]");
     process.exit(2);
 }

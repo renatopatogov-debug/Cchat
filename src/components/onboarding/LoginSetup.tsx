@@ -301,7 +301,7 @@ function isEditableTarget(target: EventTarget | null): boolean {
 
 function StepGlyph({ children }: { children: ReactNode }) {
   return (
-    <div className="flex size-20 items-center justify-center clip-corner-lg bg-primary/15 text-primary">
+    <div className="flex size-20 items-center justify-center rounded-2xl bg-primary/15 text-primary">
       {children}
     </div>
   );
@@ -340,7 +340,7 @@ function NotificationsStep({ onDone }: { onDone: (granted: boolean) => void }) {
       <div className="w-full space-y-3">
         <Button
           size="lg"
-          className="h-12 w-full clip-corner-lg text-base font-medium"
+          className="h-12 w-full rounded-full text-sm font-semibold"
           onClick={enable}
           disabled={busy}
         >
@@ -403,7 +403,7 @@ function WebPushStep({ onDone }: { onDone: () => void }) {
       <div className="w-full space-y-3">
         <Button
           size="lg"
-          className="h-12 w-full clip-corner-lg text-base font-medium"
+          className="h-12 w-full rounded-full text-sm font-semibold"
           onClick={enable}
           disabled={busy}
         >
@@ -455,7 +455,7 @@ function BatteryStep({ onDone }: { onDone: () => void }) {
       <div className="w-full space-y-3">
         <Button
           size="lg"
-          className="h-12 w-full clip-corner-lg text-base font-medium"
+          className="h-12 w-full rounded-full text-sm font-semibold"
           onClick={allow}
           disabled={busy}
         >
@@ -497,7 +497,7 @@ function DecryptStep({ onDone }: { onDone: () => void }) {
       }
     >
       <div className="w-full space-y-3">
-        <div className="clip-corner-lg bg-secondary/40 p-3 text-left">
+        <div className="rounded-2xl border border-border bg-card p-3.5 text-left">
           <p className="text-xs text-muted-foreground">
             <FormattedMessage
               id="loginSetup.decrypt.explainer"
@@ -509,7 +509,7 @@ function DecryptStep({ onDone }: { onDone: () => void }) {
 
         <Button
           size="lg"
-          className="h-12 w-full clip-corner-lg text-base font-medium"
+          className="h-12 w-full rounded-full text-sm font-semibold"
           onClick={() => choose("allowed")}
         >
           <FormattedMessage id="loginSetup.decrypt.allow" defaultMessage="Decrypt my messages" />

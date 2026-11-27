@@ -50,20 +50,22 @@ vi.mock("@/components/auth/AndroidSignerOptions", () => ({ AndroidSignerOptions:
 import LoginScreen from "@/components/auth/LoginScreen";
 import { NOSTR_CONNECT_PERMS } from "@/lib/nostrConnectPerms";
 
-/** The overflow menu's entries, opened the way a keyboard user opens it. */
+/** The advanced-options drawer entries, expanded via the "More login options" toggle. */
 const openMenu = async () => {
   const trigger = screen.getByRole("button", { name: "More login options" });
-  // jsdom has no `PointerEvent`, so the pointerdown Radix opens menus with is not
-  // deliverable here; the keyboard path opens the same menu.
-  fireEvent.keyDown(trigger, { key: "Enter" });
-  await screen.findByRole("menuitem", { name: "Connect remote signer" });
-  return screen.getAllByRole("menuitem").map((item) => item.textContent?.trim());
+  fireEvent.click(trigger);
+  await screen.findByRole("button", { name: "Connect remote signer" });
+  return [
+    screen.getByRole("button", { name: "Select key file" }),
+    screen.getByRole("button", { name: "Connect remote signer" }),
+    screen.getByRole("button", { name: "Open signer app" }),
+  ].map((item) => item.textContent?.trim());
 };
 
 /** Login, then "Connect remote signer", landing on the QR view. */
 const openConnectQr = async () => {
   await openMenu();
-  fireEvent.click(screen.getByRole("menuitem", { name: "Connect remote signer" }));
+  fireEvent.click(screen.getByRole("button", { name: "Connect remote signer" }));
   // The QR paints from a promise; awaiting it keeps the state update inside act.
   await screen.findByRole("img", { name: "QR code" });
 };
@@ -168,7 +170,7 @@ describe("LoginScreen signer link", () => {
 
     const { stub, restore } = stubLocation();
     try {
-      fireEvent.click(screen.getByRole("menuitem", { name: "Open signer app" }));
+      fireEvent.click(screen.getByRole("button", { name: "Open signer app" }));
       await screen.findByRole("img", { name: "QR code" });
       expect(stub.href).toBe(CONNECT_URI);
     } finally {
@@ -186,7 +188,7 @@ describe("LoginScreen signer link", () => {
 
     const { stub, restore } = stubLocation();
     try {
-      fireEvent.click(screen.getByRole("menuitem", { name: "Open signer app" }));
+      fireEvent.click(screen.getByRole("button", { name: "Open signer app" }));
       expect(
         await screen.findByText("Waiting for signer connection…"),
       ).toBeInTheDocument();

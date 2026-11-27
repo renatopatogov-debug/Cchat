@@ -1,9 +1,9 @@
+import { Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import type { NostrEvent } from "@nostrify/nostrify";
 
-import { ArmadaIdentity } from "@/components/brand/ArmadaCrest";
 import { ProfileStepBody } from "@/components/onboarding/ProfileStep";
 import { WizardShell } from "@/components/onboarding/WizardShell";
 import {
@@ -78,7 +78,7 @@ export function SignupWizard({ onExit }: SignupWizardProps) {
   // too. Then exit onto Discover: browsing live communities beats a blank form.
   const finishOnboarding = () => {
     void signupLists.publish(signupKey.nsec, setup, profileRef.current);
-    navigate("/discover");
+    navigate("/dm");
   };
 
   // Log in as the new account; its backup is asked for later.
@@ -169,9 +169,11 @@ export function SignupWizard({ onExit }: SignupWizardProps) {
     return (
       <WizardShell index={0} total={0} stepKey="join" onClose={dismissJoin}>
         <div className="flex flex-col items-center gap-6 text-center">
-          <ArmadaIdentity size={96} />
-          <div className="space-y-2.5">
-            <h1 className="font-mono text-2xl font-bold lowercase tracking-tight text-foreground">
+          <div className="flex size-20 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+            <Users className="size-9" aria-hidden="true" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
               <FormattedMessage
                 id="signupWizard.join.title"
                 defaultMessage="join {name}"
@@ -186,9 +188,9 @@ export function SignupWizard({ onExit }: SignupWizardProps) {
               />
             </p>
           </div>
-          <div className="w-full space-y-1 clip-corner-lg bg-secondary/50 p-3 text-left">
+          <div className="w-full space-y-1 rounded-2xl border border-border bg-card p-3.5 text-left">
             {join.relays.map((url) => (
-              <p key={url} className="break-all font-mono text-xs text-foreground">
+              <p key={url} className="break-all text-xs text-foreground">
                 {host(url)}
               </p>
             ))}
@@ -196,7 +198,7 @@ export function SignupWizard({ onExit }: SignupWizardProps) {
           <div className="w-full space-y-2">
             <Button
               size="lg"
-              className="h-12 w-full clip-corner-lg text-base font-medium"
+              className="h-12 w-full rounded-full text-sm font-semibold"
               onClick={() => setStep("create")}
             >
               <FormattedMessage id="signupWizard.join.create" defaultMessage="Create my account" />

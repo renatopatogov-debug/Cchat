@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
+import { KeyRound, Loader2 } from "lucide-react";
 import { generateSecretKey, getPublicKey, nip19 } from "nostr-tools";
 
-import { ArmadaKey } from "@/components/brand/ArmadaCrest";
 import { Button } from "@/components/ui/button";
 import { common, FormattedMessage } from "@/i18n";
 
@@ -56,9 +56,15 @@ export function useSignupKey(): SignupKey {
 export function CreatingAccountStepBody({ failed, onRetry }: { failed: boolean; onRetry: () => void }) {
   return (
     <div className="flex flex-col items-center gap-6 text-center">
-      <ArmadaKey size={96} />
+      <div className="flex size-20 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+        {failed ? (
+          <KeyRound className="size-9" aria-hidden="true" />
+        ) : (
+          <Loader2 className="size-9 animate-spin" aria-hidden="true" />
+        )}
+      </div>
       <div className="space-y-2">
-        <h1 className="font-mono text-2xl font-bold lowercase tracking-tight text-foreground">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
           {failed ? (
             <FormattedMessage id="signupSteps.createFailedTitle" defaultMessage="couldn't create your account" />
           ) : (
@@ -78,7 +84,7 @@ export function CreatingAccountStepBody({ failed, onRetry }: { failed: boolean; 
         <Button
           type="button"
           size="lg"
-          className="h-12 w-full clip-corner-lg text-base font-medium"
+          className="h-12 w-full rounded-full text-sm font-semibold"
           onClick={onRetry}
         >
           <FormattedMessage {...common.tryAgain} />

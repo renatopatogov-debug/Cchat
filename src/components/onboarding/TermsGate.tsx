@@ -32,7 +32,7 @@ export function TermsGate({ children, onAccepted }: { children?: ReactNode; onAc
 
   return (
     <div className="flex flex-col items-center gap-6 text-center">
-      <h1 className="font-mono text-2xl font-bold lowercase tracking-tight text-foreground">
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">
         <FormattedMessage id="termsGate.title" defaultMessage="before you start" />
       </h1>
       <p className="text-sm leading-relaxed text-muted-foreground">
@@ -41,7 +41,7 @@ export function TermsGate({ children, onAccepted }: { children?: ReactNode; onAc
           defaultMessage="There is no tolerance for objectionable content or abusive users. You can report messages, block people and filter words, and reports sent to support are acted on within 24 hours."
         />
       </p>
-      <label className="flex items-start gap-3 text-left text-sm text-foreground">
+      <label className="flex w-full items-start gap-3 rounded-2xl border border-border bg-card p-3.5 text-left text-sm text-foreground cursor-pointer">
         <Checkbox
           checked={checked}
           onCheckedChange={(v) => setChecked(v === true)}
@@ -56,7 +56,7 @@ export function TermsGate({ children, onAccepted }: { children?: ReactNode; onAc
           />
         </span>
       </label>
-      <Button size="lg" className="w-full clip-corner-lg" disabled={!checked} onClick={accept}>
+      <Button size="lg" className="h-12 w-full rounded-full text-sm font-semibold" disabled={!checked} onClick={accept}>
         <FormattedMessage id="termsGate.continue" defaultMessage="Continue" />
       </Button>
     </div>

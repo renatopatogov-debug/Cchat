@@ -162,7 +162,7 @@ export function ProfileStepBody({ expectedPubkey, onPublished, onFinish }: Profi
 
   return (
     <div className="flex flex-col items-center gap-6 text-center">
-      <h1 className="font-mono text-2xl font-bold lowercase tracking-tight text-foreground">
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">
         <FormattedMessage id="profileStep.title" defaultMessage="set up your profile" />
       </h1>
 
@@ -200,13 +200,11 @@ export function ProfileStepBody({ expectedPubkey, onPublished, onFinish }: Profi
         />
       </div>
 
-      {/* Frame is a wrapper, not an input `border`: clip-path slices borders at the
-          cut corners (see `.clip-hairline-lg`), and inputs have no ::before. */}
       <div className="w-full">
         <label htmlFor="onboarding-name" className="sr-only">
           <FormattedMessage id="profileStep.yourName" defaultMessage="Your name" />
         </label>
-        <div className="clip-hairline-lg [--edge:var(--border)] [--fill:var(--muted)] [--fill-hover:var(--muted)] focus-within:[--edge:var(--ring)]">
+        <div className="rounded-2xl border border-border bg-card focus-within:ring-2 focus-within:ring-ring">
           <Input
             id="onboarding-name"
             value={name}
@@ -216,7 +214,7 @@ export function ProfileStepBody({ expectedPubkey, onPublished, onFinish }: Profi
             autoCapitalize="words"
             enterKeyHint="done"
             maxLength={64}
-            className="h-12 touch:h-12 border-0 bg-transparent text-center text-base focus-visible:border-0"
+            className="h-12 touch:h-12 border-0 bg-transparent text-center text-base focus-visible:ring-0 focus-visible:ring-offset-0"
           />
         </div>
       </div>
@@ -265,7 +263,7 @@ export function ProfileStepBody({ expectedPubkey, onPublished, onFinish }: Profi
         <Button
           type="button"
           size="lg"
-          className="h-12 w-full clip-corner-lg text-base font-medium"
+          className="h-12 w-full rounded-full text-sm font-semibold"
           onClick={handleFinish}
           disabled={busy}
         >

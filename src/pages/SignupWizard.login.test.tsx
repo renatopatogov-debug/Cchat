@@ -121,7 +121,7 @@ describe("SignupWizard account creation", () => {
     expect(h.nsec.mock.calls[1][0]).toBe(h.nsec.mock.calls[0][0]);
   });
 
-  it("publishes the default lists and exits onto Discover once the profile step finishes", async () => {
+  it("publishes the default lists and exits directly to DMs once the profile step finishes", async () => {
     h.nsec.mockImplementation(async () => {
       h.user = { pubkey: "a".repeat(64) };
     });
@@ -141,6 +141,6 @@ describe("SignupWizard account creation", () => {
       }),
       undefined,
     );
-    expect(h.navigate).toHaveBeenCalledWith("/discover");
+    expect(h.navigate).toHaveBeenCalledWith("/dm");
   });
 });

@@ -155,13 +155,14 @@ export function deriveTokensFromCore(
   const dark = isDarkTheme(background);
   const primaryParsed = parseHsl(primary);
 
-  const card = dark ? lighten(background, 2) : background;
-  const popover = dark ? lighten(background, 2) : background;
-  const secondarySurface = dark ? lighten(background, 8) : darken(background, 4);
-  const muted = dark ? lighten(background, 8) : darken(background, 4);
+  const bgParsed = parseHsl(background);
+  const card = dark ? lighten(background, 3.5) : "220 14% 97%";
+  const popover = dark ? lighten(background, 3.5) : background;
+  const secondarySurface = dark ? lighten(background, 7) : darken(background, 4);
+  const muted = dark ? lighten(background, 7) : darken(background, 4);
   const border = dark
-    ? formatHsl(primaryParsed.h, primaryParsed.s * 0.4, 30)
-    : formatHsl(primaryParsed.h, primaryParsed.s * 0.5, 82);
+    ? formatHsl(bgParsed.h, Math.min(bgParsed.s, 18), 18)
+    : formatHsl(primaryParsed.h, primaryParsed.s * 0.15, 90);
   const input = border;
 
   // Scale saturation proportionally so muted text keeps the theme's hue.
@@ -182,8 +183,8 @@ export function deriveTokensFromCore(
   const warning = dark ? "43 96% 56%" : "32 95% 36%";
   const warningFg = dark ? "26 83% 14%" : "48 100% 96%";
 
-  // Phosphor-cyan counter-accent, fixed so it stays cold against warm primaries.
-  const accent2 = dark ? "180 90% 55%" : "190 85% 40%";
+  // Clean sky-blue counter-accent (used for Bluetooth Mesh indicators).
+  const accent2 = dark ? "199 89% 48%" : "199 89% 42%";
 
   // Chrome planes (top bar, rails, sidebars). Dark: composite black/30, /40 and
   // white/10 over the background. Light: a black overlay looks muddy, so darken

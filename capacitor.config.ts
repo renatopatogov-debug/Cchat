@@ -5,7 +5,7 @@ import { KeyboardResize } from '@capacitor/keyboard';
 
 const config: CapacitorConfig = {
   appId: 'buzz.armada.app',
-  appName: 'Armada',
+  appName: 'Cchat',
   webDir: 'dist',
   // No Capacitor bridge logging, in debug builds too (the default logs there).
   // It writes every plugin call AND its full result to logcat and routes every
@@ -20,14 +20,10 @@ const config: CapacitorConfig = {
   },
   android: {
     allowMixedContent: false,
-    // Match the app's dark theme background (index.html theme-color #100b15).
-    backgroundColor: '#100b15',
+    backgroundColor: '#121317',
   },
   ios: {
-    // Match the app's dark theme background (index.html theme-color #100b15),
-    // so the gap behind the WebView during launch/rubber-band scrolling is the
-    // app color rather than white.
-    backgroundColor: '#100b15',
+    backgroundColor: '#121317',
     // The WebView owns its own insets: the app pads with
     // env(safe-area-inset-*) (see index.css), so UIKit must not additionally
     // inset the scroll view or the top chrome gets double padding.

@@ -39,8 +39,8 @@
      *                     headers, panels, the top bar). "the hull."
      * The tension between a framed hull and round content is the posture.
      */
-    --radius: 0.75rem;
-    --radius-chrome: 0.1875rem; /* 3px */
+    --radius: 1rem;
+    --radius-chrome: 0.875rem;
     --top-bar-height: 3rem;
     --bottom-nav-height: 3.25rem;
     /* Bottom inset for persistent bottom chrome (composer, sidebar footers, the
@@ -455,28 +455,20 @@
  */
 @layer utilities {
   .neon-glow {
-    box-shadow:
-      0 0 0 1px hsl(var(--primary) / 0.5),
-      0 0 12px -2px hsl(var(--primary) / 0.45);
+    box-shadow: 0 2px 10px -2px hsl(var(--primary) / 0.25);
   }
   .neon-glow-strong {
-    box-shadow:
-      0 0 0 1px hsl(var(--primary) / 0.7),
-      0 0 8px -1px hsl(var(--primary) / 0.55),
-      0 0 22px -3px hsl(var(--primary) / 0.4);
+    box-shadow: 0 4px 16px -2px hsl(var(--primary) / 0.35);
   }
-  /* Neon text/icon for crests and active labels. */
+  /* Clean text/icon accents (replaces neon halo). */
   .neon-text {
     color: hsl(var(--primary));
-    text-shadow: 0 0 8px hsl(var(--primary) / 0.55);
   }
-  /* Phosphor-cyan wake — the cold counter-accent glow. */
   .wake-glow {
-    box-shadow: 0 0 0 1px hsl(var(--accent2) / 0.5), 0 0 12px -2px hsl(var(--accent2) / 0.5);
+    box-shadow: 0 2px 10px -2px hsl(var(--accent2) / 0.25);
   }
   .wake-text {
     color: hsl(var(--accent2));
-    text-shadow: 0 0 8px hsl(var(--accent2) / 0.5);
   }
 
   /*
@@ -489,29 +481,11 @@
    * People (avatars) stay round; vessels and chrome are cut-square.
    */
   .clip-corner-lg {
-    --cut: 0.7rem;
-    border-radius: 0.55rem;
-    clip-path: polygon(
-      var(--cut) 0,
-      100% 0,
-      100% calc(100% - var(--cut)),
-      calc(100% - var(--cut)) 100%,
-      0 100%,
-      0 var(--cut)
-    );
+    border-radius: 1rem;
   }
-  /* The same chamfer at row scale: menu items, toast actions, small icons. */
+  /* Soft Signal-style rounded pill/row scale (replaces octagon chamfers). */
   .clip-corner {
-    --cut: 0.375rem;
-    border-radius: 0.3rem;
-    clip-path: polygon(
-      var(--cut) 0,
-      100% 0,
-      100% calc(100% - var(--cut)),
-      calc(100% - var(--cut)) 100%,
-      0 100%,
-      0 var(--cut)
-    );
+    border-radius: 0.75rem;
   }
 
   /*
@@ -542,11 +516,7 @@
   /* A 2px edge for a `clip-corner-lg` tile, diagonals included (an inset ring alone
      stops at the chamfers). Lay it over the tile as an overlay. */
   .clip-corner-lg-ring {
-    --cut: 0.7rem;
-    border-radius: 0.55rem;
-    background:
-      linear-gradient(135deg, transparent 50%, var(--ring-edge) 50% calc(50% + 2px), transparent calc(50% + 2px)) top left / var(--cut) var(--cut) no-repeat,
-      linear-gradient(135deg, transparent calc(50% - 2px), var(--ring-edge) calc(50% - 2px) 50%, transparent 50%) bottom right / var(--cut) var(--cut) no-repeat;
+    border-radius: 1rem;
     box-shadow: inset 0 0 0 2px var(--ring-edge);
   }
   .vessel-lift {
@@ -598,27 +568,14 @@
    * is at z-index:-1 within the element's own isolated stacking context).
    */
   .clip-hairline-lg {
-    --cut: 0.7rem;
     --fill: var(--background) / 0.4;
     --fill-hover: var(--background) / 0.6;
-    --edge: var(--border) / 0.6;
-    /* What a translucent fill sits on. Without it the fill composites over the
-       edge colour, and every card reads as a tint of the border. */
+    --edge: var(--border) / 0.7;
     --fill-base: var(--background);
     isolation: isolate;
-    border-radius: 0.55rem;
-    clip-path: polygon(
-      var(--cut) 0,
-      100% 0,
-      100% calc(100% - var(--cut)),
-      calc(100% - var(--cut)) 100%,
-      0 100%,
-      0 var(--cut)
-    );
+    border-radius: 1rem;
     background: hsl(var(--edge));
   }
-  /* Anchors the ::before. Zero specificity, so `absolute` or `fixed` on the
-     same element still positions it; this rule is emitted after them. */
   :where(.clip-hairline-lg) {
     position: relative;
   }
@@ -627,18 +584,7 @@
     position: absolute;
     inset: 1px;
     z-index: -1;
-    /* The frame's radius less the 1px edge, so the fill follows the two
-       rounded corners too. Square, it painted straight over the edge along
-       each curve and the hairline vanished there. */
-    border-radius: calc(0.55rem - 1px);
-    clip-path: polygon(
-      var(--cut) 0,
-      100% 0,
-      100% calc(100% - var(--cut)),
-      calc(100% - var(--cut)) 100%,
-      0 100%,
-      0 var(--cut)
-    );
+    border-radius: calc(1rem - 1px);
     background-color: hsl(var(--fill-base));
     background-image: linear-gradient(hsl(var(--fill)), hsl(var(--fill)));
   }

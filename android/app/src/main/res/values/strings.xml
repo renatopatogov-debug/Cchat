@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name" translatable="false">Armada</string>
-    <string name="title_activity_main" translatable="false">Armada</string>
+    <string name="app_name" translatable="false">Cchat</string>
+    <string name="title_activity_main" translatable="false">Cchat</string>
     <string name="package_name" translatable="false">buzz.armada.app</string>
     <string name="custom_url_scheme" translatable="false">buzz.armada.app</string>
 

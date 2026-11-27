@@ -1,30 +1,22 @@
-<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Armada">
-  <title>Armada</title>
-
-  <!-- Flat violet-black sea. No gradients. -->
-  <rect width="1200" height="630" fill="#100b15"/>
-
-  <!-- The Armada mark — flat fills, no glow. Same geometry as public/logo.svg. -->
-  <g transform="translate(112, 179) scale(2.0)">
-    <!-- three cyan wave lines -->
-    <g fill="#19e6e6">
-      <path d="M95.4 104.865H32.59c-1.18 0-2.14-.96-2.14-2.14s.96-2.14 2.14-2.14H95.4c1.18 0 2.14.96 2.14 2.14s-.96 2.14-2.14 2.14z"/>
-      <path d="M83.98 115.565H44.01a1.43 1.43 0 1 1 0-2.86h39.97a1.43 1.43 0 1 1 0 2.86z"/>
-      <path d="M73.99 123.775H54.01a1.071 1.071 0 0 1 0-2.14h19.98a1.071 1.071 0 0 1 0 2.14z"/>
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Cchat">
+  <title>Cchat</title>
+  <rect width="1200" height="630" fill="#121317" />
+  <g transform="translate(130, 187)">
+    <rect width="256" height="256" rx="60" fill="#2C6BED" />
+    <g transform="translate(16, 16) scale(1.75)">
+      <path
+        d="M47.2 97.3 A40 40 0 1 0 30.7 80.8 L22.5 104.5 L47.2 97.3 Z"
+        stroke="#FFFFFF"
+        stroke-width="8.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+      <circle cx="66" cy="62" r="9.5" fill="#FFFFFF" />
     </g>
-    <!-- the rose sail / advancing A -->
-    <path d="M64 4.225l-39.97 88.5h17.13l2.31-5.2 2.76-6.22-2.22-1.43-1.42-12.84h9.99l4.89-11.01L64 41.335l11.42 25.7h9.99l-1.43 12.84-2.22 1.43 2.77 6.22 2.31 5.2h17.13z" fill="#fb4d96"/>
-    <path d="M76.84 79.165c-.15 0-.31-.05-.44-.15l-12.41-9.65-12.41 9.65c-.31.24-.76.19-1-.13a.706.706 0 0 1 .13-1l12.85-9.99c.26-.2.62-.2.88 0l12.85 9.99a.715.715 0 0 1-.43 1.28z" fill="#fb4d96"/>
   </g>
-
-  <!-- Monospace wordmark + terminal-style tagline. -->
-  <g font-family="'JetBrains Mono','Courier New',monospace">
-    <text x="400" y="300" font-size="92" font-weight="700" letter-spacing="2" fill="#f1e7d2">armada</text>
-    <text x="402" y="356" font-size="26" letter-spacing="1" fill="#fb4d96">
-      <tspan fill="#19e6e6">$ </tspan>a sovereign harbor on the open relays
-    </text>
-    <text x="402" y="396" font-size="26" letter-spacing="1" fill="#f1e7d2" fill-opacity="0.55">
-      your keys. your fleet.<tspan fill="#fb4d96">_</tspan>
-    </text>
+  <g font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">
+    <text x="440" y="295" font-size="96" font-weight="700" fill="#F3F4F6">Cchat</text>
+    <text x="442" y="355" font-size="28" fill="#9CA3AF">Privacidade que protege seu dinheiro.</text>
+    <text x="442" y="400" font-size="24" fill="#2C6BED">Chat E2EE • Carteira BRZ • Mesh Offline</text>
   </g>
 </svg>

@@ -1,4 +1,4 @@
-import { AtSign, Bell, BellOff, CheckCheck, ChevronLeft, ChevronRight, Copy, Flag, Headphones, Inbox, Loader2, Lock, MessageSquare, MoreVertical, PanelLeft, PanelLeftDashed, PenSquare, Phone, PhoneOff, Pin, PinOff, Plus, Search, ShieldCheck, Sparkles, Timer, User, UserCheck, Users, UserX, X } from "lucide-react";
+import { AtSign, Bell, BellOff, CheckCheck, ChevronLeft, ChevronRight, Copy, Flag, Headphones, Inbox, Loader2, Lock, MessageSquare, MoreVertical, PanelLeft, PanelLeftDashed, PenSquare, Phone, PhoneOff, Pin, PinOff, Plus, QrCode, Search, ShieldCheck, Sparkles, Timer, User, UserCheck, Users, UserX, WifiOff, X } from "lucide-react";
 import { nip19 } from "nostr-tools";
 import { Fragment, memo, useCallback, useContext, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode, type UIEvent } from "react";
 import { useLocation, useNavigate, useParams, Navigate } from "react-router-dom";
@@ -23,6 +23,11 @@ import { useTimelineFocus } from "@/hooks/useTimelineFocus";
 import { TypingIndicator } from "@/components/chat/TypingIndicator";
 import { LoginArea } from "@/components/auth/LoginArea";
 import { ServerRail } from "@/components/layout/ServerRail";
+import { SignalBottomNav } from "@/components/layout/SignalBottomNav";
+import { MeshContext } from "@/contexts/MeshContext";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import type { MeshPeer } from "@/lib/bluetoothMesh";
+import { findBoundMeshPeer } from "@/lib/meshBindings";
 import { VoicePresence } from "@/components/VoicePresence";
 import { BotPill } from "@/components/BotPill";
 import { UltraPill } from "@/components/UltraPill";
@@ -212,6 +217,7 @@ const ConversationRow = memo(function ConversationRow({
   request,
   sharedCommunity,
   closable,
+  inMesh,
   actions,
 }: {
   conversation: string;
@@ -226,6 +232,7 @@ const ConversationRow = memo(function ConversationRow({
   active: boolean;
   pinned: boolean;
   onRail: boolean;
+  inMesh?: boolean;
   /**
    * Request-tier row: no profile picture (fetching it would reveal our IP to an
    * unknown sender), and accept/block instead of the pin menu.
@@ -290,6 +297,14 @@ const ConversationRow = memo(function ConversationRow({
                   <DisplayName pubkey={peers[0]} name={name} />
                 )}
               </div>
+              {inMesh && (
+                <span
+                  title="No alcance Bluetooth Mesh"
+                  className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-sky-500 text-[9px] font-bold text-white shadow-sm"
+                >
+                  M
+                </span>
+              )}
               {!noteToSelf && !group && <BotPill metadata={metadata} />}
               {!noteToSelf && !group && <UltraPill metadata={metadata} interactive={false} />}
             </div>
@@ -2112,6 +2127,12 @@ export function ConversationList({
   loadMore,
   hasMore,
   isLoadingMore,
+  onOpenWallet,
+  meshPeers,
+  meshAvailable,
+  isOffline,
+  onOpenMeshPeer,
+  bottomNav,
   className,
 }: {
   rows: DmListRow[];
@@ -2135,8 +2156,16 @@ export function ConversationList({
   loadMore: () => Promise<number>;
   hasMore: boolean;
   isLoadingMore: boolean;
+  onOpenWallet?: () => void;
+  meshPeers?: MeshPeer[];
+  meshAvailable?: boolean;
+  isOffline?: boolean;
+  onOpenMeshPeer?: () => void;
+  bottomNav?: ReactNode;
   className?: string;
 }) {
+  const [signalFilter, setSignalFilter] = useState<"all" | "unread" | "mesh">("all");
+  const liveMeshPeers = useMemo(() => meshPeers ?? [], [meshPeers]);
   const { user } = useCurrentUser();
   const { getLastRead } = useReadState();
   const { registerCallBarSlot, activeCall } = useCall();
@@ -2257,7 +2286,19 @@ export function ConversationList({
     block: (peer) => void rowActionsRef.current.blockPeer(peer),
   }), []);
 
-  const renderRow = (c: DmListRow, index: number, request = false) => (
+  const renderRow = (c: DmListRow, index: number, request = false) => {
+    const peerInMesh =
+      c.peers.length === 1 && Boolean(findBoundMeshPeer(c.peers[0], liveMeshPeers));
+    const isUnreadRow =
+      c.latest !== undefined &&
+      c.latest.pubkey !== user?.pubkey &&
+      c.latest.created_at > getLastRead(dmReadKey(c.conversation)) &&
+      c.conversation !== activePeer;
+
+    if (!request && signalFilter === "unread" && !isUnreadRow) return null;
+    if (!request && signalFilter === "mesh" && !peerInMesh) return null;
+
+    return (
     <DeferredRow key={c.conversation} active={gateRows && index >= EAGER_ROWS} minHeight={ROW_MIN_H}>
     <ConversationRow
       peers={c.peers}
@@ -2266,15 +2307,11 @@ export function ConversationList({
       previewText={config.showDmPreviews ? c.plaintext ?? previews[c.conversation] : undefined}
       query={search}
       messageMatch={messageMatches.get(c.conversation)?.text}
-      unread={
-        c.latest !== undefined &&
-        c.latest.pubkey !== user?.pubkey &&
-        c.latest.created_at > getLastRead(dmReadKey(c.conversation)) &&
-        c.conversation !== activePeer
-      }
+      unread={isUnreadRow}
       active={c.conversation === activePeer}
       pinned={isPinned(c.conversation)}
       onRail={isOnRail(c.conversation)}
+      inMesh={peerInMesh}
       request={request}
       sharedCommunity={request ? sharedCommunities.get(c.conversation) : undefined}
       inCall={Boolean(activeCall?.dmPeer) && activeCall?.dmPeer === c.conversation}
@@ -2285,7 +2322,8 @@ export function ConversationList({
       actions={rowActions}
     />
     </DeferredRow>
-  );
+    );
+  };
 
   // Slot for the persistent desktop call bar (like ChannelSidebar).
   const callBarRef = useRef<HTMLDivElement>(null);
@@ -2364,6 +2402,18 @@ export function ConversationList({
                   <TooltipContent>{markAllReadLabel}</TooltipContent>
                 </Tooltip>
               )}
+              {onOpenWallet && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 touch:size-11 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
+                  aria-label="Ler ou gerar QR Code"
+                  onClick={onOpenWallet}
+                >
+                  <QrCode className="size-4" />
+                </Button>
+              )}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -2435,7 +2485,83 @@ export function ConversationList({
       </div>
 
       {/* pan-y: a scroller re-allows every pan, letting the browser claim the close swipe. */}
+      {!requesting && (onOpenWallet || meshAvailable) && (
+        <div className="px-3 pb-1.5 space-y-2 shrink-0">
+          {isOffline && (
+            <div className="rounded-2xl bg-sky-500/15 border border-sky-500/30 px-3 py-2 flex items-center justify-between text-xs text-sky-400">
+              <span className="flex items-center gap-1.5 font-medium">
+                <WifiOff className="size-3.5 shrink-0" />
+                Sem internet • {meshAvailable ? "Mesh ativa" : "Modo offline"}
+              </span>
+              {meshAvailable && <span className="font-bold">{liveMeshPeers.length} por perto</span>}
+            </div>
+          )}
+          <div className="flex items-center gap-1.5 overflow-x-auto text-xs pb-0.5">
+            <button
+              type="button"
+              onClick={() => setSignalFilter("all")}
+              className={cn(
+                "px-3 py-1 rounded-full font-medium whitespace-nowrap transition-colors",
+                signalFilter === "all"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary/70 text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Todas
+            </button>
+            <button
+              type="button"
+              onClick={() => setSignalFilter("unread")}
+              className={cn(
+                "px-3 py-1 rounded-full font-medium whitespace-nowrap transition-colors",
+                signalFilter === "unread"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary/70 text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Não lidas
+            </button>
+            {meshAvailable && (
+              <button
+                type="button"
+                onClick={() => setSignalFilter("mesh")}
+                className={cn(
+                  "px-3 py-1 rounded-full font-medium whitespace-nowrap flex items-center gap-1 transition-colors",
+                  signalFilter === "mesh"
+                    ? "bg-sky-500 text-white"
+                    : "bg-secondary/70 text-sky-400 hover:bg-secondary",
+                )}
+              >
+                <span className="font-bold">M</span>
+                <span>Por perto ({liveMeshPeers.length})</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto touch-pan-y px-3 py-2 sidebar:pt-2.5" onScroll={handleListScroll}>
+        {signalFilter === "mesh" && liveMeshPeers.length > 0 && (
+          <div className="mb-2 space-y-1">
+            {liveMeshPeers.map((peer) => (
+              <button
+                key={peer.peerID}
+                type="button"
+                onClick={onOpenMeshPeer}
+                className="w-full rounded-2xl bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/25 px-3 py-2.5 flex items-center justify-between text-left transition-colors"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="size-9 rounded-full bg-sky-500 text-white text-xs font-bold flex items-center justify-center shrink-0">
+                    M
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold truncate">{peer.nickname || `Mesh ${peer.peerID.slice(0, 6)}`}</p>
+                    <p className="text-xs text-sky-400 truncate">No alcance Bluetooth Mesh • Toque p/ conversar</p>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
         {dmSupported && !requesting && <DmInboxNotice dismissible className="mb-2" />}
         {!dmSupported ? (
           <p className="text-sm text-muted-foreground p-3">
@@ -2575,11 +2701,13 @@ export function ConversationList({
 
       <div ref={callBarRef} className="empty:hidden shrink-0" />
 
-      <div className="px-3 pb-[var(--bottom-chrome-pad)] sidebar:pb-[var(--safe-area-pad-bottom-tight)] shrink-0">
+      <div className="hidden sidebar:block px-3 pb-[var(--safe-area-pad-bottom-tight)] shrink-0">
         <div className="sidebar:pb-2">
           <LoginArea className="w-full flex" />
         </div>
       </div>
+
+      {bottomNav}
     </aside>
   );
 }
@@ -2620,6 +2748,8 @@ export function DMsPage() {
   const { close: closeDm, closeMany: closeManyDms, reopen: reopenDm, reopenForNewMessages, isClosed: isDmClosed } = useClosedDms();
   const [composing, setComposing] = useState(false);
   const [listView, setListView] = useState<DmListView>("inbox");
+  const meshCtx = useContext(MeshContext);
+  const online = useOnlineStatus();
 
   // True until EVERY input to `rows` settles; a partial list is wrong and
   // re-sorts, so show the snapshot/roster/skeletons meanwhile. (`kind4Loading`
@@ -3014,7 +3144,9 @@ export function DMsPage() {
         canClose: !!returnPeer,
         underlay: (
         <>
-          <ServerRail />
+          <div className="hidden sidebar:contents">
+            <ServerRail />
+          </div>
           <ConversationList
             rows={displayRows}
             requestRows={visibleRequestRows}
@@ -3035,7 +3167,13 @@ export function DMsPage() {
             loadMore={loadMore}
             hasMore={hasMore}
             isLoadingMore={isLoadingMore}
-            // Wider than ChannelSidebarView: rows carry avatar, name and preview.
+            onOpenWallet={() => navigate("/wallet")}
+            meshPeers={meshCtx?.mesh.peers}
+            meshAvailable={meshCtx?.mesh.available}
+            isOffline={!online}
+            onOpenMeshPeer={() => navigate("/mesh")}
+            bottomNav={<SignalBottomNav unreadCount={hasUnreadDms ? 1 : 0} />}
+            // Full width on mobile (Signal style), sidebar width on desktop.
             className="w-72 xl:w-80 touch:max-sidebar:flex-1"
           />
         </>

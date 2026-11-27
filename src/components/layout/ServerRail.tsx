@@ -1,4 +1,4 @@
-import { Bell, Bluetooth, CheckCheck, Compass, Folder, FolderMinus, FolderOpen, Headphones, Lock, LogOut, MailPlus, MessageSquare, PanelLeftDashed, Pencil, Plus, Settings, Trash2, Wallet } from "lucide-react";
+import { Bell, CheckCheck, Compass, Folder, FolderMinus, FolderOpen, Headphones, Lock, LogOut, MailPlus, MessageSquare, PanelLeftDashed, Pencil, Plus, Settings, Trash2, Users, Wallet } from "lucide-react";
 import { nip19 } from "nostr-tools";
 import { createContext, memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -88,6 +88,7 @@ const RAIL_MESSAGES = defineMessages({
   mentioned: { id: "serverRail.mentioned", defaultMessage: "You were mentioned" },
   unread: { id: "serverRail.unread", defaultMessage: "Unread messages" },
   markAsRead: { id: "serverRail.markAsRead", defaultMessage: "Mark as read" },
+  nearbyMesh: { id: "serverRail.nearbyMesh", defaultMessage: "Nearby mesh" },
   messageNotifications: { id: "serverRail.messageNotifications", defaultMessage: "Message notifications" },
   unreadCount: {
     id: "serverRail.unreadCount",
@@ -1789,15 +1790,15 @@ function ServerRailInner({
           />
         ))}
 
-        {/* Mesh only where it can run (Android with BLE). */}
-        {user && mesh.available && (
+        {/* Mesh is integrated directly into Conversations (/dm); standalone rail button omitted. */}
+        {user && (
           <Tooltip>
             <TooltipTrigger asChild>
               <NavLink
-                to="/mesh"
-                aria-label={intl.formatMessage({ id: "serverRail.nearbyMesh", defaultMessage: "Nearby mesh" })}
+                to="/communities"
+                aria-label="Comunidades"
                 onClick={() => {
-                  onPressedFor("nav:mesh")();
+                  onPressedFor("nav:communities")();
                   onNavigate?.();
                 }}
                 className="group relative flex items-center justify-center shrink-0"
@@ -1807,7 +1808,7 @@ function ServerRailInner({
                     "absolute -left-2 w-[3px] bg-primary transition-all",
                     "h-2 opacity-0 group-hover:opacity-60 group-hover:h-6",
                     "group-aria-[current=page]:h-12 group-aria-[current=page]:opacity-100",
-                    pendingNav === "nav:mesh" && "h-12 opacity-100",
+                    pendingNav === "nav:communities" && "h-12 opacity-100",
                   )}
                 />
                 <span
@@ -1819,19 +1820,19 @@ function ServerRailInner({
                   <span
                     className={cn(
                       "flex items-center justify-center size-12 clip-corner-lg transition-all duration-150",
-                      "bg-muted text-primary opacity-50 saturate-50",
+                      "bg-muted text-primary opacity-60 saturate-75",
                       "group-hover:opacity-100 group-hover:saturate-100",
                       "group-aria-[current=page]:opacity-100 group-aria-[current=page]:saturate-100",
-                      pendingNav === "nav:mesh" && "opacity-100 saturate-100",
+                      pendingNav === "nav:communities" && "opacity-100 saturate-100",
                     )}
                   >
-                    <Bluetooth className="size-5" />
+                    <Users className="size-5" />
                   </span>
                 </span>
               </NavLink>
             </TooltipTrigger>
             <RailTooltipContent side="right" className="font-medium">
-              <FormattedMessage id="serverRail.nearbyMesh" defaultMessage="Nearby mesh" />
+              Comunidades
             </RailTooltipContent>
           </Tooltip>
         )}

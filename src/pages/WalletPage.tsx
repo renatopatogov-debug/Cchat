@@ -4,10 +4,8 @@ import {
   Bluetooth,
   Camera,
   CheckCircle2,
-  Compass,
   Copy,
   KeyRound,
-  MessageSquare,
   QrCode,
   RefreshCw,
   Settings2,
@@ -18,9 +16,9 @@ import {
 } from "lucide-react";
 import { nip19 } from "nostr-tools";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { NavLink } from "react-router-dom";
 
 import { EscrowOrderCard } from "@/components/chat/EscrowOrderCard";
+import { SignalBottomNav } from "@/components/layout/SignalBottomNav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { QRCodeCanvas } from "@/components/ui/qrcode";
@@ -770,33 +768,7 @@ export function WalletPage() {
         </div>
       </div>
 
-      {/* Barra Mobile Estilo Signal (3 Abas: Conversas | Comunidades | Carteira) */}
-      <nav
-        aria-label="Navegação principal mobile"
-        className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-background/95 backdrop-blur flex items-center justify-around py-2 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)]"
-      >
-        <NavLink
-          to="/dm"
-          className="flex flex-col items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground"
-        >
-          <MessageSquare className="size-5" />
-          <span>Conversas</span>
-        </NavLink>
-        <NavLink
-          to="/discover"
-          className="flex flex-col items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground"
-        >
-          <Compass className="size-5" />
-          <span>Comunidades</span>
-        </NavLink>
-        <NavLink
-          to="/wallet"
-          className="flex flex-col items-center gap-0.5 text-xs text-primary font-semibold"
-        >
-          <Wallet className="size-5" />
-          <span>Carteira</span>
-        </NavLink>
-      </nav>
+      <SignalBottomNav />
     </div>
   );
 }

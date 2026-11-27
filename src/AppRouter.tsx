@@ -23,11 +23,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { useAppContext } from "@/hooks/useAppContext";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useOnboardingActive } from "@/hooks/useOnboarding";
-import { useMeshTransport } from "@/hooks/useMeshTransport";
-import { useOnlineStatus } from "@/hooks/useOnlineStatus";
-import { useNip29Servers } from "@/hooks/useNip29Servers";
-import { useIsBlocked } from "@/lib/blocklistStore";
-import { firstRailRoute, homeSkippedOf, type HomeLandingState } from "@/lib/railLayout";
 import { parseJoinLink, setPendingJoin } from "@/lib/joinLink";
 import { CONCORD2_PANES } from "@/lib/routes";
 import { lazyWithReload } from "@/lib/chunkReload";
@@ -87,6 +82,7 @@ const SharePage = lazy(lazyWithReload(() => import("@/pages/SharePage").then((m)
 const SupportPage = lazy(lazyWithReload(() => import("@/pages/SupportPage").then((m) => ({ default: m.SupportPage }))));
 const TermsPage = lazy(lazyWithReload(() => import("@/pages/TermsPage").then((m) => ({ default: m.TermsPage }))));
 const WalletPage = lazy(lazyWithReload(() => import("@/pages/WalletPage").then((m) => ({ default: m.WalletPage }))));
+const CommunitiesHubPage = lazy(lazyWithReload(() => import("@/pages/CommunitiesHubPage").then((m) => ({ default: m.CommunitiesHubPage }))));
 
 /** Dispatch `/invite/<segment>`: an naddr is a Concord invite, anything else a relay (Buzz) invite. */
 function InviteRoute() {
@@ -114,8 +110,6 @@ function JoinRoute() {
 function HomeRedirect() {
   const { config } = useAppContext();
   const { user } = useCurrentUser();
-  const { mesh } = useMeshTransport();
-  const online = useOnlineStatus();
   // Set synchronously before the wizard's `login.*`, so the redirects below don't
   // yank the user out of onboarding.
   const onboarding = useOnboardingActive();
@@ -144,52 +138,20 @@ function HomeRedirect() {
     };
   }, []);
 
-  // Land on the first item of the arranged rail. `railLayout` is in app config and
-  // available synchronously, so this doesn't race the lists' async load.
-  const liveServers = useNip29Servers();
-  const isBlocked = useIsBlocked();
-  const { state: historyState } = useLocation();
-  const homeSkipped = useMemo(() => homeSkippedOf(historyState) ?? [], [historyState]);
-  const firstRoute = useMemo(() => {
-    const skipped = new Set(homeSkipped);
-    return firstRailRoute(config.railLayout, liveServers, (id) => isBlocked(id) || skipped.has(id));
-  }, [config.railLayout, liveServers, isBlocked, homeSkipped]);
-  const landingState = useMemo<HomeLandingState>(() => ({ homeSkipped }), [homeSkipped]);
-
   if (!state.ready) {
-    // Launch URL not yet known: hold the redirect (can reach the 1.5s bridge timeout).
     return user ? <BootSplash /> : <BlankSplash />;
   }
   if (state.deepLink) {
     return <Navigate to={state.deepLink} replace />;
   }
 
-  // `onboarding` keeps the wizard mounted across its own login.
   if (!user || onboarding) {
     return <WelcomePage />;
   }
 
-  // Offline: mesh is the only working transport, but only on Android with BLE.
-  // Wait briefly for the availability probe.
-  if (!online) {
-    if (mesh.probing) {
-      return <BootSplash />;
-    }
-    if (mesh.available) {
-      return <Navigate to="/mesh" replace />;
-    }
-  }
-
-  if (!firstRoute) {
-    // No community yet: mesh where available, else DMs. Don't force the landing,
-    // or community-less users are re-onboarded on every relaunch.
-    if (mesh.available) {
-      return <Navigate to="/mesh" replace />;
-    }
-    // `/dm` bounces to `/` when DMs are disabled, so avoid the loop.
-    return <Navigate to={config.dmsDisabled ? "/discover" : "/dm"} replace />;
-  }
-  return <Navigate to={firstRoute} replace state={landingState} />;
+  // Signal-first UX: signed-in users always land directly on Conversations (/dm),
+  // where Bluetooth Mesh is integrated seamlessly.
+  return <Navigate to={config.dmsDisabled ? "/communities" : "/dm"} replace />;
 }
 
 /** Bounce signed-out users to `/` for account-scoped routes. */
@@ -376,6 +338,7 @@ function AppRoutes() {
             <Route path="/dm/:peer" element={<RequireDms><DMsPage /></RequireDms>} />
             <Route path="/dm/:peer/m/:messageId" element={<RequireDms><DMsPage /></RequireDms>} />
             <Route path="/wallet" element={<RequireAuth><WalletPage /></RequireAuth>} />
+            <Route path="/communities" element={<RequireAuth><CommunitiesHubPage /></RequireAuth>} />
             {/* Must precede `/:user`, which would swallow `/dms`. */}
             <Route path="/dms" element={<LegacyDmRedirect />} />
             <Route path="/dms/:peer" element={<LegacyDmRedirect />} />

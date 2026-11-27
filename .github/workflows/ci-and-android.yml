@@ -24,6 +24,8 @@ jobs:
         run: npx tsc --noEmit && npx eslint . && npm run i18n:check && npx vitest run --passWithNoTests --reporter=dot
 
       - name: Build Web Bundle
+        env:
+          APP_NAME: Cchat
         run: npm run build
 
       - name: Upload Web Dist
@@ -48,8 +50,14 @@ jobs:
           distribution: "temurin"
           java-version: "21"
 
-      - name: Install dependencies & Build Web
-        run: npm ci && npm run build
+      - name: Install dependencies & Generate Cchat Icons
+        env:
+          APP_NAME: Cchat
+        run: |
+          sudo apt-get update && sudo apt-get install -y inkscape imagemagick
+          npm ci
+          npm run gen:icons
+          npm run build
 
       - name: Sync Capacitor Android
         run: npx cap sync android

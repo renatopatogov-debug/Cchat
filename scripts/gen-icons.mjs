@@ -11,14 +11,14 @@
 // The mark itself is frameless and transparent; icons that need an opaque
 // backdrop are composited onto the brand background (#100b15) here, so the one
 // SVG stays the source of truth for geometry and color.
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const BG = "#100b15"; // brand background (matches manifest / capacitor / android colors)
+const BG = "#2C6BED"; // Signal-blue Cchat icon background
 const LOGO = join(ROOT, "public", "logo.svg");
 const FAVICON_SVG = join(ROOT, "public", "favicon.svg");
 const OG_SVG = join(ROOT, "public", "og.svg");
@@ -26,7 +26,11 @@ const OG_SVG = join(ROOT, "public", "og.svg");
 const TMP = mkdtempSync(join(tmpdir(), "armada-icons-"));
 const MASTER = join(TMP, "master.png"); // high-res transparent render of the mark
 
+// ImageMagick v7 ships `magick`; Ubuntu apt ImageMagick v6 ships `convert`.
+const IM_BIN = spawnSync("magick", ["-version"], { stdio: "ignore" }).status === 0 ? "magick" : "convert";
+
 const sh = (cmd, args) => execFileSync(cmd, args, { stdio: ["ignore", "ignore", "inherit"] });
+const im = (args) => sh(IM_BIN, args);
 const inkscape = (svg, w, h, out) => sh("inkscape", [svg, "-w", String(w), "-h", String(h), "-o", out]);
 
 /** Compose the mark centered at `frac` of an SxS canvas. */
@@ -41,7 +45,7 @@ function icon(out, size, { frac = 0.72, bg = BG, round = false, flatten = false 
   }
   if (flatten) args.push("-background", bg || BG, "-alpha", "remove", "-alpha", "off");
   mkdirSync(dirname(out), { recursive: true });
-  sh("magick", [...args, out]);
+  im([...args, out]);
   console.log("  " + out.replace(ROOT + "/", ""));
 }
 
@@ -71,16 +75,16 @@ function vesselTile(out, size, { frac = 0.72, bg = BG } = {}) {
   // Rounded-rect on all four corners, then intersect with a polygon that cuts
   // the top-left and bottom-right into chamfers — the round survives only where
   // the polygon leaves the corner at full extent (top-right, bottom-left).
-  sh("magick", ["-size", `${ss}x${ss}`, "xc:black", "-fill", "white",
+  im(["-size", `${ss}x${ss}`, "xc:black", "-fill", "white",
     "-draw", `roundrectangle 0,0,${s1},${s1},${radius},${radius}`, roundMask]);
-  sh("magick", ["-size", `${ss}x${ss}`, "xc:black", "-fill", "white",
+  im(["-size", `${ss}x${ss}`, "xc:black", "-fill", "white",
     "-draw", `polygon ${cut},0 ${ss},0 ${ss},${ss - cut} ${ss - cut},${ss} 0,${ss} 0,${cut}`,
     polyMask]);
-  sh("magick", [roundMask, polyMask, "-compose", "multiply", "-composite",
+  im([roundMask, polyMask, "-compose", "multiply", "-composite",
     "-resize", `${size}x${size}`, mask]);
   const m = Math.round(size * frac);
   mkdirSync(dirname(out), { recursive: true });
-  sh("magick", ["-size", `${size}x${size}`, `xc:${bg}`,
+  im(["-size", `${size}x${size}`, `xc:${bg}`,
     "(", MASTER, "-resize", `${m}x${m}`, ")", "-gravity", "center", "-composite",
     mask, "-alpha", "off", "-compose", "CopyOpacity", "-composite", out]);
   console.log("  " + out.replace(ROOT + "/", ""));

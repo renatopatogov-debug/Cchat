@@ -37,7 +37,7 @@
         <item name="android:windowBackground">@drawable/splash</item>
         <item name="android:background">@drawable/splash</item>
         <item name="windowSplashScreenBackground">@color/armadaBackground</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_logo_anim</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/crest_vector</item>
         <!-- Matches the AVD's total timeline (~1000ms) so the system lets it
              play through before it would otherwise dismiss. -->
         <item name="windowSplashScreenAnimationDuration">1000</item>

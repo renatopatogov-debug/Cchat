@@ -9,10 +9,10 @@
   var STORAGE_KEY = "armada:app-config";
 
   var builtins = {
-    // Light "Corsair": violet parchment + violet ink + rose-magenta blade.
-    light: { background: "260 30% 97%", text: "260 30% 14%", primary: "330 80% 52%" },
-    // Armada "Corsair": cold violet-black sea, gilt-cream text, rose-magenta blade.
-    dark: { background: "260 22% 9%", text: "42 38% 90%", primary: "330 90% 62%" },
+    // Signal Light: pure white + slate text + Signal blue (#2C6BED).
+    light: { background: "0 0% 100%", text: "221 39% 11%", primary: "220 84% 55%" },
+    // Signal Dark: calm neutral graphite (#121317) + crisp white text + Signal blue (#2C6BED).
+    dark: { background: "225 14% 8%", text: "210 20% 96%", primary: "220 84% 55%" },
   };
 
   function parseHsl(hsl) {
@@ -73,9 +73,10 @@
     var dark = isDark(bg);
     var p = parseHsl(primary);
     var fg = parseHsl(text);
-    var card = dark ? lighten(bg, 2) : bg;
-    var sec = dark ? lighten(bg, 8) : darken(bg, 4);
-    var border = dark ? fmt(p.h, p.s * 0.4, 30) : fmt(p.h, p.s * 0.5, 82);
+    var bgParsed = parseHsl(bg);
+    var card = dark ? lighten(bg, 3.5) : "220 14% 97%";
+    var sec = dark ? lighten(bg, 7) : "220 14% 94%";
+    var border = dark ? fmt(bgParsed.h, Math.min(bgParsed.s, 18), 18) : fmt(p.h, p.s * 0.15, 90);
     var mutedFg = dark
       ? fmt(fg.h, Math.max(fg.s * 0.7, 12), Math.max(fg.l - 30, 40))
       : fmt(fg.h, Math.max(fg.s * 0.7, 18), Math.min(fg.l + 35, 55));
@@ -107,7 +108,7 @@
       "--muted-foreground": mutedFg,
       "--accent": sec,
       "--accent-foreground": text,
-      "--accent2": dark ? "180 90% 55%" : "190 85% 40%",
+      "--accent2": dark ? "199 89% 48%" : "199 89% 42%",
       "--destructive": dark ? "0 72% 51%" : "0 84.2% 60.2%",
       "--destructive-foreground": dark ? "0 0% 95%" : "210 40% 98%",
       "--success": dark ? "142 60% 35%" : "142 72% 29%",

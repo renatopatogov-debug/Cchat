@@ -28,7 +28,7 @@
     <!-- YouTube requires an HTTP Referer for embedded playback. The browser
          supplies this deployment's own origin, including on self-hosts. -->
     <meta name="referrer" content="strict-origin-when-cross-origin" />
-    <meta name="theme-color" content="#100b15" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#121317" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
     <!-- Standalone/home-screen behavior comes from manifest.webmanifest alone
          (display: standalone). Deliberately NO legacy apple-mobile-web-app-*
@@ -41,11 +41,11 @@
          apple-mobile-web-app-capable was also tried as a fix for iOS Web Push
          being unavailable in the installed PWA (window.Notification undefined);
          it made no difference on iOS 26.2.1, so it stays out. -->
-    <title>Armada</title>
+    <title>Cchat</title>
     <!-- Stamped per build (armada-build-stamp Vite plugin); lets a device's
          running bundle be identified when debugging stale-PWA issues. -->
     <meta name="build" content="__BUILD_STAMP__" />
-    <meta name="description" content="The open-source, encrypted Discord alternative. Communities with channels, voice and DMs that need no host." />
+    <meta name="description" content="Chat criptografado ponta-a-ponta com carteira BRZ e entregas protegidas." />
 
     <!-- Open Graph / social. og:image/twitter:image MUST be absolute URLs —
          most crawlers (X, Discord, Slack, iMessage) do not resolve relative
@@ -55,17 +55,17 @@
          origin is only as good as that origin, and when it can't be fetched
          the preview degrades to the platform's generic placeholder icon. -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Armada" />
-    <meta property="og:description" content="The open-source, encrypted Discord alternative. Communities with channels, voice and DMs that need no host." />
+    <meta property="og:title" content="Cchat" />
+    <meta property="og:description" content="Privacidade que protege suas conversas e seu dinheiro. Chat E2EE, carteira BRZ sem custódia e entregas com código." />
     <meta property="og:image" content="__PUBLIC_ORIGIN__/og.png" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:url" content="__PUBLIC_ORIGIN__" />
-    <meta property="og:site_name" content="Armada" />
+    <meta property="og:site_name" content="Cchat" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Armada" />
-    <meta name="twitter:description" content="The open-source, encrypted Discord alternative. Communities with channels, voice and DMs that need no host." />
+    <meta name="twitter:title" content="Cchat" />
+    <meta name="twitter:description" content="Privacidade que protege suas conversas e seu dinheiro. Chat E2EE, carteira BRZ sem custódia e entregas com código." />
     <meta name="twitter:image" content="__PUBLIC_ORIGIN__/og.png" />
 
     <!-- Marks home-screen (standalone PWA) launches on <html> before first
@@ -86,33 +86,13 @@
          so it disappears the moment the app paints. Uses the CSS vars theme.js
          set on :root before this markup, so it matches the persisted theme. -->
     <div id="root">
-      <div id="boot-splash" role="status" aria-label="Loading" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:hsl(var(--background, 260 22% 9%));">
-        <!-- Hidden until the script below decides this launch isn't headed for
-             /welcome. A display:none element doesn't animate, so revealing it
-             starts the draw at frame one rather than mid-stroke. -->
-        <svg id="boot-mark" width="96" height="96" viewBox="0 0 128 128" fill="none" role="img" aria-label="Armada logo" style="display:none;filter:drop-shadow(0 8px 24px hsl(var(--primary, 330 90% 62%) / 0.25));">
-          <!-- Wake: each line sweeps open from the centerline (x=64, also every
-               line's own midpoint), then scans slowly in and out on its own
-               loop. Both are scaleX about that centerline, split across the
-               wrapper and the path so they don't fight over one transform. -->
-          <g fill="hsl(var(--accent2, 180 90% 55%))">
-            <g style="transform-origin:64px 0;animation:armada-wake 6s ease-in-out 0.9s infinite;">
-              <path d="M95.4 104.865H32.59c-1.18 0-2.14-.96-2.14-2.14s.96-2.14 2.14-2.14H95.4c1.18 0 2.14.96 2.14 2.14s-.96 2.14-2.14 2.14z" style="transform-origin:64px 0;animation:armada-sweep 0.52s cubic-bezier(0.22,1,0.36,1) both;"></path>
-            </g>
-            <g style="transform-origin:64px 0;animation:armada-wake 6s ease-in-out 1.5s infinite;">
-              <path d="M83.98 115.565H44.01a1.43 1.43 0 1 1 0-2.86h39.97a1.43 1.43 0 1 1 0 2.86z" style="transform-origin:64px 0;animation:armada-sweep 0.52s cubic-bezier(0.22,1,0.36,1) 0.07s both;"></path>
-            </g>
-            <g style="transform-origin:64px 0;animation:armada-wake 6s ease-in-out 2.1s infinite;">
-              <path d="M73.99 123.775H54.01a1.071 1.071 0 0 1 0-2.14h19.98a1.071 1.071 0 0 1 0 2.14z" style="transform-origin:64px 0;animation:armada-sweep 0.52s cubic-bezier(0.22,1,0.36,1) 0.14s both;"></path>
-            </g>
+      <div id="boot-splash" role="status" aria-label="Loading" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:hsl(var(--background, 225 14% 8%));">
+        <svg id="boot-mark" width="96" height="96" viewBox="0 0 128 128" fill="none" role="img" aria-label="Cchat logo" style="display:none;filter:drop-shadow(0 10px 28px rgba(44,107,237,0.32));">
+          <rect width="128" height="128" rx="32" fill="#2C6BED"></rect>
+          <g transform="translate(8 8) scale(0.875)">
+            <path d="M47.2 97.3 A40 40 0 1 0 30.7 80.8 L22.5 104.5 L47.2 97.3 Z" stroke="#FFFFFF" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"></path>
+            <circle cx="66" cy="62" r="9.5" fill="#FFFFFF"></circle>
           </g>
-          <!-- Sail, drawn in three stacked copies: halo sheen, fill, and the
-               hairline trace on top (pathLength="1" normalizes the dash). -->
-          <path d="M64 4.225l-39.97 88.5h17.13l2.31-5.2 2.76-6.22-2.22-1.43-1.42-12.84h9.99l4.89-11.01L64 41.335l11.42 25.7h9.99l-1.43 12.84-2.22 1.43 2.77 6.22 2.31 5.2h17.13z" fill="hsl(var(--primary, 330 90% 62%))" style="opacity:0;filter:drop-shadow(0 0 10px hsl(var(--primary, 330 90% 62%) / 0.6));animation:armada-sheen 0.9s ease-in-out 0.64s both;"></path>
-          <path d="M64 4.225l-39.97 88.5h17.13l2.31-5.2 2.76-6.22-2.22-1.43-1.42-12.84h9.99l4.89-11.01L64 41.335l11.42 25.7h9.99l-1.43 12.84-2.22 1.43 2.77 6.22 2.31 5.2h17.13z" fill="hsl(var(--primary, 330 90% 62%))" style="animation:armada-ink 0.42s ease-out 0.4s both;"></path>
-          <path d="M64 4.225l-39.97 88.5h17.13l2.31-5.2 2.76-6.22-2.22-1.43-1.42-12.84h9.99l4.89-11.01L64 41.335l11.42 25.7h9.99l-1.43 12.84-2.22 1.43 2.77 6.22 2.31 5.2h17.13z" pathLength="1" fill="none" stroke="hsl(var(--primary, 330 90% 62%))" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0;stroke-dasharray:1;animation:armada-trace 0.78s cubic-bezier(0.65,0,0.35,1) 0.08s both;"></path>
-          <!-- Waterline caret, inked in last. -->
-          <path d="M76.84 79.165c-.15 0-.31-.05-.44-.15l-12.41-9.65-12.41 9.65c-.31.24-.76.19-1-.13a.706.706 0 0 1 .13-1l12.85-9.99c.26-.2.62-.2.88 0l12.85 9.99a.715.715 0 0 1-.43 1.28z" fill="hsl(var(--primary, 330 90% 62%))" fill-opacity="0.85" style="animation:armada-ink 0.32s ease-out 0.86s both;"></path>
         </svg>
       </div>
     </div>

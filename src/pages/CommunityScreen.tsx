@@ -91,7 +91,7 @@ import {
   everyoneSends,
   isAuthorized,
   isAuthorizedIn,
-   isStaff,
+  isStaff,
   Permissions,
 } from "@/concord/lib/roles";
 import { scheduleExpiredSweep } from "@/concord/lib/rumorStore";

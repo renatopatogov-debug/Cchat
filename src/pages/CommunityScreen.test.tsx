@@ -37,7 +37,22 @@ const mockChannel = {
 };
 
 vi.mock("@/lib/blocklistStore", () => ({ useIsBlocked: () => () => false }));
-vi.mock("@/lib/bootGate", () => ({ markBootPainted: () => undefined }));
+vi.mock("@/lib/bootGate", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/bootGate")>();
+  return {
+    ...actual,
+    markBootPainted: () => undefined,
+  };
+});
+vi.mock("@/hooks/useReadState", () => ({
+  useReadState: () => ({
+    readState: {},
+    getLastRead: () => 0,
+    markRead: () => undefined,
+    hydrate: () => undefined,
+  }),
+  concordReadKey: (id: string) => `c2:${id}`,
+}));
 vi.mock("@/wire/activation", () => ({
   activateScope: () => undefined,
   concordScope: (id: string) => `c2:${id}`,
@@ -223,7 +238,7 @@ describe("CommunityScreen Signal UI & E2EE guards", () => {
     u2();
 
     state.excluded = false;
-    state.canPost = false;
+    state.stranded = true;
     const { unmount: u3 } = render(
       <MemoryRouter initialEntries={[`/cc/${mockCommunity.idHex}/${mockChannel.idHex}`]}>
         <Routes>
@@ -232,8 +247,21 @@ describe("CommunityScreen Signal UI & E2EE guards", () => {
       </MemoryRouter>,
     );
     expect(screen.queryByRole("textbox", { name: "chat-composer" })).not.toBeInTheDocument();
-    expect(screen.getByText(/can't send messages in this channel/i)).toBeInTheDocument();
+    expect(screen.getByText(/out of date/i)).toBeInTheDocument();
     u3();
+
+    state.stranded = false;
+    state.canPost = false;
+    const { unmount: u4 } = render(
+      <MemoryRouter initialEntries={[`/cc/${mockCommunity.idHex}/${mockChannel.idHex}`]}>
+        <Routes>
+          <Route path="/cc/:communityId/:channelId" element={<CommunityScreen />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.queryByRole("textbox", { name: "chat-composer" })).not.toBeInTheDocument();
+    expect(screen.getByText(/can't send messages in this channel/i)).toBeInTheDocument();
+    u4();
   });
 
   it("keeps heavy and ConcordPage modules off CommunityScreen's static import closure", () => {

@@ -100,12 +100,12 @@ export function CommunitiesHubPage() {
         ) : (
           <div className="space-y-2.5">
             {communities.map((c) => {
-              const label = c.name || `Comunidade ${c.communityId.slice(0, 8)}`;
+              const label = c.current.name || `Comunidade ${c.community_id.slice(0, 8)}`;
               return (
                 <button
-                  key={c.communityId}
+                  key={c.community_id}
                   type="button"
-                  onClick={() => navigate(`/c/${c.communityId}`)}
+                  onClick={() => navigate(`/c/${encodeURIComponent(c.community_id)}`)}
                   className="w-full rounded-2xl border border-border bg-card hover:bg-secondary/60 transition p-3.5 flex items-center gap-3 text-left"
                 >
                   <span className="size-11 rounded-2xl bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center shrink-0">

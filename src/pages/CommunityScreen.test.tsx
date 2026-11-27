@@ -147,7 +147,7 @@ vi.mock("@/concord/hooks/useControlPlane", async (importOriginal) => {
     useControlFold: () => ({
       data: {
         ownerHex: "b".repeat(64),
-        metadata: { name: "Comunidade Teste", relays: ["wss://relay.example.com"] },
+        metadata: { name: "Grupo Teste", relays: ["wss://relay.example.com"] },
         channels: new Map(),
         banned: new Set<string>(),
         heads: new Map(),

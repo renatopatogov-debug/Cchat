@@ -40,6 +40,7 @@ export function SignalBottomNav({
         pathname.startsWith("/communities") ||
         pathname.startsWith("/discover") ||
         pathname.startsWith("/c/") ||
+        pathname.startsWith("/cc/") ||
         pathname.startsWith("/s/"),
     },
   ];

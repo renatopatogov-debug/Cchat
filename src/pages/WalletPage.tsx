@@ -18,7 +18,6 @@ import { nip19 } from "nostr-tools";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { EscrowOrderCard } from "@/components/chat/EscrowOrderCard";
-import { SignalBottomNav } from "@/components/layout/SignalBottomNav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { QRCodeCanvas } from "@/components/ui/qrcode";
@@ -439,7 +438,7 @@ export function WalletPage() {
 
   return (
     <div className="flex flex-1 flex-col min-h-0 bg-background">
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6 space-y-6">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-8 sidebar:pb-6 space-y-6">
         <div className="max-w-3xl mx-auto space-y-6">
           {/* Cabeçalho */}
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -767,8 +766,6 @@ export function WalletPage() {
           </div>
         </div>
       </div>
-
-      <SignalBottomNav />
     </div>
   );
 }

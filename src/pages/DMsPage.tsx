@@ -21,9 +21,6 @@ import { MessageRow } from "@/components/chat/MessageRow";
 import { MessageTimeline } from "@/components/chat/MessageTimeline";
 import { useTimelineFocus } from "@/hooks/useTimelineFocus";
 import { TypingIndicator } from "@/components/chat/TypingIndicator";
-import { LoginArea } from "@/components/auth/LoginArea";
-import { ServerRail } from "@/components/layout/ServerRail";
-import { SignalBottomNav } from "@/components/layout/SignalBottomNav";
 import { MeshContext } from "@/contexts/MeshContext";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import type { MeshPeer } from "@/lib/bluetoothMesh";
@@ -2132,7 +2129,6 @@ export function ConversationList({
   meshAvailable,
   isOffline,
   onOpenMeshPeer,
-  bottomNav,
   className,
 }: {
   rows: DmListRow[];
@@ -2161,7 +2157,6 @@ export function ConversationList({
   meshAvailable?: boolean;
   isOffline?: boolean;
   onOpenMeshPeer?: () => void;
-  bottomNav?: ReactNode;
   className?: string;
 }) {
   const [signalFilter, setSignalFilter] = useState<"all" | "unread" | "mesh">("all");
@@ -2700,14 +2695,6 @@ export function ConversationList({
       </div>
 
       <div ref={callBarRef} className="empty:hidden shrink-0" />
-
-      <div className="hidden sidebar:block px-3 pb-[var(--safe-area-pad-bottom-tight)] shrink-0">
-        <div className="sidebar:pb-2">
-          <LoginArea className="w-full flex" />
-        </div>
-      </div>
-
-      {bottomNav}
     </aside>
   );
 }
@@ -3143,10 +3130,6 @@ export function DMsPage() {
         onClose: returnToThread,
         canClose: !!returnPeer,
         underlay: (
-        <>
-          <div className="hidden sidebar:contents">
-            <ServerRail />
-          </div>
           <ConversationList
             rows={displayRows}
             requestRows={visibleRequestRows}
@@ -3172,11 +3155,9 @@ export function DMsPage() {
             meshAvailable={meshCtx?.mesh.available}
             isOffline={!online}
             onOpenMeshPeer={() => navigate("/mesh")}
-            bottomNav={<SignalBottomNav unreadCount={hasUnreadDms ? 1 : 0} />}
             // Full width on mobile (Signal style), sidebar width on desktop.
             className="w-72 xl:w-80 touch:max-sidebar:flex-1"
           />
-        </>
         ),
       }}
     >

@@ -351,7 +351,8 @@ describe("CommunityScreen Signal UI & E2EE guards", () => {
 
     expect(screen.getByTestId("message-timeline")).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "chat-composer" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Entrar na chamada de voz" })).toBeInTheDocument();
+    // Ranked roster: only call channels offer a header call button, never plain text subgroups.
+    expect(screen.queryByRole("button", { name: "Entrar na chamada de voz" })).not.toBeInTheDocument();
   });
 
   it("replaces the composer with read-only notices when dissolved, excluded, stranded, or lacking post access", () => {

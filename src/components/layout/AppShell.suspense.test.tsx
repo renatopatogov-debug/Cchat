@@ -65,7 +65,7 @@ describe("AppShell route Suspense", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole("complementary", { name: "Menu principal" })).toBeInTheDocument();
+    expect(screen.getByRole("complementary", { name: "Main menu" })).toBeInTheDocument();
     expect(screen.getByRole("status", { name: "Loading page" })).toBeInTheDocument();
     expect(screen.queryByText("Boot splash")).not.toBeInTheDocument();
     expect(sidebarAccountLifecycle).toEqual({ mounts: 1, unmounts: 0 });

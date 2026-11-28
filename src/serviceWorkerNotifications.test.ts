@@ -570,7 +570,7 @@ describe("Web Push suppression", () => {
       string,
       { body: string; silent: boolean; renotify: boolean; tag: string },
     ]>) {
-      expect(title).toBe("Armada");
+      expect(title).toBe("Cchat");
       expect(opts.body).toBe("Messages synced");
       expect(opts.silent).toBe(true);
       expect(opts.renotify).toBe(false);
@@ -640,7 +640,7 @@ describe("Web Push suppression", () => {
     expect(worker.showNotification).toHaveBeenCalledTimes(3);
     for (const call of worker.showNotification.mock.calls.slice(1)) {
       const [title, opts] = call as unknown as [string, { body: string; silent: boolean }];
-      expect(title).toBe("Armada");
+      expect(title).toBe("Cchat");
       expect(opts.body).toBe("Messages synced");
       expect(opts.silent).toBe(true);
     }
@@ -759,7 +759,7 @@ describe("Web Push suppression", () => {
       string,
       { body: string },
     ];
-    expect(title).toBe("Armada");
+    expect(title).toBe("Cchat");
     expect(opts.body).toBe("Messages synced");
   });
 
@@ -1010,7 +1010,7 @@ describe("Web Push inline presentation", () => {
         renotify: boolean;
       },
     ];
-    expect(title).toBe("Armada");
+    expect(title).toBe("Cchat");
     expect(opts).toMatchObject({
       body: "Messages synced",
       icon: "/favicon.png",
@@ -1232,7 +1232,7 @@ describe("Web Push inline presentation", () => {
 
     expect(worker.showNotification).toHaveBeenCalledTimes(1);
     expect(worker.showNotification.mock.calls[0]).toEqual([
-      "Armada",
+      "Cchat",
       expect.objectContaining({
         body: "Messages synced",
         tag: "armada-quiet-sync",
@@ -1504,7 +1504,7 @@ describe("Fetched (non-inlined) encrypted pushes", () => {
       string,
       { body: string; tag: string; silent: boolean; renotify: boolean; data: { url: string } },
     ];
-    expect(title).toBe("Armada");
+    expect(title).toBe("Cchat");
     expect(opts).toMatchObject({
       body: "Messages synced",
       tag: "wrap-own",
@@ -1673,7 +1673,7 @@ describe("napp.push.payload", () => {
       string,
       { body: string; tag: string },
     ];
-    expect(title).toBe("Armada");
+    expect(title).toBe("Cchat");
     expect(opts.body).toBe("New message");
     expect(opts.tag).toBe("w1");
   });

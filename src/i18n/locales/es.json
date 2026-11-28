@@ -542,6 +542,7 @@
   "cchat.login.advancedOptions": "Opciones avanzadas (QR, archivo o extensión)",
   "cchat.login.keyHint": "Tu clave secreta es el código privado de tu cuenta (empieza por nsec1). Las claves y enlaces de firmante remoto se detectan automáticamente.",
   "cchat.login.keyLabel": "Pega tu clave secreta o enlace de firmante",
+  "cchat.login.keyPlaceholder": "Clave secreta (nsec1…) o enlace bunker://…",
   "cchat.members.closeAria": "Cerrar",
   "cchat.members.empty": "Aún no hay miembros listados.",
   "cchat.members.roleAdmin": "Admin",

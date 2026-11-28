@@ -542,6 +542,7 @@
   "cchat.login.advancedOptions": "Advanced options (QR, file, or extension)",
   "cchat.login.keyHint": "Your secret key is your account's private code (starts with nsec1). Keys and remote signer links are detected automatically.",
   "cchat.login.keyLabel": "Paste your secret key or signer link",
+  "cchat.login.keyPlaceholder": "Secret key (nsec1…) or bunker://… link",
   "cchat.members.closeAria": "Close",
   "cchat.members.empty": "No members listed yet.",
   "cchat.members.roleAdmin": "Admin",

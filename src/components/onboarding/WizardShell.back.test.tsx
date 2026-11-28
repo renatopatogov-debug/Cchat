@@ -23,8 +23,6 @@ vi.mock("@capacitor/app", () => ({
     minimizeApp: () => Promise.resolve(),
   },
 }));
-vi.mock("@/components/landing/AsciiSea", () => ({ AsciiSea: () => null }));
-vi.mock("@/components/brand/ArmadaCrest", () => ({ ArmadaCrestKeyframes: () => null }));
 
 import { ChatSearchBar } from "@/components/chat/ChatSearchBar";
 import { WizardShell } from "@/components/onboarding/WizardShell";

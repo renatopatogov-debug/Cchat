@@ -6,8 +6,8 @@ import { I18nProvider } from "@/i18n/I18nProvider";
 import { LOCALE_KEY, setLanguageChoice } from "@/i18n/language";
 import { detectLocale, formattingLocale, loadCatalog, notificationLocale } from "@/i18n/locales";
 
-import de from "./locales/de.json";
 import en from "./locales/en.json";
+import pt from "./locales/pt.json";
 
 function Probe() {
   const intl = useIntl();
@@ -27,13 +27,13 @@ afterEach(() => {
 
 describe("detectLocale", () => {
   it("takes the first supported base language", () => {
-    expect(detectLocale(["zh-TW", "de-AT", "fr"])).toBe("de");
-    expect(detectLocale(["pt-BR"])).toBe("pt");
-    expect(detectLocale(["ja-JP"])).toBe("ja");
+    expect(detectLocale(["zh-TW", "pt-BR", "es"])).toBe("pt");
+    expect(detectLocale(["es-AR", "en-US"])).toBe("es");
+    expect(detectLocale(["en-GB"])).toBe("en");
   });
 
   it("falls back to English", () => {
-    expect(detectLocale(["ko-KR", "zh"])).toBe("en");
+    expect(detectLocale(["de-AT", "ja-JP", "ko-KR", "zh"])).toBe("en");
     expect(detectLocale([])).toBe("en");
   });
 });
@@ -41,8 +41,8 @@ describe("detectLocale", () => {
 describe("formattingLocale", () => {
   it("keeps the region of a preference in the same language", () => {
     expect(formattingLocale("en", ["en-GB", "en-US"])).toBe("en-GB");
-    expect(formattingLocale("de", ["fr-FR", "de-AT"])).toBe("de-AT");
-    expect(formattingLocale("ja", ["ja"])).toBe("ja");
+    expect(formattingLocale("pt", ["es-ES", "pt-BR"])).toBe("pt-BR");
+    expect(formattingLocale("es", ["es"])).toBe("es");
   });
 
   it("borrows the first region when no preference is in the language", () => {
@@ -60,19 +60,19 @@ describe("I18nProvider", () => {
   });
 
   it("switches language, and t() follows it", async () => {
-    await loadCatalog("de");
+    await loadCatalog("pt");
     render(<I18nProvider><Probe /></I18nProvider>);
     expect(screen.getByTestId("jsx").textContent).toBe(en["settings.language.label"]);
 
-    act(() => setLanguageChoice("de"));
-    expect(localStorage.getItem(LOCALE_KEY)).toBe("de");
-    expect(screen.getByTestId("jsx").textContent).toBe((de as Record<string, string>)["settings.language.label"]);
-    expect(screen.getByTestId("t").textContent).toBe((de as Record<string, string>)["settings.language.label"]);
-    expect(document.documentElement.lang).toBe("de");
+    act(() => setLanguageChoice("pt"));
+    expect(localStorage.getItem(LOCALE_KEY)).toBe("pt");
+    expect(screen.getByTestId("jsx").textContent).toBe((pt as Record<string, string>)["settings.language.label"]);
+    expect(screen.getByTestId("t").textContent).toBe((pt as Record<string, string>)["settings.language.label"]);
+    expect(document.documentElement.lang).toBe("pt");
   });
 
   it("keys notifier catalogs by language, not region", async () => {
-    await loadCatalog("de");
-    expect(notificationLocale("de-AT")?.locale).toBe("de");
+    await loadCatalog("pt");
+    expect(notificationLocale("pt-BR")?.locale).toBe("pt");
   });
 });

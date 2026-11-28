@@ -17,7 +17,7 @@ android {
     // packaging the libs unstripped. The CI image installs the same version.
     ndkVersion = rootProject.ext.ndkVersion
     defaultConfig {
-        applicationId "buzz.armada.app"
+        applicationId "app.cchat.mobile"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

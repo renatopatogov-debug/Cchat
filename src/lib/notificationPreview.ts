@@ -199,7 +199,7 @@ export const notificationMessages = defineMessages({
   attributed: { id: "notification.attributed", defaultMessage: "{name}: {text}" },
   chat: { id: "notification.chat", defaultMessage: "Chat" },
   anonymous: { id: "notification.anonymous", defaultMessage: "Anonymous" },
-  appName: { id: "notification.appName", defaultMessage: "Armada" },
+  appName: { id: "notification.appName", defaultMessage: "Cchat" },
   messagesSynced: { id: "notification.messagesSynced", defaultMessage: "Messages synced" },
   newMessage: { id: "notification.newMessage", defaultMessage: "New message" },
   newDirectMessage: { id: "notification.newDirectMessage", defaultMessage: "New direct message" },

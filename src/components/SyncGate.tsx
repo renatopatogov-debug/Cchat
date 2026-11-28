@@ -1,18 +1,16 @@
+import { Check, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { ArmadaCrest, ArmadaCrestKeyframes } from "@/components/brand/ArmadaCrest";
-import { BrandMark } from "@/components/brand/BrandMark";
-import { SignalStatic } from "@/components/brand/SignalStatic";
-import { TerminalProgress } from "@/components/brand/TerminalProgress";
-import { markBootPainted } from "@/lib/bootGate";
+import { CchatLogo } from "@/components/brand/CchatLogo";
 import { setSyncGateActive } from "@/components/syncGateState";
 import { useFreshLogin } from "@/hooks/useFreshLogin";
 import { useInitialSync } from "@/hooks/useInitialSync";
+import { FormattedMessage } from "@/i18n";
+import { markBootPainted } from "@/lib/bootGate";
 
 /**
  * Full-screen overlay after a *fresh* login ({@link useFreshLogin}) until
- * {@link useInitialSync} is done, so the app doesn't flash empty channels and
- * the default theme. Timeout-bounded; static skips under reduced motion.
+ * {@link useInitialSync} is done, so the app doesn't flash empty conversations.
  */
 export function SyncGate() {
   const { freshPubkey, acknowledge } = useFreshLogin();
@@ -24,71 +22,63 @@ function SyncOverlay({ pubkey, onDone }: { pubkey: string; onDone: () => void })
   const { log, done } = useInitialSync(pubkey);
   const [leaving, setLeaving] = useState(false);
 
-  // Static strength steps down with each resolved phase.
-  const resolvedCount = log.filter((line) => line.status !== undefined).length;
-  const staticLevel = done ? 0 : Math.max(0.1, 0.5 * 0.72 ** resolvedCount);
-
-  // Changes on every log mutation (each a real relay round-trip); SignalStatic ripples on it.
-  const wireSignal = log.map((line) => `${line.id}:${line.status ?? ""}`).join("|");
-
   useEffect(() => {
     setSyncGateActive(true);
-    // A fresh login has no local data to paint: the sync IS the boot.
     markBootPainted();
     return () => setSyncGateActive(false);
   }, []);
 
-  // Hold a beat for the final line, then fade out before unmounting.
   useEffect(() => {
     if (!done) return;
-    const beat = setTimeout(() => setLeaving(true), 400);
-    const unmount = setTimeout(onDone, 1000);
+    const beat = setTimeout(() => setLeaving(true), 350);
+    const unmount = setTimeout(onDone, 850);
     return () => {
       clearTimeout(beat);
       clearTimeout(unmount);
     };
   }, [done, onDone]);
 
-  // The gate reads down as soon as the fade starts, so queued post-login steps don't wait for unmount.
   useEffect(() => {
     if (leaving) setSyncGateActive(false);
   }, [leaving]);
 
   return (
     <div
-      className={`fixed inset-0 z-[100] flex flex-col items-center justify-center gap-10 overflow-hidden bg-background px-6 transition-opacity duration-500 ${
+      className={`fixed inset-0 z-[100] flex flex-col items-center justify-center gap-8 bg-background px-6 transition-opacity duration-500 ${
         leaving ? "pointer-events-none opacity-0" : "opacity-100"
       }`}
       role="status"
       aria-live="polite"
     >
-      <div className="flex flex-col items-center gap-6">
-        <ArmadaCrest size={96} loop />
-        <BrandMark
-          tagline={done ? "jacked in" : (
-            // CSS typewriter: width in ch (mono font) stepped per glyph.
-            <span className="inline-block overflow-hidden whitespace-nowrap align-bottom animate-[armada-type_7s_steps(10,end)_infinite]">
-              jacking in
-            </span>
+      <div className="flex flex-col items-center gap-3 text-center">
+        <CchatLogo size={76} />
+        <h1 className="text-xl font-bold tracking-tight text-foreground">Cchat</h1>
+        <p className="text-sm text-muted-foreground">
+          {done ? (
+            <FormattedMessage id="cchat.syncGate.done" defaultMessage="Sync complete" />
+          ) : (
+            <FormattedMessage id="cchat.syncGate.syncing" defaultMessage="Syncing encrypted messages…" />
           )}
-        />
+        </p>
       </div>
 
-      <div className="w-full max-w-sm">
-        <TerminalProgress lines={log} />
-      </div>
-
-      <SignalStatic level={staticLevel} seed={pubkey} signal={wireSignal} />
-
-      <ArmadaCrestKeyframes />
-      {/* "jacking in" is 10ch. */}
-      <style>{`
-        @keyframes armada-type {
-          0% { width: 0ch; }
-          30%, 82% { width: 10ch; }
-          94%, 100% { width: 0ch; }
-        }
-      `}</style>
+      {log.length > 0 && (
+        <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-4 space-y-2.5">
+          {log.map((line) => (
+            <div key={line.id} className="flex items-center justify-between gap-3 text-xs">
+              <span className="truncate text-foreground/90">{line.text}</span>
+              {line.status !== undefined ? (
+                <span className="inline-flex items-center gap-1 shrink-0 font-medium text-emerald-500">
+                  <Check className="size-3.5" />
+                  {line.status}
+                </span>
+              ) : (
+                <Loader2 className="size-3.5 shrink-0 animate-spin text-primary" />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

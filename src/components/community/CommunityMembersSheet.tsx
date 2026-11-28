@@ -11,6 +11,7 @@ import { badgeOf, type CommunityRoles } from "@/concord/lib/roles";
 import { useAuthor } from "@/hooks/useAuthor";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useOpenProfile } from "@/hooks/useOpenProfile";
+import { FormattedMessage, useIntl } from "@/i18n";
 import { getAvatarShape } from "@/lib/avatarShape";
 
 function MemberRow({
@@ -100,6 +101,7 @@ export function CommunityMembersSheet({
   roster: CommunityRoles | undefined;
   nicknames: ReadonlyMap<string, string>;
 }) {
+  const intl = useIntl();
   const isMobile = useIsMobile();
   const openProfile = useOpenProfile();
   const [query, setQuery] = useState("");
@@ -128,7 +130,10 @@ export function CommunityMembersSheet({
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar membro…"
+            placeholder={intl.formatMessage({
+              id: "cchat.members.searchPlaceholder",
+              defaultMessage: "Search member…",
+            })}
             className="h-10 rounded-xl pl-9 bg-secondary/50 border-border/60"
           />
         </div>
@@ -137,18 +142,21 @@ export function CommunityMembersSheet({
       <div className="flex-1 overflow-y-auto px-2 pb-6 space-y-0.5">
         {sortedMembers.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
-            Nenhum membro listado ainda.
+            <FormattedMessage id="cchat.members.empty" defaultMessage="No members listed yet." />
           </p>
         ) : (
           sortedMembers.map((pubkey) => {
             const isOwner = pubkey === ownerHex;
             const badge = !isOwner && roster ? badgeOf(roster, pubkey) : undefined;
             const roleLabel = isOwner
-              ? "Criador"
+              ? intl.formatMessage({ id: "cchat.members.roleOwner", defaultMessage: "Owner" })
               : badge === "admin"
-                ? "Admin"
+                ? intl.formatMessage({ id: "cchat.members.roleAdmin", defaultMessage: "Admin" })
                 : badge === "moderator"
-                  ? "Moderador"
+                  ? intl.formatMessage({
+                      id: "cchat.members.roleMod",
+                      defaultMessage: "Moderator",
+                    })
                   : undefined;
             const roleTone = isOwner
               ? "owner"
@@ -182,11 +190,24 @@ export function CommunityMembersSheet({
             <div className="flex items-center gap-2">
               <Users className="size-5 text-primary" />
               <DrawerTitle className="text-base font-bold">
-                Membros ({memberPubkeys.length})
+                <FormattedMessage
+                  id="cchat.members.title"
+                  defaultMessage="Members ({count})"
+                  values={{ count: memberPubkeys.length }}
+                />
               </DrawerTitle>
             </div>
             <DrawerClose asChild>
-              <Button type="button" variant="ghost" size="icon" className="rounded-full size-9" aria-label="Fechar">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="rounded-full size-9"
+                aria-label={intl.formatMessage({
+                  id: "cchat.members.closeAria",
+                  defaultMessage: "Close",
+                })}
+              >
                 <X className="size-5" />
               </Button>
             </DrawerClose>
@@ -204,7 +225,11 @@ export function CommunityMembersSheet({
           <div className="flex items-center gap-2">
             <Users className="size-5 text-primary" />
             <DialogTitle className="text-base font-bold">
-              Membros ({memberPubkeys.length})
+              <FormattedMessage
+                id="cchat.members.title"
+                defaultMessage="Members ({count})"
+                values={{ count: memberPubkeys.length }}
+              />
             </DialogTitle>
           </div>
         </div>

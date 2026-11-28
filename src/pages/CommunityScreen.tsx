@@ -195,6 +195,7 @@ function SubgroupRow({
   onOpenChannel: () => void;
   onJoinVoice: () => void;
 }) {
+  const intl = useIntl();
   const presence = useVoicePresence(community, channel);
   const voiceCount = presence.present.length + presence.otherTransport.length;
   const isVoiceChannel = channel.view === "voice";
@@ -257,7 +258,12 @@ function SubgroupRow({
           </div>
           <p className="truncate text-xs text-muted-foreground font-normal">
             {channel.topic ||
-              (isVoiceChannel ? "Canal de chamada de voz • Toque para entrar" : undefined)}
+              (isVoiceChannel
+                ? intl.formatMessage({
+                    id: "cchat.group.voiceRowHint",
+                    defaultMessage: "Voice call channel • Tap to join",
+                  })
+                : undefined)}
           </p>
         </div>
       </button>
@@ -268,7 +274,13 @@ function SubgroupRow({
           variant="ghost"
           size="icon"
           className="rounded-full size-8 shrink-0 text-muted-foreground hover:text-foreground"
-          aria-label={`Abrir chat de ${channel.name}`}
+          aria-label={intl.formatMessage(
+            {
+              id: "cchat.group.openChannelChatAria",
+              defaultMessage: "Open {name} chat",
+            },
+            { name: channel.name },
+          )}
           onClick={onOpenChannel}
         >
           <MessageSquareText className="size-4" />
@@ -281,7 +293,13 @@ function SubgroupRow({
           variant="ghost"
           size="icon"
           className="rounded-full size-8 shrink-0 text-emerald-500 hover:bg-emerald-500/15"
-          aria-label={`Entrar na chamada de ${channel.name}`}
+          aria-label={intl.formatMessage(
+            {
+              id: "cchat.group.joinChannelCallAria",
+              defaultMessage: "Join {name} call",
+            },
+            { name: channel.name },
+          )}
           onClick={onJoinVoice}
         >
           <Phone className="size-4" />
@@ -296,7 +314,10 @@ function SubgroupRow({
               ? "min-w-5 h-5 px-1.5 bg-primary text-primary-foreground text-[11px] font-bold"
               : "size-2.5 bg-primary",
           )}
-          aria-label="Mensagens não lidas"
+          aria-label={intl.formatMessage({
+            id: "cchat.group.unreadMessagesAria",
+            defaultMessage: "Unread messages",
+          })}
         >
           {unread.mention ? "@" : null}
         </span>
@@ -435,13 +456,18 @@ function CommunityBlockedNotice({ onBack }: { onBack: () => void }) {
         <ShieldAlert className="size-7" />
       </div>
       <div className="space-y-1.5 max-w-sm">
-        <h1 className="text-lg font-bold">Grupo indisponível</h1>
+        <h1 className="text-lg font-bold">
+          <FormattedMessage id="cchat.group.blockedTitle" defaultMessage="Group unavailable" />
+        </h1>
         <p className="text-sm text-muted-foreground">
-          Este grupo está bloqueado e não pode ser aberto neste aplicativo.
+          <FormattedMessage
+            id="cchat.group.blockedBody"
+            defaultMessage="This group is blocked and cannot be opened in this app."
+          />
         </p>
       </div>
       <Button type="button" variant="outline" className="rounded-full" onClick={onBack}>
-        Voltar para Grupos
+        <FormattedMessage id="cchat.group.backToGroups" defaultMessage="Back to Groups" />
       </Button>
     </div>
   );
@@ -907,7 +933,10 @@ function CommunityScreenContent({
       navigateTo(buildCommunityPath(communityId, createdId));
     } catch (e) {
       toast({
-        title: "Não foi possível criar o subgrupo",
+        title: intl.formatMessage({
+          id: "cchat.group.createChannelFailed",
+          defaultMessage: "Could not create subgroup",
+        }),
         description: e instanceof Error ? e.message : undefined,
         variant: "destructive",
       });
@@ -942,12 +971,20 @@ function CommunityScreenContent({
     return <CommunityNoAccess communityId={communityId} />;
   }
 
-  const groupLabel = community?.name || `Grupo ${communityId.slice(0, 8)}`;
+  const groupLabel =
+    community?.name ||
+    intl.formatMessage(
+      { id: "cchat.group.fallbackName", defaultMessage: "Group {id}" },
+      { id: communityId.slice(0, 8) },
+    );
   const hasAnyUnread = Object.keys(unreadByChannel).length > 0;
 
   const channelListPane = (
     <aside
-      aria-label="Subgrupos e chamadas"
+      aria-label={intl.formatMessage({
+        id: "cchat.group.subgroupsPaneAria",
+        defaultMessage: "Subgroups and calls",
+      })}
       className={cn(
         "flex flex-col min-h-0 bg-background sidebar:bg-chrome/40 sidebar:border-r sidebar:border-border",
         "w-full sidebar:w-72 xl:sidebar:w-80 shrink-0",
@@ -960,7 +997,10 @@ function CommunityScreenContent({
           variant="ghost"
           size="icon"
           className="rounded-full size-9 shrink-0"
-          aria-label="Voltar para Grupos"
+          aria-label={intl.formatMessage({
+            id: "cchat.group.backToGroups",
+            defaultMessage: "Back to Groups",
+          })}
           onClick={() => navigateTo("/communities")}
         >
           <ChevronLeft className="size-5" />
@@ -973,7 +1013,18 @@ function CommunityScreenContent({
         <div className="min-w-0 flex-1">
           <h1 className="text-sm font-bold truncate leading-tight">{groupLabel}</h1>
           <p className="text-[11px] text-muted-foreground truncate">
-            {memberPubkeys.length > 0 ? `${memberPubkeys.length} membros` : "Grupo criptografado"}
+            {memberPubkeys.length > 0 ? (
+              <FormattedMessage
+                id="cchat.group.memberCount"
+                defaultMessage="{count} members"
+                values={{ count: memberPubkeys.length }}
+              />
+            ) : (
+              <FormattedMessage
+                id="cchat.group.encryptedGroupLabel"
+                defaultMessage="Encrypted group"
+              />
+            )}
           </p>
         </div>
 
@@ -982,7 +1033,10 @@ function CommunityScreenContent({
           variant="ghost"
           size="icon"
           className="rounded-full size-9 shrink-0"
-          aria-label="Membros do grupo"
+          aria-label={intl.formatMessage({
+            id: "cchat.group.membersAria",
+            defaultMessage: "Group members",
+          })}
           onClick={() => setMembersOpen(true)}
         >
           <Users className="size-4" />
@@ -994,7 +1048,10 @@ function CommunityScreenContent({
             variant="ghost"
             size="icon"
             className="rounded-full size-9 shrink-0"
-            aria-label="Convidar pessoas"
+            aria-label={intl.formatMessage({
+              id: "cchat.group.inviteAria",
+              defaultMessage: "Invite people",
+            })}
             onClick={() => setInviteOpen(true)}
           >
             <UserPlus className="size-4" />
@@ -1008,7 +1065,10 @@ function CommunityScreenContent({
               variant="ghost"
               size="icon"
               className="rounded-full size-9 shrink-0"
-              aria-label="Mais opções do grupo"
+              aria-label={intl.formatMessage({
+                id: "cchat.group.moreOptionsAria",
+                defaultMessage: "More group options",
+              })}
             >
               <MoreVertical className="size-4" />
             </Button>
@@ -1017,13 +1077,16 @@ function CommunityScreenContent({
             {hasAnyUnread && (
               <DropdownMenuItem onClick={markAllChannelsRead}>
                 <CheckCheck className="size-4 mr-2" />
-                Marcar tudo como lido
+                <FormattedMessage id="cchat.group.markAllRead" defaultMessage="Mark all as read" />
               </DropdownMenuItem>
             )}
             {canManageChannels && !dissolved && (
               <DropdownMenuItem onClick={() => setNewChannelOpen(true)}>
                 <Plus className="size-4 mr-2" />
-                Novo subgrupo / chamada
+                <FormattedMessage
+                  id="cchat.group.newChannelAction"
+                  defaultMessage="New subgroup / call"
+                />
               </DropdownMenuItem>
             )}
             {(hasAnyUnread || (canManageChannels && !dissolved)) && <DropdownMenuSeparator />}
@@ -1032,7 +1095,7 @@ function CommunityScreenContent({
               onClick={() => setLeaveConfirmOpen(true)}
             >
               <LogOut className="size-4 mr-2" />
-              Sair do grupo
+              <FormattedMessage id="cchat.group.leaveGroupAction" defaultMessage="Leave group" />
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -1047,9 +1110,17 @@ function CommunityScreenContent({
           </div>
         ) : channels.length === 0 ? (
           <div className="py-10 px-4 text-center space-y-2">
-            <p className="text-sm font-medium">Nenhum subgrupo disponível</p>
+            <p className="text-sm font-medium">
+              <FormattedMessage
+                id="cchat.group.noSubgroupsTitle"
+                defaultMessage="No subgroups available"
+              />
+            </p>
             <p className="text-xs text-muted-foreground">
-              Os subgrupos e canais de chamada aparecerão aqui após a sincronização criptografada.
+              <FormattedMessage
+                id="cchat.group.noSubgroupsBody"
+                defaultMessage="Subgroups and voice channels will appear here after encrypted sync."
+              />
             </p>
           </div>
         ) : (
@@ -1102,7 +1173,10 @@ function CommunityScreenContent({
               variant="ghost"
               size="icon"
               className="rounded-full size-9 shrink-0 sidebar:hidden"
-              aria-label="Voltar aos subgrupos"
+              aria-label={intl.formatMessage({
+                id: "cchat.group.backToSubgroups",
+                defaultMessage: "Back to subgroups",
+              })}
               onClick={() => navigateTo(buildCommunityPath(communityId))}
             >
               <ChevronLeft className="size-5" />
@@ -1144,7 +1218,17 @@ function CommunityScreenContent({
                 size="icon"
                 disabled={inThisVoice}
                 className={cn("rounded-full size-9 shrink-0", inThisVoice && "text-emerald-500")}
-                aria-label={inThisVoice ? "Na chamada de voz" : "Entrar na chamada de voz"}
+                aria-label={
+                  inThisVoice
+                    ? intl.formatMessage({
+                        id: "cchat.group.inVoiceCall",
+                        defaultMessage: "In voice call",
+                      })
+                    : intl.formatMessage({
+                        id: "cchat.group.joinVoiceCall",
+                        defaultMessage: "Join voice call",
+                      })
+                }
                 onClick={() => void handleJoinVoice(channel, activeBroker ?? null)}
               >
                 {inThisVoice ? <Headphones className="size-4" /> : <Phone className="size-4" />}
@@ -1156,7 +1240,10 @@ function CommunityScreenContent({
               variant="ghost"
               size="icon"
               className="rounded-full size-9 shrink-0"
-              aria-label="Buscar mensagens"
+              aria-label={intl.formatMessage({
+                id: "cchat.group.searchMessagesAria",
+                defaultMessage: "Search messages",
+              })}
               onClick={() => setSearchOpen(true)}
             >
               <Search className="size-4" />
@@ -1167,7 +1254,10 @@ function CommunityScreenContent({
               variant="ghost"
               size="icon"
               className="rounded-full size-9 shrink-0"
-              aria-label="Ver membros"
+              aria-label={intl.formatMessage({
+                id: "cchat.group.viewMembersAria",
+                defaultMessage: "View members",
+              })}
               onClick={() => setMembersOpen(true)}
             >
               <Users className="size-4" />
@@ -1179,7 +1269,10 @@ function CommunityScreenContent({
                 variant="ghost"
                 size="icon"
                 className="rounded-full size-9 shrink-0 hidden sm:inline-flex"
-                aria-label="Convidar pessoas"
+                aria-label={intl.formatMessage({
+                  id: "cchat.group.inviteAria",
+                  defaultMessage: "Invite people",
+                })}
                 onClick={() => setInviteOpen(true)}
               >
                 <UserPlus className="size-4" />
@@ -1193,7 +1286,10 @@ function CommunityScreenContent({
                   variant="ghost"
                   size="icon"
                   className="rounded-full size-9 shrink-0 sidebar:hidden"
-                  aria-label="Opções"
+                  aria-label={intl.formatMessage({
+                    id: "cchat.group.optionsAria",
+                    defaultMessage: "Options",
+                  })}
                 >
                   <MoreVertical className="size-4" />
                 </Button>
@@ -1202,7 +1298,7 @@ function CommunityScreenContent({
                 {!dissolved && !excluded && (
                   <DropdownMenuItem onClick={() => setInviteOpen(true)}>
                     <UserPlus className="size-4 mr-2" />
-                    Convidar pessoas
+                    <FormattedMessage id="cchat.group.inviteAria" defaultMessage="Invite people" />
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem
@@ -1210,7 +1306,10 @@ function CommunityScreenContent({
                   onClick={() => setLeaveConfirmOpen(true)}
                 >
                   <LogOut className="size-4 mr-2" />
-                  Sair do grupo
+                  <FormattedMessage
+                    id="cchat.group.leaveGroupAction"
+                    defaultMessage="Leave group"
+                  />
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -1223,7 +1322,13 @@ function CommunityScreenContent({
                 setSearchOpen(false);
                 setSearchQuery("");
               }}
-              placeholder={`Buscar em #${channel.name}…`}
+              placeholder={intl.formatMessage(
+                {
+                  id: "cchat.group.searchChannelPlaceholder",
+                  defaultMessage: "Search in #{name}…",
+                },
+                { name: channel.name },
+              )}
             />
           </header>
 
@@ -1233,7 +1338,11 @@ function CommunityScreenContent({
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {filteredSearchMessages.length === 0 ? (
                 <p className="py-8 text-center text-sm text-muted-foreground">
-                  Nenhuma mensagem encontrada para &ldquo;{searchQuery}&rdquo;.
+                  <FormattedMessage
+                    id="cchat.group.noSearchMatches"
+                    defaultMessage="No messages found for “{query}”."
+                    values={{ query: searchQuery }}
+                  />
                 </p>
               ) : (
                 filteredSearchMessages.map((msg) => (
@@ -1433,7 +1542,7 @@ function CommunityScreenContent({
                     )}
                   </Button>
                 )}
-                <Button
+                  <Button
                   type="button"
                   variant="ghost"
                   size="sm"
@@ -1441,7 +1550,7 @@ function CommunityScreenContent({
                   disabled={isLeaving}
                   onClick={() => void handleLeave()}
                 >
-                  Sair
+                  <FormattedMessage id="cchat.group.leaveShort" defaultMessage="Leave" />
                 </Button>
               </div>
             </div>
@@ -1500,8 +1609,20 @@ function CommunityScreenContent({
               conversationRelays={community?.relays}
               placeholder={
                 restrictedChannel
-                  ? `Mensagem em #${channel.name} (restrito)`
-                  : `Mensagem em #${channel.name}`
+                  ? intl.formatMessage(
+                      {
+                        id: "cchat.group.composerRestrictedPlaceholder",
+                        defaultMessage: "Message in #{name} (restricted)",
+                      },
+                      { name: channel.name },
+                    )
+                  : intl.formatMessage(
+                      {
+                        id: "cchat.group.composerPlaceholder",
+                        defaultMessage: "Message in #{name}",
+                      },
+                      { name: channel.name },
+                    )
               }
               shareLabel={`${groupLabel} #${channel.name}`}
               sendOverride={handleSend}
@@ -1523,9 +1644,17 @@ function CommunityScreenContent({
         <div className="flex flex-1 flex-col items-center justify-center p-8 text-center text-muted-foreground gap-2">
           <Hash className="size-10 opacity-30" />
           <p className="text-sm font-medium">
-            {gateResolving
-              ? "Sincronizando subgrupos criptografados…"
-              : "Selecione um subgrupo ou canal de chamada"}
+            {gateResolving ? (
+              <FormattedMessage
+                id="cchat.group.syncingSubgroups"
+                defaultMessage="Syncing encrypted subgroups…"
+              />
+            ) : (
+              <FormattedMessage
+                id="cchat.group.selectSubgroup"
+                defaultMessage="Select a subgroup or voice channel"
+              />
+            )}
           </p>
         </div>
       )}
@@ -1569,7 +1698,12 @@ function CommunityScreenContent({
 
               <Dialog open={newChannelOpen} onOpenChange={setNewChannelOpen}>
                 <DialogContent className="max-w-sm rounded-2xl space-y-4">
-                  <DialogTitle className="text-base font-bold">Novo subgrupo</DialogTitle>
+                  <DialogTitle className="text-base font-bold">
+                    <FormattedMessage
+                      id="cchat.group.newSubgroupTitle"
+                      defaultMessage="New subgroup"
+                    />
+                  </DialogTitle>
 
                   <div className="grid grid-cols-2 gap-2">
                     <button
@@ -1583,7 +1717,10 @@ function CommunityScreenContent({
                       )}
                     >
                       <Hash className="size-4" />
-                      Subgrupo (Texto)
+                      <FormattedMessage
+                        id="cchat.group.textSubgroupType"
+                        defaultMessage="Subgroup (Text)"
+                      />
                     </button>
                     <button
                       type="button"
@@ -1596,7 +1733,10 @@ function CommunityScreenContent({
                       )}
                     >
                       <Volume2 className="size-4" />
-                      Canal de Chamada
+                      <FormattedMessage
+                        id="cchat.group.voiceChannelType"
+                        defaultMessage="Call Channel"
+                      />
                     </button>
                   </div>
 
@@ -1605,8 +1745,14 @@ function CommunityScreenContent({
                     onChange={(e) => setNewChannelName(e.target.value)}
                     placeholder={
                       newChannelKind === "voice"
-                        ? "ex: chamada-geral, reuniao"
-                        : "ex: avisos, vendas, entregas"
+                        ? intl.formatMessage({
+                            id: "cchat.group.newVoicePlaceholder",
+                            defaultMessage: "e.g. general-call, meeting",
+                          })
+                        : intl.formatMessage({
+                            id: "cchat.group.newTextPlaceholder",
+                            defaultMessage: "e.g. announcements, sales, deliveries",
+                          })
                     }
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
@@ -1622,7 +1768,7 @@ function CommunityScreenContent({
                       className="rounded-full"
                       onClick={() => setNewChannelOpen(false)}
                     >
-                      Cancelar
+                      <FormattedMessage id="cchat.group.cancel" defaultMessage="Cancel" />
                     </Button>
                     <Button
                       type="button"
@@ -1630,7 +1776,11 @@ function CommunityScreenContent({
                       disabled={!newChannelName.trim() || isAddingChannel}
                       onClick={() => void handleCreateChannel()}
                     >
-                      {isAddingChannel ? <Loader2 className="size-4 animate-spin" /> : "Criar"}
+                      {isAddingChannel ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <FormattedMessage id="cchat.group.create" defaultMessage="Create" />
+                      )}
                     </Button>
                   </div>
                 </DialogContent>
@@ -1639,19 +1789,34 @@ function CommunityScreenContent({
               <AlertDialog open={leaveConfirmOpen} onOpenChange={setLeaveConfirmOpen}>
                 <AlertDialogContent className="rounded-2xl">
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Sair de {groupLabel}?</AlertDialogTitle>
+                    <AlertDialogTitle>
+                      <FormattedMessage
+                        id="cchat.group.leaveConfirmTitle"
+                        defaultMessage="Leave {name}?"
+                        values={{ name: groupLabel }}
+                      />
+                    </AlertDialogTitle>
                     <AlertDialogDescription>
-                      O grupo será removido da sua lista. Para voltar no futuro em grupos privados, será necessário um novo convite.
+                      <FormattedMessage
+                        id="cchat.group.leaveConfirmBody"
+                        defaultMessage="The group will be removed from your list. To rejoin a private group later, you will need a new invite."
+                      />
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel className="rounded-full">Cancelar</AlertDialogCancel>
+                    <AlertDialogCancel className="rounded-full">
+                      <FormattedMessage id="cchat.group.cancel" defaultMessage="Cancel" />
+                    </AlertDialogCancel>
                     <AlertDialogAction
                       className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       disabled={isLeaving}
                       onClick={() => void handleLeave()}
                     >
-                      {isLeaving ? <Loader2 className="size-4 animate-spin" /> : "Sair"}
+                      {isLeaving ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <FormattedMessage id="cchat.group.leaveShort" defaultMessage="Leave" />
+                      )}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>

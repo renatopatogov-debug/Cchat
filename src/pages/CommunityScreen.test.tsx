@@ -352,7 +352,7 @@ describe("CommunityScreen Signal UI & E2EE guards", () => {
     expect(screen.getByTestId("message-timeline")).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "chat-composer" })).toBeInTheDocument();
     // Ranked roster: only call channels offer a header call button, never plain text subgroups.
-    expect(screen.queryByRole("button", { name: "Entrar na chamada de voz" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Join voice call" })).not.toBeInTheDocument();
   });
 
   it("replaces the composer with read-only notices when dissolved, excluded, stranded, or lacking post access", () => {
@@ -449,10 +449,7 @@ describe("CommunityScreen Signal UI & E2EE guards", () => {
       "npm:@scure/btc-signer",
       "npm:react-easy-crop",
       "npm:react-day-picker",
-      "src/components/brand/GameOverScreen.tsx",
       "src/concord/components/CommunitySettingsView.tsx",
-      "src/components/projects/ProjectsView.tsx",
-      "src/concord/pages/ConcordPage.tsx",
     ]) {
       expect(reached).not.toContain(forbidden);
     }

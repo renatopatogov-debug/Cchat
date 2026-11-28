@@ -102,25 +102,37 @@ export function WelcomePage() {
         <div className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">Cchat</h1>
           <p className="text-base font-medium text-foreground/90">
-            Privacidade que protege suas conversas e seu dinheiro.
+            <FormattedMessage
+              id="cchat.welcome.tagline"
+              defaultMessage="Privacy that protects your conversations and your money."
+            />
           </p>
           <p className="text-xs leading-relaxed text-muted-foreground">
-            Sem número de telefone. Mensagens criptografadas ponta-a-ponta, carteira BRZ sem custódia e entregas com código de confirmação.
+            <FormattedMessage
+              id="cchat.welcome.subtitle"
+              defaultMessage="No phone number needed. End-to-end encrypted messaging, non-custodial BRZ wallet, and delivery escrow codes."
+            />
           </p>
         </div>
 
         <div className="grid grid-cols-3 gap-2 w-full pt-1 text-[11px] text-muted-foreground">
           <div className="rounded-2xl border border-border bg-card p-2.5 flex flex-col items-center gap-1">
             <Lock className="size-4 text-primary" />
-            <span>Ponta a ponta</span>
+            <span>
+              <FormattedMessage id="cchat.welcome.badgeE2ee" defaultMessage="End-to-end" />
+            </span>
           </div>
           <div className="rounded-2xl border border-border bg-card p-2.5 flex flex-col items-center gap-1">
             <ShieldCheck className="size-4 text-emerald-500" />
-            <span>Escrow BRZ</span>
+            <span>
+              <FormattedMessage id="cchat.welcome.badgeEscrow" defaultMessage="BRZ Escrow" />
+            </span>
           </div>
           <div className="rounded-2xl border border-border bg-card p-2.5 flex flex-col items-center gap-1">
             <WifiOff className="size-4 text-sky-400" />
-            <span>Mesh Offline</span>
+            <span>
+              <FormattedMessage id="cchat.welcome.badgeMesh" defaultMessage="Offline Mesh" />
+            </span>
           </div>
         </div>
       </div>
@@ -134,26 +146,26 @@ export function WelcomePage() {
               className="mt-0.5"
             />
             <span>
-              Concordo com os{" "}
+              <FormattedMessage id="cchat.welcome.termsAgreePrefix" defaultMessage="I agree to the" />{" "}
               <a href="/terms" className="text-primary hover:underline">
-                Termos de Uso
+                <FormattedMessage id="cchat.welcome.termsOfUse" defaultMessage="Terms of Service" />
               </a>{" "}
-              e a{" "}
+              <FormattedMessage id="cchat.welcome.andWord" defaultMessage="and" />{" "}
               <a href="/privacy" className="text-primary hover:underline">
-                Política de Privacidade
+                <FormattedMessage id="cchat.welcome.privacyPolicy" defaultMessage="Privacy Policy" />
               </a>
               .
             </span>
           </label>
         ) : (
           <p className="text-center text-[11px] leading-relaxed text-muted-foreground">
-            Ao continuar, você concorda com os{" "}
+            <FormattedMessage id="cchat.welcome.termsContinuePrefix" defaultMessage="By continuing, you agree to the" />{" "}
             <a href="/terms" className="text-primary hover:underline">
-              Termos de Uso
+              <FormattedMessage id="cchat.welcome.termsOfUse" defaultMessage="Terms of Service" />
             </a>{" "}
-            e{" "}
+            <FormattedMessage id="cchat.welcome.andWord" defaultMessage="and" />{" "}
             <a href="/privacy" className="text-primary hover:underline">
-              Privacidade
+              <FormattedMessage id="cchat.welcome.privacyShort" defaultMessage="Privacy" />
             </a>
             .
           </p>
@@ -166,7 +178,7 @@ export function WelcomePage() {
           onClick={openSignup}
           className="h-12 w-full rounded-full text-sm font-semibold shadow-sm"
         >
-          Criar conta
+          <FormattedMessage id="cchat.welcome.createAccount" defaultMessage="Create account" />
         </Button>
 
         <Button

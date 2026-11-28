@@ -1,8 +1,6 @@
 import { useEffect } from "react";
-import { Link } from "react-router-dom";
 
 import { toast } from "@/hooks/useToast";
-import { ToastAction } from "@/components/ui/toast";
 import { t } from "@/i18n";
 import { parseChangelog } from "@/lib/changelog";
 import { getStorageKey } from "@/lib/storageKey";
@@ -13,7 +11,6 @@ function truncate(text: string, max: number): string {
   if (text.length <= max) return text;
   const slice = text.slice(0, max).trimEnd();
   const lastSpace = slice.lastIndexOf(" ");
-  // Only break on a word boundary if it isn't comically early.
   const cut = lastSpace > max * 0.6 ? slice.slice(0, lastSpace).trimEnd() : slice;
   return cut + "…";
 }
@@ -39,7 +36,7 @@ async function fetchChangelogExcerpt(version: string): Promise<string | undefine
   }
 }
 
-/** "What's new" toast on version change. Inside <BrowserRouter> so "See all" resolves. */
+/** "What's new" toast on version change. */
 export function VersionCheck() {
   useEffect(() => {
     const currentVersion = import.meta.env.VERSION;
@@ -52,11 +49,6 @@ export function VersionCheck() {
     if (storedVersion && storedVersion !== currentVersion) {
       const { update, id } = toast({
         title: t({ id: "versionCheck.whatsNew", defaultMessage: "What's new in v{version}" }, { version: currentVersion }),
-        action: (
-          <ToastAction altText={t({ id: "versionCheck.viewChangelog", defaultMessage: "View changelog" })} asChild>
-            <Link to="/changelog">{t({ id: "versionCheck.seeAll", defaultMessage: "See all" })}</Link>
-          </ToastAction>
-        ),
       });
 
       fetchChangelogExcerpt(currentVersion).then((excerpt) => {
@@ -65,11 +57,6 @@ export function VersionCheck() {
             id,
             title: t({ id: "versionCheck.whatsNew", defaultMessage: "What's new in v{version}" }, { version: currentVersion }),
             description: excerpt,
-            action: (
-              <ToastAction altText={t({ id: "versionCheck.viewChangelog", defaultMessage: "View changelog" })} asChild>
-                <Link to="/changelog">{t({ id: "versionCheck.seeAll", defaultMessage: "See all" })}</Link>
-              </ToastAction>
-            ),
           });
         }
       });

@@ -61,7 +61,6 @@ describe("a community channel's first paint", () => {
     "npm:@scure/btc-signer",
     "npm:react-easy-crop",
     "npm:react-day-picker",
-    "src/components/brand/GameOverScreen.tsx",
     "src/concord/components/CommunitySettingsView.tsx",
   ])("doesn't statically import %s", (target) => {
     expect(pathTo(closure, target)).toBeUndefined();

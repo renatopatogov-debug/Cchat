@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { useLiveCommunities } from "@/concord/hooks/useCommunityList";
+import { common, FormattedMessage, useIntl } from "@/i18n";
 import { SettingsOverlayContext } from "@/lib/settingsOverlay";
 
 /**
@@ -11,6 +12,7 @@ import { SettingsOverlayContext } from "@/lib/settingsOverlay";
  * (com subgrupos e canais de chamada internos), sem vínculo com diretório público do Armada.
  */
 export function CommunitiesHubPage() {
+  const intl = useIntl();
   const navigate = useNavigate();
   const settings = useContext(SettingsOverlayContext);
   const communities = useLiveCommunities();
@@ -19,9 +21,14 @@ export function CommunitiesHubPage() {
     <div className="flex flex-1 flex-col min-h-0 bg-background">
       <header className="px-4 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] pb-3 border-b border-border flex items-center justify-between shrink-0">
         <div>
-          <h1 className="text-lg font-bold tracking-tight">Grupos</h1>
+          <h1 className="text-lg font-bold tracking-tight">
+            <FormattedMessage id="cchat.groups.title" defaultMessage="Groups" />
+          </h1>
           <p className="text-xs text-muted-foreground">
-            Grupos criptografados com subgrupos e canais de chamada
+            <FormattedMessage
+              id="cchat.groups.subtitle"
+              defaultMessage="Encrypted groups with subgroups and voice channels"
+            />
           </p>
         </div>
         <div className="flex items-center gap-1.5">
@@ -30,7 +37,10 @@ export function CommunitiesHubPage() {
             size="icon"
             variant="ghost"
             className="rounded-full"
-            aria-label="Criar grupo"
+            aria-label={intl.formatMessage({
+              id: "cchat.groups.createAria",
+              defaultMessage: "Create group",
+            })}
             onClick={() => navigate("/create")}
           >
             <Plus className="size-5" />
@@ -40,7 +50,7 @@ export function CommunitiesHubPage() {
             size="icon"
             variant="ghost"
             className="rounded-full sidebar:hidden"
-            aria-label="Configurações"
+            aria-label={intl.formatMessage(common.settings)}
             onClick={() => settings.show()}
           >
             <Settings className="size-5" />
@@ -57,7 +67,7 @@ export function CommunitiesHubPage() {
             onClick={() => navigate("/create")}
           >
             <Plus className="size-4 mr-1.5" />
-            Novo Grupo
+            <FormattedMessage id="cchat.groups.newButton" defaultMessage="New Group" />
           </Button>
         </div>
 
@@ -66,15 +76,28 @@ export function CommunitiesHubPage() {
             <div className="size-12 rounded-2xl bg-primary/15 text-primary flex items-center justify-center mx-auto">
               <Users className="size-6" />
             </div>
-            <p className="text-sm font-semibold">Você ainda não participa de nenhum grupo</p>
+            <p className="text-sm font-semibold">
+              <FormattedMessage
+                id="cchat.groups.emptyTitle"
+                defaultMessage="You haven't joined any groups yet"
+              />
+            </p>
             <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-              Crie um grupo criptografado com subgrupos e salas de chamada de voz, ou aceite um link de convite.
+              <FormattedMessage
+                id="cchat.groups.emptyBody"
+                defaultMessage="Create an encrypted group with subgroups and voice call rooms, or accept an invite link."
+              />
             </p>
           </div>
         ) : (
           <div className="space-y-2.5">
             {communities.map((c) => {
-              const label = c.current.name || `Grupo ${c.community_id.slice(0, 8)}`;
+              const label =
+                c.current.name ||
+                intl.formatMessage(
+                  { id: "cchat.groups.fallbackName", defaultMessage: "Group {id}" },
+                  { id: c.community_id.slice(0, 8) },
+                );
               return (
                 <button
                   key={c.community_id}
@@ -88,7 +111,10 @@ export function CommunitiesHubPage() {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold truncate">{label}</p>
                     <p className="text-xs text-muted-foreground truncate">
-                      Grupo privado • Subgrupos e chamadas de voz
+                      <FormattedMessage
+                        id="cchat.groups.itemSubtitle"
+                        defaultMessage="Private group • Subgroups and voice calls"
+                      />
                     </p>
                   </div>
                 </button>

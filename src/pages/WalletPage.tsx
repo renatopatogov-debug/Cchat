@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { QRCodeCanvas } from "@/components/ui/qrcode";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { toast } from "@/hooks/useToast";
+import { FormattedMessage, useIntl } from "@/i18n";
 import {
   SUPPORTED_CHAINS,
   canonicalOrderSeed,
@@ -74,13 +75,19 @@ function QrCameraScanner({
   onDetected: (raw: string) => void;
   onClose: () => void;
 }) {
+  const intl = useIntl();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [camError, setCamError] = useState<string | null>(null);
 
   useEffect(() => {
     const DetectorCtor = getBarcodeDetectorCtor();
     if (!DetectorCtor || !navigator.mediaDevices?.getUserMedia) {
-      setCamError("Leitor nativo indisponível neste navegador; cole o payload JSON abaixo.");
+      setCamError(
+        intl.formatMessage({
+          id: "cchat.wallet.qrScannerUnsupported",
+          defaultMessage: "Native scanner unavailable in this browser; paste the JSON payload below.",
+        }),
+      );
       return;
     }
 
@@ -124,7 +131,14 @@ function QrCameraScanner({
         rafId = requestAnimationFrame(() => void scanFrame());
       } catch (e) {
         if (active) {
-          setCamError(e instanceof Error ? e.message : "Permissão de câmera negada.");
+          setCamError(
+            e instanceof Error
+              ? e.message
+              : intl.formatMessage({
+                  id: "cchat.wallet.cameraDenied",
+                  defaultMessage: "Camera permission denied.",
+                }),
+          );
         }
       }
     })();
@@ -134,12 +148,17 @@ function QrCameraScanner({
       if (rafId) cancelAnimationFrame(rafId);
       stream?.getTracks().forEach((t) => t.stop());
     };
-  }, [onDetected]);
+  }, [intl, onDetected]);
 
   return (
     <div className="rounded-xl border border-border bg-muted/40 p-3 space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium">Aponte a câmera para o QR v2</span>
+        <span className="text-xs font-medium">
+          <FormattedMessage
+            id="cchat.wallet.pointCameraHint"
+            defaultMessage="Point camera at the QR v2 code"
+          />
+        </span>
         <Button type="button" size="icon" variant="ghost" onClick={onClose}>
           <X className="size-4" />
         </Button>
@@ -159,6 +178,7 @@ function QrCameraScanner({
 }
 
 export function WalletPage() {
+  const intl = useIntl();
   const { user } = useCurrentUser();
   const [chainId, setChainId] = useState<number>(8453);
   const [overrideVersion, setOverrideVersion] = useState(0);
@@ -245,8 +265,14 @@ export function WalletPage() {
   const handleSaveTestnetConfig = () => {
     if (!isValidAddress(testnetEscrowInput) || !isValidAddress(testnetTokenInput)) {
       toast({
-        title: "Endereço inválido",
-        description: "Informe os dois endereços 0x… gerados no Remix (DeliveryEscrow e MockBRZ).",
+        title: intl.formatMessage({
+          id: "cchat.wallet.invalidAddressTitle",
+          defaultMessage: "Invalid address",
+        }),
+        description: intl.formatMessage({
+          id: "cchat.wallet.invalidAddressBody",
+          defaultMessage: "Enter both 0x… addresses generated in Remix (DeliveryEscrow and MockBRZ).",
+        }),
         variant: "destructive",
       });
       return;
@@ -257,7 +283,12 @@ export function WalletPage() {
       mockTokenDecimals: 18,
     });
     setOverrideVersion((v) => v + 1);
-    toast({ title: "Endereços Base Sepolia salvos!" });
+    toast({
+      title: intl.formatMessage({
+        id: "cchat.wallet.testnetSaved",
+        defaultMessage: "Base Sepolia addresses saved!",
+      }),
+    });
   };
 
   const handleCreateWallet = async () => {
@@ -270,15 +301,30 @@ export function WalletPage() {
       setPin("");
       setNsecInput("");
       toast({
-        title: "Carteira pronta",
+        title: intl.formatMessage({
+          id: "cchat.wallet.walletReadyTitle",
+          defaultMessage: "Wallet ready",
+        }),
         description:
           created.mode === "nsec-derived"
-            ? "Derivada do seu nsec (recuperável automaticamente com sua chave Nostr)."
-            : `Endereço ${created.address.slice(0, 10)}… salvo com AES-GCM.`,
+            ? intl.formatMessage({
+                id: "cchat.wallet.walletReadyDerived",
+                defaultMessage: "Derived from your nsec (automatically recoverable with your Nostr key).",
+              })
+            : intl.formatMessage(
+                {
+                  id: "cchat.wallet.walletReadyLocal",
+                  defaultMessage: "Address {prefix}… saved with AES-GCM.",
+                },
+                { prefix: created.address.slice(0, 10) },
+              ),
       });
     } catch (e) {
       toast({
-        title: "Erro ao criar carteira",
+        title: intl.formatMessage({
+          id: "cchat.wallet.createErrorTitle",
+          defaultMessage: "Failed to create wallet",
+        }),
         description: e instanceof Error ? e.message : String(e),
         variant: "destructive",
       });
@@ -291,12 +337,21 @@ export function WalletPage() {
       const backup = await exportEncryptedWalletBackup(user.pubkey, pin, pin);
       await navigator.clipboard?.writeText(backup);
       toast({
-        title: "Backup cifrado copiado",
-        description: "Guarde esse JSON em local seguro. Ele exige seu PIN para restaurar.",
+        title: intl.formatMessage({
+          id: "cchat.wallet.backupCopiedTitle",
+          defaultMessage: "Encrypted backup copied",
+        }),
+        description: intl.formatMessage({
+          id: "cchat.wallet.backupCopiedBody",
+          defaultMessage: "Keep this JSON in a safe place. It requires your PIN to restore.",
+        }),
       });
     } catch (e) {
       toast({
-        title: "Falha no backup",
+        title: intl.formatMessage({
+          id: "cchat.wallet.backupFailedTitle",
+          defaultMessage: "Backup failed",
+        }),
         description: e instanceof Error ? e.message : String(e),
         variant: "destructive",
       });
@@ -311,10 +366,19 @@ export function WalletPage() {
       setRestoreJson("");
       setRestorePwd("");
       setPin("");
-      toast({ title: "Carteira restaurada", description: restored.address });
+      toast({
+        title: intl.formatMessage({
+          id: "cchat.wallet.restoredTitle",
+          defaultMessage: "Wallet restored",
+        }),
+        description: restored.address,
+      });
     } catch (e) {
       toast({
-        title: "Erro ao restaurar",
+        title: intl.formatMessage({
+          id: "cchat.wallet.restoreErrorTitle",
+          defaultMessage: "Failed to restore",
+        }),
         description: e instanceof Error ? e.message : String(e),
         variant: "destructive",
       });
@@ -326,16 +390,28 @@ export function WalletPage() {
     const primaryToken = chainTokens[0];
     if (!primaryToken) {
       toast({
-        title: "Sem token configurado nesta rede",
-        description: "Se estiver na Base Sepolia, preencha os endereços do Remix abaixo.",
+        title: intl.formatMessage({
+          id: "cchat.wallet.noTokenTitle",
+          defaultMessage: "No token configured on this network",
+        }),
+        description: intl.formatMessage({
+          id: "cchat.wallet.noTokenBody",
+          defaultMessage: "If you are on Base Sepolia, fill in the Remix addresses below.",
+        }),
         variant: "destructive",
       });
       return;
     }
     if (chain.escrowAddress === "0x0000000000000000000000000000000000000000") {
       toast({
-        title: "Contrato de escrow não configurado",
-        description: "Informe o endereço do DeliveryEscrow implantado antes de gerar o QR.",
+        title: intl.formatMessage({
+          id: "cchat.wallet.noEscrowTitle",
+          defaultMessage: "Escrow contract not configured",
+        }),
+        description: intl.formatMessage({
+          id: "cchat.wallet.noEscrowBody",
+          defaultMessage: "Enter the deployed DeliveryEscrow address before generating the QR.",
+        }),
         variant: "destructive",
       });
       return;
@@ -370,7 +446,10 @@ export function WalletPage() {
       }
     } catch (e) {
       toast({
-        title: "Informe seu PIN para assinar a oferta",
+        title: intl.formatMessage({
+          id: "cchat.wallet.pinToSignTitle",
+          defaultMessage: "Enter your PIN to sign the offer",
+        }),
         description: e instanceof Error ? e.message : String(e),
         variant: "destructive",
       });
@@ -397,7 +476,13 @@ export function WalletPage() {
         });
         await loadWalletAndQueue();
         setScanStatus(
-          `QR de entrega #${delivery.payload.orderId} validado e salvo na fila persistente para liquidação.`,
+          intl.formatMessage(
+            {
+              id: "cchat.wallet.qrDeliveryValidated",
+              defaultMessage: "Delivery QR #{id} validated and saved to persistent settlement queue.",
+            },
+            { id: delivery.payload.orderId },
+          ),
         );
         return;
       }
@@ -406,7 +491,16 @@ export function WalletPage() {
       if (offerRes.ok) {
         setValidatedOffer(offerRes.offer);
         setScanStatus(
-          `Oferta válida: ${formatTokenAmount(BigInt(offerRes.offer.amount), offerRes.token.decimals)} ${offerRes.token.symbol}`,
+          intl.formatMessage(
+            {
+              id: "cchat.wallet.qrOfferValid",
+              defaultMessage: "Valid offer: {amount} {symbol}",
+            },
+            {
+              amount: formatTokenAmount(BigInt(offerRes.offer.amount), offerRes.token.decimals),
+              symbol: offerRes.token.symbol,
+            },
+          ),
         );
         if (user && pin.length >= 4) {
           try {
@@ -431,9 +525,17 @@ export function WalletPage() {
         return;
       }
 
-      setScanStatus(`Rejeitado: ${offerRes.reason}`);
+      setScanStatus(
+        intl.formatMessage(
+          {
+            id: "cchat.wallet.qrRejected",
+            defaultMessage: "Rejected: {reason}",
+          },
+          { reason: offerRes.reason },
+        ),
+      );
     },
-    [chainId, loadWalletAndQueue, pin, user],
+    [chainId, intl, loadWalletAndQueue, pin, user],
   );
 
   return (
@@ -447,9 +549,17 @@ export function WalletPage() {
                 <Wallet className="size-5" />
               </div>
               <div>
-                <h1 className="text-xl font-bold">Carteira &amp; Entregas (BRZ)</h1>
+                <h1 className="text-xl font-bold">
+                  <FormattedMessage
+                    id="cchat.wallet.title"
+                    defaultMessage="Wallet & Deliveries (BRZ)"
+                  />
+                </h1>
                 <p className="text-xs text-muted-foreground">
-                  Non-custodial • Escrow on-chain com código estilo iFood • QR v2
+                  <FormattedMessage
+                    id="cchat.wallet.subtitle"
+                    defaultMessage="Non-custodial • On-chain escrow with delivery code • QR v2"
+                  />
                 </p>
               </div>
             </div>
@@ -475,23 +585,35 @@ export function WalletPage() {
               <div className="flex items-center gap-2 text-amber-400">
                 <Settings2 className="size-4" />
                 <h2 className="text-sm font-semibold">
-                  Configurar Contratos de Teste (Deploy do Remix em Base Sepolia)
+                  <FormattedMessage
+                    id="cchat.wallet.testnetHeading"
+                    defaultMessage="Configure Test Contracts (Remix Deploy on Base Sepolia)"
+                  />
                 </h2>
               </div>
               <div className="grid md:grid-cols-2 gap-2">
                 <Input
                   value={testnetEscrowInput}
                   onChange={(e) => setTestnetEscrowInput(e.target.value.trim())}
-                  placeholder="Endereço DeliveryEscrow (0x...)"
+                  placeholder={intl.formatMessage({
+                    id: "cchat.wallet.escrowAddressPlaceholder",
+                    defaultMessage: "DeliveryEscrow address (0x...)",
+                  })}
                 />
                 <Input
                   value={testnetTokenInput}
                   onChange={(e) => setTestnetTokenInput(e.target.value.trim())}
-                  placeholder="Endereço MockBRZ (0x...)"
+                  placeholder={intl.formatMessage({
+                    id: "cchat.wallet.mockTokenPlaceholder",
+                    defaultMessage: "MockBRZ address (0x...)",
+                  })}
                 />
               </div>
               <Button type="button" size="sm" variant="secondary" onClick={handleSaveTestnetConfig}>
-                Salvar Endereços de Teste
+                <FormattedMessage
+                  id="cchat.wallet.saveTestnetButton"
+                  defaultMessage="Save Testnet Addresses"
+                />
               </Button>
             </div>
           )}
@@ -501,49 +623,87 @@ export function WalletPage() {
             <div className="rounded-xl border border-border bg-card p-5 space-y-4">
               <div className="flex items-center gap-2">
                 <KeyRound className="size-5 text-primary" />
-                <h2 className="font-semibold">Criar ou Restaurar Carteira Cripto Local</h2>
+                <h2 className="font-semibold">
+                  <FormattedMessage
+                    id="cchat.wallet.setupTitle"
+                    defaultMessage="Create or Restore Local Crypto Wallet"
+                  />
+                </h2>
               </div>
               <p className="text-xs text-muted-foreground">
-                Sua chave nunca sai deste aparelho e fica cifrada com AES-GCM + Keystore. Opcionalmente, informe seu{" "}
-                <code>nsec</code> para derivar uma carteira vinculada de forma determinística à sua conta Nostr.
+                <FormattedMessage
+                  id="cchat.wallet.setupBody"
+                  defaultMessage="Your key never leaves this device and is encrypted with AES-GCM + Keystore. Optionally enter your {nsec} to derive a wallet deterministically linked to your Nostr account."
+                  values={{ nsec: <code>nsec</code> }}
+                />
               </p>
               <Input
                 type="password"
                 value={nsecInput}
                 onChange={(e) => setNsecInput(e.target.value)}
-                placeholder="Opcional: seu nsec1... (para recuperação automática via chave Nostr)"
+                placeholder={intl.formatMessage({
+                  id: "cchat.wallet.nsecPlaceholder",
+                  defaultMessage: "Optional: your nsec1... (for automatic Nostr key recovery)",
+                })}
               />
               <div className="flex flex-wrap gap-2">
                 <Input
                   type="password"
                   value={pin}
                   onChange={(e) => setPin(e.target.value)}
-                  placeholder="Crie um PIN (mín. 4 dígitos)"
+                  placeholder={intl.formatMessage({
+                    id: "cchat.wallet.createPinPlaceholder",
+                    defaultMessage: "Create a PIN (min. 4 digits)",
+                  })}
                   className="max-w-xs"
                 />
                 <Button type="button" onClick={() => void handleCreateWallet()}>
-                  {nsecInput.trim() ? "Derivar do meu nsec" : "Criar Carteira Nova"}
+                  {nsecInput.trim() ? (
+                    <FormattedMessage
+                      id="cchat.wallet.deriveButton"
+                      defaultMessage="Derive from my nsec"
+                    />
+                  ) : (
+                    <FormattedMessage
+                      id="cchat.wallet.createButton"
+                      defaultMessage="Create New Wallet"
+                    />
+                  )}
                 </Button>
               </div>
 
               <div className="pt-3 border-t border-border space-y-2">
-                <p className="text-xs font-medium">Ou restaurar backup cifrado:</p>
+                <p className="text-xs font-medium">
+                  <FormattedMessage
+                    id="cchat.wallet.restoreHeading"
+                    defaultMessage="Or restore encrypted backup:"
+                  />
+                </p>
                 <Input
                   value={restoreJson}
                   onChange={(e) => setRestoreJson(e.target.value)}
-                  placeholder="Cole o JSON do backup"
+                  placeholder={intl.formatMessage({
+                    id: "cchat.wallet.restoreJsonPlaceholder",
+                    defaultMessage: "Paste backup JSON",
+                  })}
                 />
                 <div className="flex flex-wrap gap-2">
                   <Input
                     type="password"
                     value={restorePwd}
                     onChange={(e) => setRestorePwd(e.target.value)}
-                    placeholder="Senha do backup"
+                    placeholder={intl.formatMessage({
+                      id: "cchat.wallet.restorePwdPlaceholder",
+                      defaultMessage: "Backup password",
+                    })}
                     className="max-w-xs"
                   />
                   <Button type="button" variant="outline" onClick={() => void handleRestoreBackup()}>
                     <Upload className="size-4 mr-1.5" />
-                    Restaurar Backup
+                    <FormattedMessage
+                      id="cchat.wallet.restoreButton"
+                      defaultMessage="Restore Backup"
+                    />
                   </Button>
                 </div>
               </div>
@@ -553,7 +713,19 @@ export function WalletPage() {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <p className="text-xs text-muted-foreground">
-                    Seu endereço em {chain.name} ({walletSummary.mode === "nsec-derived" ? "derivado do nsec" : "chave local"})
+                    {walletSummary.mode === "nsec-derived" ? (
+                      <FormattedMessage
+                        id="cchat.wallet.addressLabelDerived"
+                        defaultMessage="Your address on {chain} (derived from nsec)"
+                        values={{ chain: chain.name }}
+                      />
+                    ) : (
+                      <FormattedMessage
+                        id="cchat.wallet.addressLabelLocal"
+                        defaultMessage="Your address on {chain} (local key)"
+                        values={{ chain: chain.name }}
+                      />
+                    )}
                   </p>
                   <div className="flex items-center gap-2 mt-1">
                     <code className="text-xs md:text-sm font-mono bg-muted px-2 py-1 rounded break-all">
@@ -565,7 +737,12 @@ export function WalletPage() {
                       variant="ghost"
                       onClick={() => {
                         void navigator.clipboard?.writeText(walletSummary.address);
-                        toast({ title: "Endereço copiado" });
+                        toast({
+                          title: intl.formatMessage({
+                            id: "cchat.wallet.addressCopied",
+                            defaultMessage: "Address copied",
+                          }),
+                        });
                       }}
                     >
                       <Copy className="size-4" />
@@ -574,7 +751,10 @@ export function WalletPage() {
                 </div>
                 <Button type="button" size="sm" variant="outline" onClick={() => void refreshBalances()}>
                   <RefreshCw className={`size-4 mr-1.5 ${loadingBalances ? "animate-spin" : ""}`} />
-                  Atualizar Saldo
+                  <FormattedMessage
+                    id="cchat.wallet.refreshBalance"
+                    defaultMessage="Refresh Balance"
+                  />
                 </Button>
               </div>
 
@@ -587,7 +767,10 @@ export function WalletPage() {
                 ))}
                 {chainTokens.length === 0 && (
                   <p className="text-xs text-muted-foreground col-span-full">
-                    Salve acima os endereços do deploy em Base Sepolia para exibir o saldo do MockBRZ.
+                    <FormattedMessage
+                      id="cchat.wallet.testnetEmptyTokens"
+                      defaultMessage="Save the Base Sepolia deploy addresses above to display MockBRZ balance."
+                    />
                   </p>
                 )}
               </div>
@@ -597,11 +780,17 @@ export function WalletPage() {
                   type="password"
                   value={pin}
                   onChange={(e) => setPin(e.target.value)}
-                  placeholder="Seu PIN (para assinar/backup)"
+                  placeholder={intl.formatMessage({
+                    id: "cchat.wallet.pinSignBackupPlaceholder",
+                    defaultMessage: "Your PIN (to sign/backup)",
+                  })}
                   className="max-w-xs"
                 />
                 <Button type="button" size="sm" variant="outline" onClick={() => void handleExportBackup()}>
-                  Exportar Backup Cifrado
+                  <FormattedMessage
+                    id="cchat.wallet.exportBackupButton"
+                    defaultMessage="Export Encrypted Backup"
+                  />
                 </Button>
               </div>
             </div>
@@ -614,23 +803,37 @@ export function WalletPage() {
               <div className="rounded-xl border border-border bg-card p-5 space-y-3">
                 <div className="flex items-center gap-2">
                   <ArrowDownLeft className="size-5 text-emerald-500" />
-                  <h2 className="font-semibold text-sm">Receber com Escrow (QR v2)</h2>
+                  <h2 className="font-semibold text-sm">
+                    <FormattedMessage
+                      id="cchat.wallet.receiveHeading"
+                      defaultMessage="Receive with Escrow (QR v2)"
+                    />
+                  </h2>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <Input
                     value={offerAmount}
                     onChange={(e) => setOfferAmount(e.target.value)}
-                    placeholder="Valor (ex: 25.00)"
+                    placeholder={intl.formatMessage({
+                      id: "cchat.wallet.amountPlaceholder",
+                      defaultMessage: "Amount (e.g. 25.00)",
+                    })}
                   />
                   <Input
                     value={offerHours}
                     onChange={(e) => setOfferHours(e.target.value)}
-                    placeholder="Prazo (horas)"
+                    placeholder={intl.formatMessage({
+                      id: "cchat.wallet.deadlineHoursPlaceholder",
+                      defaultMessage: "Deadline (hours)",
+                    })}
                   />
                 </div>
                 <Button type="button" className="w-full" onClick={() => void handleGenerateOfferQr()}>
                   <QrCode className="size-4 mr-1.5" />
-                  Gerar QR Assinado (EIP-712)
+                  <FormattedMessage
+                    id="cchat.wallet.generateQrButton"
+                    defaultMessage="Generate Signed QR (EIP-712)"
+                  />
                 </Button>
                 {generatedOffer && (
                   <div className="flex flex-col items-center gap-2 pt-2">
@@ -643,11 +846,19 @@ export function WalletPage() {
                       variant="ghost"
                       onClick={() => {
                         void navigator.clipboard?.writeText(JSON.stringify(generatedOffer));
-                        toast({ title: "Payload QR v2 copiado" });
+                        toast({
+                          title: intl.formatMessage({
+                            id: "cchat.wallet.qrPayloadCopied",
+                            defaultMessage: "QR v2 payload copied",
+                          }),
+                        });
                       }}
                     >
                       <Copy className="size-3.5 mr-1.5" />
-                      Copiar Payload para Chat
+                      <FormattedMessage
+                        id="cchat.wallet.copyPayloadButton"
+                        defaultMessage="Copy Payload for Chat"
+                      />
                     </Button>
                   </div>
                 )}
@@ -658,7 +869,12 @@ export function WalletPage() {
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <ArrowUpRight className="size-5 text-primary" />
-                    <h2 className="font-semibold text-sm">Escanear ou Colar QR v2</h2>
+                    <h2 className="font-semibold text-sm">
+                      <FormattedMessage
+                        id="cchat.wallet.scanHeading"
+                        defaultMessage="Scan or Paste QR v2"
+                      />
+                    </h2>
                   </div>
                   <Button
                     type="button"
@@ -667,7 +883,11 @@ export function WalletPage() {
                     onClick={() => setCameraOpen((o) => !o)}
                   >
                     <Camera className="size-3.5 mr-1.5" />
-                    {cameraOpen ? "Fechar" : "Câmera"}
+                    {cameraOpen ? (
+                      <FormattedMessage id="cchat.wallet.closeCamera" defaultMessage="Close" />
+                    ) : (
+                      <FormattedMessage id="cchat.wallet.openCamera" defaultMessage="Camera" />
+                    )}
                   </Button>
                 </div>
 
@@ -685,7 +905,10 @@ export function WalletPage() {
                 <Input
                   value={scannedInput}
                   onChange={(e) => setScannedInput(e.target.value)}
-                  placeholder="Ou cole o JSON do QR v2"
+                  placeholder={intl.formatMessage({
+                    id: "cchat.wallet.pasteQrPlaceholder",
+                    defaultMessage: "Or paste the QR v2 JSON",
+                  })}
                 />
                 <Button
                   type="button"
@@ -693,7 +916,10 @@ export function WalletPage() {
                   onClick={() => void validateRawPayload(scannedInput)}
                 >
                   <ShieldCheck className="size-4 mr-1.5" />
-                  Validar Whitelist &amp; Assinatura
+                  <FormattedMessage
+                    id="cchat.wallet.validateQrButton"
+                    defaultMessage="Validate Whitelist & Signature"
+                  />
                 </Button>
                 {scanStatus && (
                   <p className="text-xs rounded-lg bg-muted p-2.5 text-foreground">{scanStatus}</p>
@@ -702,9 +928,20 @@ export function WalletPage() {
                   <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 text-xs space-y-1">
                     <div className="flex items-center gap-1.5 font-semibold text-emerald-500">
                       <CheckCircle2 className="size-4" />
-                      <span>Código determinístico pronto (recuperável em qualquer aparelho):</span>
+                      <span>
+                        <FormattedMessage
+                          id="cchat.wallet.derivedCodeReady"
+                          defaultMessage="Deterministic code ready (recoverable on any device):"
+                        />
+                      </span>
                     </div>
-                    <p className="font-mono">Código: {derivedPreview.code}</p>
+                    <p className="font-mono">
+                      <FormattedMessage
+                        id="cchat.wallet.derivedCodeLine"
+                        defaultMessage="Code: {code}"
+                        values={{ code: derivedPreview.code }}
+                      />
+                    </p>
                     <p className="font-mono truncate">Commit: {derivedPreview.commitment}</p>
                   </div>
                 )}
@@ -715,7 +952,12 @@ export function WalletPage() {
           {/* Consulta rápida de pedido on-chain */}
           <div className="rounded-xl border border-border bg-card p-5 space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="font-semibold text-sm">Consultar Pedido On-Chain</h2>
+              <h2 className="font-semibold text-sm">
+                <FormattedMessage
+                  id="cchat.wallet.lookupOrderHeading"
+                  defaultMessage="Look Up On-Chain Order"
+                />
+              </h2>
               <Input
                 value={previewOrderId}
                 onChange={(e) => setPreviewOrderId(e.target.value.replace(/\D/g, "") || "1")}
@@ -738,12 +980,21 @@ export function WalletPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Bluetooth className="size-5 text-sky-400" />
-                <h2 className="font-semibold text-sm">Fila Persistente Bluetooth Mesh ({meshItems.length})</h2>
+                <h2 className="font-semibold text-sm">
+                  <FormattedMessage
+                    id="cchat.wallet.meshQueueHeading"
+                    defaultMessage="Persistent Bluetooth Mesh Queue ({count})"
+                    values={{ count: meshItems.length }}
+                  />
+                </h2>
               </div>
             </div>
             {meshItems.length === 0 ? (
               <p className="text-xs text-muted-foreground">
-                Nenhum pacote de entrega ou extensão de prazo pendente em disco.
+                <FormattedMessage
+                  id="cchat.wallet.meshQueueEmpty"
+                  defaultMessage="No pending delivery or deadline-extension packets on disk."
+                />
               </p>
             ) : (
               <div className="space-y-2">
@@ -754,11 +1005,27 @@ export function WalletPage() {
                   >
                     <div>
                       <p className="font-medium">
-                        {item.packet.kind} • Pedido #{item.packet.orderId}
+                        <FormattedMessage
+                          id="cchat.wallet.meshQueueItemTitle"
+                          defaultMessage="{kind} • Order #{id}"
+                          values={{ kind: item.packet.kind, id: item.packet.orderId }}
+                        />
                       </p>
-                      <p className="text-muted-foreground">Status: {item.status}</p>
+                      <p className="text-muted-foreground">
+                        <FormattedMessage
+                          id="cchat.wallet.meshQueueItemStatus"
+                          defaultMessage="Status: {status}"
+                          values={{ status: item.status }}
+                        />
+                      </p>
                     </div>
-                    <code className="text-[11px]">{item.txHash ?? "aguardando rede"}</code>
+                    <code className="text-[11px]">
+                      {item.txHash ??
+                        intl.formatMessage({
+                          id: "cchat.wallet.awaitingNetwork",
+                          defaultMessage: "awaiting network",
+                        })}
+                    </code>
                   </div>
                 ))}
               </div>

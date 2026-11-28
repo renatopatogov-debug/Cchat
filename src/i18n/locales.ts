@@ -3,13 +3,8 @@ import { languageOf } from "@/i18n/intl";
 /** Languages with a bundled catalog, in picker order. English is the source language. */
 export const LANGUAGE_OPTIONS = [
   { code: "en", nativeName: "English" },
-  { code: "de", nativeName: "Deutsch" },
-  { code: "es", nativeName: "Español" },
-  { code: "fr", nativeName: "Français" },
-  { code: "it", nativeName: "Italiano" },
-  { code: "nl", nativeName: "Nederlands" },
   { code: "pt", nativeName: "Português (Brasil)" },
-  { code: "ja", nativeName: "日本語" },
+  { code: "es", nativeName: "Español" },
 ] as const;
 
 export type LocaleCode = (typeof LANGUAGE_OPTIONS)[number]["code"];
@@ -23,13 +18,8 @@ export type Catalog = Record<string, string>;
  * text is the inline `defaultMessage` at every call site.
  */
 const CATALOGS: Record<string, () => Promise<{ default: Catalog }>> = {
-  de: () => import("./locales/de.json"),
   es: () => import("./locales/es.json"),
-  fr: () => import("./locales/fr.json"),
-  it: () => import("./locales/it.json"),
-  nl: () => import("./locales/nl.json"),
   pt: () => import("./locales/pt.json"),
-  ja: () => import("./locales/ja.json"),
 };
 
 const loaded = new Map<string, Catalog>();

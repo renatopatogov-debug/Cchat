@@ -1,7 +1,7 @@
 import { Check, Sparkles } from "lucide-react";
 import { useState } from "react";
 
-import { ArmadaCrest, ArmadaCrestKeyframes } from "@/components/brand/ArmadaCrest";
+import { CchatLogo } from "@/components/brand/CchatLogo";
 import { Dialog, ChromeDialogContent } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { FormattedMessage, useIntl } from "@/i18n";
@@ -29,8 +29,7 @@ export function AccountStandingDialog({ open, onOpenChange }: AccountStandingDia
         }}
       >
         <div className="relative flex flex-col items-center">
-          <ArmadaCrest size={104} />
-          <ArmadaCrestKeyframes />
+          <CchatLogo size={80} />
 
           <div className="relative mt-4 w-full">
             <div

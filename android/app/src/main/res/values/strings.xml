@@ -2,8 +2,8 @@
 <resources>
     <string name="app_name" translatable="false">Cchat</string>
     <string name="title_activity_main" translatable="false">Cchat</string>
-    <string name="package_name" translatable="false">buzz.armada.app</string>
-    <string name="custom_url_scheme" translatable="false">buzz.armada.app</string>
+    <string name="package_name" translatable="false">app.cchat.mobile</string>
+    <string name="custom_url_scheme" translatable="false">app.cchat.mobile</string>
 
     <!-- Notification texts: the same English as `notificationMessages` in
          src/lib/notificationPreview.ts; each values-<lang> carries the rest. -->

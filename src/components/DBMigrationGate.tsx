@@ -1,13 +1,11 @@
-import { useEffect, useRef, useState } from "react";
 import { useNostrLogin } from "@nostrify/react/login";
+import { Check, Loader2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
-import { ArmadaCrest, ArmadaCrestKeyframes } from "@/components/brand/ArmadaCrest";
-import { BrandMark } from "@/components/brand/BrandMark";
-import { TerminalProgress } from "@/components/brand/TerminalProgress";
+import { CchatLogo } from "@/components/brand/CchatLogo";
+import type { SyncLogLine } from "@/hooks/useInitialSync";
 import { t } from "@/i18n";
 import { markUpToDate, pendingUpgrades, runMigrations } from "@/lib/db/migrations";
-
-import type { SyncLogLine } from "@/hooks/useInitialSync";
 
 /**
  * Full-screen storage-upgrade overlay while schema migrations (`db/schema.ts`)
@@ -20,7 +18,6 @@ export function DBMigrationGate() {
   const [log, setLog] = useState<SyncLogLine[]>([]);
   const started = useRef(false);
 
-  // Accounts read once: a mid-migration login would otherwise restart the run.
   const accounts = logins.map((l) => l.pubkey);
   const accountsRef = useRef(accounts);
   accountsRef.current = accounts;
@@ -34,8 +31,6 @@ export function DBMigrationGate() {
       const pending = await pendingUpgrades().catch(() => null);
       if (cancelled || !pending) return;
 
-      // Data written by a newer build: can't convert it, and stamping would move the
-      // version marker backwards.
       if (pending.future) return;
 
       if (pending.schema.length === 0) {
@@ -44,7 +39,13 @@ export function DBMigrationGate() {
       }
 
       setActive(true);
-      setLog([{ id: "open", text: t({ id: "dbMigrationGate.upgrading", defaultMessage: "upgrading local storage" }), tone: "info" }]);
+      setLog([
+        {
+          id: "open",
+          text: t({ id: "dbMigrationGate.upgrading", defaultMessage: "upgrading local storage" }),
+          tone: "info",
+        },
+      ]);
 
       await runMigrations(accountsRef.current, ({ label, done, total }) => {
         if (cancelled) return;
@@ -57,7 +58,12 @@ export function DBMigrationGate() {
       if (cancelled) return;
       setLog((prev) => [
         ...prev.map((l) => (l.status === undefined ? { ...l, status: "OK", tone: "ok" as const } : l)),
-        { id: "done", text: t({ id: "dbMigrationGate.done", defaultMessage: "storage upgraded" }), status: "OK", tone: "ok" },
+        {
+          id: "done",
+          text: t({ id: "dbMigrationGate.done", defaultMessage: "storage upgraded" }),
+          status: "OK",
+          tone: "ok",
+        },
       ]);
       setTimeout(() => {
         if (!cancelled) setActive(false);
@@ -73,18 +79,32 @@ export function DBMigrationGate() {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-10 bg-background px-6"
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-8 bg-background px-6"
       role="status"
       aria-live="polite"
     >
-      <div className="flex flex-col items-center gap-6">
-        <ArmadaCrest size={96} loop />
-        <BrandMark />
+      <div className="flex flex-col items-center gap-3 text-center">
+        <CchatLogo size={76} />
+        <h1 className="text-xl font-bold tracking-tight text-foreground">Cchat</h1>
       </div>
 
-      <TerminalProgress lines={log} />
-
-      <ArmadaCrestKeyframes />
+      {log.length > 0 && (
+        <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-4 space-y-2.5">
+          {log.map((line) => (
+            <div key={line.id} className="flex items-center justify-between gap-3 text-xs">
+              <span className="truncate text-foreground/90">{line.text}</span>
+              {line.status !== undefined ? (
+                <span className="inline-flex items-center gap-1 shrink-0 font-medium text-emerald-500">
+                  <Check className="size-3.5" />
+                  {line.status}
+                </span>
+              ) : (
+                <Loader2 className="size-3.5 shrink-0 animate-spin text-primary" />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

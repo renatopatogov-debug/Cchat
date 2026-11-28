@@ -4,7 +4,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 import { KeyboardResize } from '@capacitor/keyboard';
 
 const config: CapacitorConfig = {
-  appId: 'buzz.armada.app',
+  appId: 'app.cchat.mobile',
   appName: 'Cchat',
   webDir: 'dist',
   // No Capacitor bridge logging, in debug builds too (the default logs there).

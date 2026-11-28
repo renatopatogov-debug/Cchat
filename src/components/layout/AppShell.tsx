@@ -111,23 +111,24 @@ function SignalDesktopSidebar({
   settings: SettingsOverlay;
   unreadCount: number;
 }) {
+  const intl = useIntl();
   const navItems = [
     {
       to: "/dm",
-      label: "Conversas",
+      label: intl.formatMessage({ id: "cchat.nav.chats", defaultMessage: "Chats" }),
       icon: MessageCircle,
       active: !settings.open && (pathname.startsWith("/dm") || pathname.startsWith("/mesh")),
       badge: unreadCount > 0 ? unreadCount : undefined,
     },
     {
       to: "/wallet",
-      label: "Carteira",
+      label: intl.formatMessage({ id: "cchat.nav.wallet", defaultMessage: "Wallet" }),
       icon: Wallet,
       active: !settings.open && pathname.startsWith("/wallet"),
     },
     {
       to: "/communities",
-      label: "Grupos",
+      label: intl.formatMessage({ id: "cchat.nav.groups", defaultMessage: "Groups" }),
       icon: Users,
       active:
         !settings.open &&
@@ -141,7 +142,7 @@ function SignalDesktopSidebar({
     },
     {
       to: "/notifications",
-      label: "Notificações",
+      label: intl.formatMessage({ id: "cchat.nav.notifications", defaultMessage: "Notifications" }),
       icon: Bell,
       active: !settings.open && pathname.startsWith("/notifications"),
     },
@@ -149,7 +150,7 @@ function SignalDesktopSidebar({
 
   return (
     <aside
-      aria-label="Menu principal"
+      aria-label={intl.formatMessage({ id: "cchat.nav.sidebarAria", defaultMessage: "Main menu" })}
       className="hidden sidebar:flex w-52 lg:w-56 shrink-0 flex-col border-r border-border bg-chrome select-none"
     >
       <div className="flex items-center gap-2.5 px-4 pt-[calc(0.875rem+var(--safe-area-inset-top,env(safe-area-inset-top,0px)))] pb-3">
@@ -218,7 +219,7 @@ function SignalDesktopSidebar({
           )}
         >
           <Settings className="size-5 shrink-0" />
-          <span className="flex-1 truncate">Configurações</span>
+          <span className="flex-1 truncate">{intl.formatMessage(common.settings)}</span>
         </button>
 
         <div className="px-0.5">

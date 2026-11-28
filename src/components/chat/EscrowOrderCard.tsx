@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { QRCodeCanvas } from "@/components/ui/qrcode";
 import { toast } from "@/hooks/useToast";
+import { FormattedMessage, useIntl } from "@/i18n";
 import {
   ORDER_STATUS_LABELS,
   canonicalOrderSeed,
@@ -59,6 +60,7 @@ export function EscrowOrderCard({
   buyerSecret,
   onExecuteCalldata,
 }: EscrowOrderCardProps) {
+  const intl = useIntl();
   const [order, setOrder] = useState<OnchainOrder | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,7 +75,12 @@ export function EscrowOrderCard({
 
   const refreshOnchain = useCallback(async () => {
     if (!chain || escrowAddress === "0x0000000000000000000000000000000000000000") {
-      setError("Contrato de escrow ainda não configurado para esta rede.");
+      setError(
+        intl.formatMessage({
+          id: "cchat.escrow.notConfigured",
+          defaultMessage: "Escrow contract is not configured for this network yet.",
+        }),
+      );
       return;
     }
     setLoading(true);
@@ -82,11 +89,18 @@ export function EscrowOrderCard({
       const data = await fetchOnchainOrder(chain.rpcUrls[0], escrowAddress, orderId);
       setOrder(data);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Falha ao verificar pedido na blockchain.");
+      setError(
+        e instanceof Error
+          ? e.message
+          : intl.formatMessage({
+              id: "cchat.escrow.fetchFailed",
+              defaultMessage: "Failed to verify order on the blockchain.",
+            }),
+      );
     } finally {
       setLoading(false);
     }
-  }, [chain, escrowAddress, orderId]);
+  }, [chain, escrowAddress, intl, orderId]);
 
   useEffect(() => {
     void refreshOnchain();
@@ -117,8 +131,14 @@ export function EscrowOrderCard({
         const derived = deriveOrderSecret(priv, seed);
         if (derived.commitment.toLowerCase() !== order.codeCommitment.toLowerCase()) {
           toast({
-            title: "Código não corresponde a esta carteira",
-            description: "Este pedido foi criado com outra semente ou carteira.",
+            title: intl.formatMessage({
+              id: "cchat.escrow.codeMismatchTitle",
+              defaultMessage: "Code does not match this wallet",
+            }),
+            description: intl.formatMessage({
+              id: "cchat.escrow.codeMismatchBody",
+              defaultMessage: "This order was created with a different seed or wallet.",
+            }),
             variant: "destructive",
           });
           return;
@@ -130,7 +150,10 @@ export function EscrowOrderCard({
       }
     } catch (e) {
       toast({
-        title: "Falha ao desbloquear código",
+        title: intl.formatMessage({
+          id: "cchat.escrow.unlockFailed",
+          defaultMessage: "Failed to unlock code",
+        }),
         description: e instanceof Error ? e.message : String(e),
         variant: "destructive",
       });
@@ -154,7 +177,17 @@ export function EscrowOrderCard({
   const handleConfirmDelivery = async () => {
     if (!order) return;
     if (!/^\d{6}$/.test(manualCode)) {
-      toast({ title: "Código inválido", description: "Informe exatamente 6 dígitos.", variant: "destructive" });
+      toast({
+        title: intl.formatMessage({
+          id: "cchat.escrow.invalidCodeTitle",
+          defaultMessage: "Invalid code",
+        }),
+        description: intl.formatMessage({
+          id: "cchat.escrow.invalidCodeBody",
+          defaultMessage: "Enter exactly 6 digits.",
+        }),
+        variant: "destructive",
+      });
       return;
     }
     const saltHex = (manualSalt.startsWith("0x") ? manualSalt : `0x${manualSalt}`) as Hex;
@@ -162,8 +195,14 @@ export function EscrowOrderCard({
       const commitment = computeCommitment(manualCode, saltHex);
       if (commitment.toLowerCase() !== order.codeCommitment.toLowerCase()) {
         toast({
-          title: "Código não confere",
-          description: "O par código + salt não bate com o commitment gravado na blockchain.",
+          title: intl.formatMessage({
+            id: "cchat.escrow.wrongCodeTitle",
+            defaultMessage: "Code does not match",
+          }),
+          description: intl.formatMessage({
+            id: "cchat.escrow.wrongCodeBody",
+            defaultMessage: "The code and salt pair does not match the on-chain commitment.",
+          }),
           variant: "destructive",
         });
         return;
@@ -179,26 +218,48 @@ export function EscrowOrderCard({
           salt: saltHex,
         });
         toast({
-          title: "Salvo na fila offline",
-          description: "Sem internet: o código foi salvo em disco para envio automático ao reconectar.",
+          title: intl.formatMessage({
+            id: "cchat.escrow.queuedOfflineTitle",
+            defaultMessage: "Saved to offline queue",
+          }),
+          description: intl.formatMessage({
+            id: "cchat.escrow.queuedOfflineBody",
+            defaultMessage: "No internet: the code was saved to disk for automatic sending on reconnect.",
+          }),
         });
         return;
       }
 
       const calldata = encodeConfirmDeliveryCall(orderId, manualCode, saltHex);
       if (onExecuteCalldata) {
-        await onExecuteCalldata(escrowAddress, calldata, "Confirmar entrega");
+        await onExecuteCalldata(
+          escrowAddress,
+          calldata,
+          intl.formatMessage({
+            id: "cchat.escrow.actionConfirmDelivery",
+            defaultMessage: "Confirm delivery",
+          }),
+        );
         await refreshOnchain();
       } else {
         await navigator.clipboard?.writeText(calldata);
         toast({
-          title: "Calldata gerado",
-          description: "Dados de confirmDelivery copiados (prontos para Remix/Paymaster).",
+          title: intl.formatMessage({
+            id: "cchat.escrow.calldataTitle",
+            defaultMessage: "Calldata generated",
+          }),
+          description: intl.formatMessage({
+            id: "cchat.escrow.calldataBody",
+            defaultMessage: "confirmDelivery data copied (ready for Remix/Paymaster).",
+          }),
         });
       }
     } catch (e) {
       toast({
-        title: "Erro ao confirmar",
+        title: intl.formatMessage({
+          id: "cchat.escrow.confirmError",
+          defaultMessage: "Failed to confirm",
+        }),
         description: e instanceof Error ? e.message : String(e),
         variant: "destructive",
       });
@@ -213,7 +274,13 @@ export function EscrowOrderCard({
         <div className="flex items-center gap-2">
           <ShieldCheck className="size-5 text-emerald-500" />
           <div>
-            <p className="text-sm font-semibold">Pedido Escrow #{orderId.toString()}</p>
+            <p className="text-sm font-semibold">
+              <FormattedMessage
+                id="cchat.escrow.orderTitle"
+                defaultMessage="Escrow Order #{id}"
+                values={{ id: orderId.toString() }}
+              />
+            </p>
             <p className="text-xs text-muted-foreground">{chain.name}</p>
           </div>
         </div>
@@ -233,19 +300,31 @@ export function EscrowOrderCard({
         <>
           <div className="rounded-lg bg-muted/50 p-3 space-y-1 text-xs">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Status on-chain:</span>
+              <span className="text-muted-foreground">
+                <FormattedMessage id="cchat.escrow.onchainStatus" defaultMessage="On-chain status:" />
+              </span>
               <span className="font-semibold text-foreground">{ORDER_STATUS_LABELS[order.status]}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Valor travado:</span>
+              <span className="text-muted-foreground">
+                <FormattedMessage id="cchat.escrow.lockedAmount" defaultMessage="Locked amount:" />
+              </span>
               <span className="font-semibold">
-                {tokenMeta
-                  ? `${formatTokenAmount(order.amount, tokenMeta.decimals)} ${tokenMeta.symbol}`
-                  : `${order.amount.toString()} (token fora da whitelist)`}
+                {tokenMeta ? (
+                  `${formatTokenAmount(order.amount, tokenMeta.decimals)} ${tokenMeta.symbol}`
+                ) : (
+                  <FormattedMessage
+                    id="cchat.escrow.unlistedToken"
+                    defaultMessage="{amount} (token not whitelisted)"
+                    values={{ amount: order.amount.toString() }}
+                  />
+                )}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Prazo de entrega:</span>
+              <span className="text-muted-foreground">
+                <FormattedMessage id="cchat.escrow.deliveryDeadline" defaultMessage="Delivery deadline:" />
+              </span>
               <span>{new Date(order.deliveryDeadline * 1000).toLocaleString()}</span>
             </div>
           </div>
@@ -257,11 +336,14 @@ export function EscrowOrderCard({
                 type="password"
                 value={unlockPin}
                 onChange={(e) => setUnlockPin(e.target.value)}
-                placeholder="PIN para revelar código"
+                placeholder={intl.formatMessage({
+                  id: "cchat.escrow.revealPinPlaceholder",
+                  defaultMessage: "PIN to reveal code",
+                })}
               />
               <Button type="button" size="sm" onClick={() => void handleRecoverBuyerCode()}>
                 <KeyRound className="size-3.5 mr-1.5" />
-                Revelar
+                <FormattedMessage id="cchat.escrow.revealButton" defaultMessage="Reveal" />
               </Button>
             </div>
           )}
@@ -271,7 +353,10 @@ export function EscrowOrderCard({
             <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-emerald-400">
-                  Seu código de entrega (mostre só ao receber)
+                  <FormattedMessage
+                    id="cchat.escrow.buyerCodeHint"
+                    defaultMessage="Your delivery code (show only on receipt)"
+                  />
                 </span>
                 <Button
                   type="button"
@@ -280,7 +365,11 @@ export function EscrowOrderCard({
                   onClick={() => setShowQr((s) => !s)}
                 >
                   <QrCode className="size-3.5 mr-1.5" />
-                  {showQr ? "Ocultar QR" : "Mostrar QR"}
+                  {showQr ? (
+                    <FormattedMessage id="cchat.escrow.hideQr" defaultMessage="Hide QR" />
+                  ) : (
+                    <FormattedMessage id="cchat.escrow.showQr" defaultMessage="Show QR" />
+                  )}
                 </Button>
               </div>
               <div className="flex items-center justify-between">
@@ -293,7 +382,12 @@ export function EscrowOrderCard({
                   variant="ghost"
                   onClick={() => {
                     void navigator.clipboard?.writeText(activeSecret.code);
-                    toast({ title: "Código copiado" });
+                    toast({
+                      title: intl.formatMessage({
+                        id: "cchat.escrow.codeCopied",
+                        defaultMessage: "Code copied",
+                      }),
+                    });
                   }}
                 >
                   <Copy className="size-4" />
@@ -305,7 +399,10 @@ export function EscrowOrderCard({
                     <QRCodeCanvas value={JSON.stringify(deliveryQrPayload)} size={180} />
                   </div>
                   <p className="text-[11px] text-muted-foreground text-center">
-                    Exiba apenas presencialmente. Nunca envie este QR pelo chat antes da entrega.
+                    <FormattedMessage
+                      id="cchat.escrow.qrInPersonWarning"
+                      defaultMessage="Show only in person. Never send this QR in chat before delivery."
+                    />
                   </p>
                 </div>
               )}
@@ -319,7 +416,10 @@ export function EscrowOrderCard({
                 <Input
                   value={manualCode}
                   onChange={(e) => setManualCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  placeholder="Código 6 dígitos"
+                  placeholder={intl.formatMessage({
+                    id: "cchat.escrow.codeInputPlaceholder",
+                    defaultMessage: "6-digit code",
+                  })}
                   inputMode="numeric"
                 />
                 <Input
@@ -331,7 +431,10 @@ export function EscrowOrderCard({
               <div className="flex flex-wrap gap-2">
                 <Button type="button" size="sm" onClick={() => void handleConfirmDelivery()}>
                   <CheckCircle2 className="size-4 mr-1.5" />
-                  Confirmar Entrega
+                  <FormattedMessage
+                    id="cchat.escrow.confirmDeliveryButton"
+                    defaultMessage="Confirm Delivery"
+                  />
                 </Button>
                 {onExecuteCalldata && (
                   <Button
@@ -342,11 +445,14 @@ export function EscrowOrderCard({
                       void onExecuteCalldata(
                         escrowAddress,
                         encodeRefundBySellerCall(orderId),
-                        "Cancelar e reembolsar comprador",
+                        intl.formatMessage({
+                          id: "cchat.escrow.actionSellerRefund",
+                          defaultMessage: "Cancel and refund buyer",
+                        }),
                       ).then(refreshOnchain)
                     }
                   >
-                    Devolver 100%
+                    <FormattedMessage id="cchat.escrow.refundFullButton" defaultMessage="Refund 100%" />
                   </Button>
                 )}
               </div>
@@ -367,11 +473,17 @@ export function EscrowOrderCard({
                       void onExecuteCalldata(
                         escrowAddress,
                         encodeOpenDisputeCall(orderId),
-                        "Abrir disputa",
+                        intl.formatMessage({
+                          id: "cchat.escrow.actionOpenDispute",
+                          defaultMessage: "Open dispute",
+                        }),
                       ).then(refreshOnchain)
                     }
                   >
-                    Abrir Disputa
+                    <FormattedMessage
+                      id="cchat.escrow.openDisputeButton"
+                      defaultMessage="Open Dispute"
+                    />
                   </Button>
                 )}
 
@@ -384,12 +496,18 @@ export function EscrowOrderCard({
                     void onExecuteCalldata(
                       escrowAddress,
                       encodeRefundTimeoutCall(orderId),
-                      "Sacar reembolso por prazo vencido",
+                      intl.formatMessage({
+                        id: "cchat.escrow.actionTimeoutRefund",
+                        defaultMessage: "Claim expired deadline refund",
+                      }),
                     ).then(refreshOnchain)
                   }
                 >
                   <Clock className="size-4 mr-1.5" />
-                  Resgatar Timeout
+                  <FormattedMessage
+                    id="cchat.escrow.claimTimeoutButton"
+                    defaultMessage="Claim Timeout"
+                  />
                 </Button>
               )}
 
@@ -405,12 +523,18 @@ export function EscrowOrderCard({
                       void onExecuteCalldata(
                         escrowAddress,
                         encodeRefundArbiterTimeoutCall(orderId),
-                        "Resgatar por inatividade do árbitro (15d)",
+                        intl.formatMessage({
+                          id: "cchat.escrow.actionArbiterTimeoutRefund",
+                          defaultMessage: "Claim arbiter inactivity refund (15d)",
+                        }),
                       ).then(refreshOnchain)
                     }
                   >
                     <Clock className="size-4 mr-1.5" />
-                    Resgatar Disputa Abandonada
+                    <FormattedMessage
+                      id="cchat.escrow.claimArbiterTimeoutButton"
+                      defaultMessage="Claim Abandoned Dispute"
+                    />
                   </Button>
                 )}
             </div>
@@ -419,7 +543,12 @@ export function EscrowOrderCard({
           {order.status === 2 && (
             <div className="flex items-center gap-2 text-xs text-emerald-500">
               <Unlock className="size-4" />
-              <span>Entrega confirmada e valor liberado ao vendedor.</span>
+              <span>
+                <FormattedMessage
+                  id="cchat.escrow.releasedBanner"
+                  defaultMessage="Delivery confirmed and funds released to seller."
+                />
+              </span>
             </div>
           )}
         </>

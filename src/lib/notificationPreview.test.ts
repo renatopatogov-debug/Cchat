@@ -248,13 +248,13 @@ describe("localized wording", () => {
   afterEach(() => setIntl(createAppIntl("en")));
 
   it("words lines in the installed language, as the worker installs it from its config", async () => {
-    await loadCatalog("de");
-    const slice = notificationLocale("de");
+    await loadCatalog("pt");
+    const slice = notificationLocale("pt");
     expect(slice).toBeDefined();
     expect(Object.keys(slice!.messages).every((id) => id.startsWith("notification."))).toBe(true);
 
-    setIntl(createAppIntl("de", slice!.messages));
-    expect(messageLine(msg({ content: "https://x.example/a.png" }))).toBe("Hat ein Bild gesendet");
-    expect(attributedLine(msg({ plane: "c2", authorName: "Ana", content: "hallo" }))).toBe("Ana: hallo");
+    setIntl(createAppIntl("pt", slice!.messages));
+    expect(messageLine(msg({ content: "https://x.example/a.png" }))).toBe("Enviou uma imagem");
+    expect(attributedLine(msg({ plane: "c2", authorName: "Ana", content: "olá" }))).toBe("Ana: olá");
   });
 });

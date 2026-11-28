@@ -1,4 +1,4 @@
-import { ArmadaCrest, ArmadaCrestKeyframes } from "@/components/brand/ArmadaCrest";
+import { CchatLogo } from "@/components/brand/CchatLogo";
 import { useIntl } from "@/i18n";
 
 /** Full-screen branded splash for boot-time waits (cold deep link, route chunks). */
@@ -10,8 +10,7 @@ export function BootSplash() {
       role="status"
       aria-label={intl.formatMessage({ id: "bootSplash.loading", defaultMessage: "Loading" })}
     >
-      <ArmadaCrest size={96} loop />
-      <ArmadaCrestKeyframes />
+      <CchatLogo size={88} />
     </div>
   );
 }

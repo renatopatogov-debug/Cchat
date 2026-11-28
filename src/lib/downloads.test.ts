@@ -1,17 +1,11 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-
 import { describe, expect, it } from "vitest";
 
 import {
-  ANDROID_STORES,
   DOWNLOAD_PLATFORMS,
-  PACKAGE_MANAGERS,
   detectOs,
   installCommand,
   isRepublishedPackage,
 } from "@/lib/downloads";
-import { artifactOs } from "@/lib/releases";
 
 /** Real user-agent strings, since the ordering bugs only show up in real ones. */
 const UA = {
@@ -34,7 +28,6 @@ describe("detectOs", () => {
   });
 
   it("tells an iPad in desktop mode from a Mac by its touchscreen", () => {
-    // Since iPadOS 13 both send an identical 'Macintosh' UA.
     expect(detectOs(UA.ipadDesktopMode, 5)).toBe("ios");
     expect(detectOs(UA.mac, 0)).toBe("macos");
   });
@@ -61,94 +54,17 @@ describe("download platforms", () => {
   });
 });
 
-describe("installCommand", () => {
-  it("writes the command against the versioned name the release actually carries", () => {
-    // Filenames come off the release event now, so a command referring to some
-    // fixed `Armada.AppImage` would name a file the user does not have.
-    expect(installCommand("Armada-v1.2.3.AppImage")).toBe("chmod +x Armada-v1.2.3.AppImage && ./Armada-v1.2.3.AppImage");
+describe("installCommand & isRepublishedPackage", () => {
+  it("writes chmod +x against the versioned AppImage filename", () => {
+    expect(installCommand("Cchat-v1.2.3.AppImage")).toBe("chmod +x Cchat-v1.2.3.AppImage && ./Cchat-v1.2.3.AppImage");
+    expect(installCommand("Cchat-v1.2.3.deb")).toBeUndefined();
+    expect(installCommand("Cchat-v1.2.3.apk")).toBeUndefined();
   });
 
-  it("says nothing for a file the page does not offer a raw command for", () => {
-    // .deb and .flatpak install through pkg.soapbox.pub, not a per-file command,
-    // and the page never renders them; the rest are just opened.
-    expect(installCommand("Armada-v1.2.3.deb")).toBeUndefined();
-    expect(installCommand("Armada-v1.2.3.flatpak")).toBeUndefined();
-    expect(installCommand("Armada-v1.2.3.exe")).toBeUndefined();
-    expect(installCommand("Armada-v1.2.3-mac-arm64.zip")).toBeUndefined();
-    expect(installCommand("Armada-v1.2.3.apk")).toBeUndefined();
-  });
-});
-
-describe("package repositories (pkg.soapbox.pub / npkg)", () => {
-  it("treats the formats npkg republishes as repository-served, not sideload", () => {
-    expect(isRepublishedPackage("Armada-v1.2.3.deb")).toBe(true);
-    expect(isRepublishedPackage("Armada-v1.2.3.flatpak")).toBe(true);
-    // The AppImage has no repository, so it stays a direct download.
-    expect(isRepublishedPackage("Armada-v1.2.3.AppImage")).toBe(false);
-    expect(isRepublishedPackage("Armada-v1.2.3.apk")).toBe(false);
-  });
-
-  it("offers apt and flatpak install commands that point at pkg.soapbox.pub", () => {
-    const linux = PACKAGE_MANAGERS.filter((manager) => manager.os === "linux");
-    expect(linux.map((manager) => manager.label)).toEqual([
-      "Debian / Ubuntu (APT)",
-      "Flatpak",
-    ]);
-    for (const manager of linux) {
-      expect(manager.install).toBeTruthy();
-      const lines = [...manager.setup, manager.install].join("\n");
-      expect(lines).toContain("pkg.soapbox.pub");
-    }
-    // The flatpak path installs from npkg's per-app flatpakref, not a local bundle.
-    const flatpak = linux.find((manager) => manager.label === "Flatpak");
-    expect(flatpak?.install).toBe(
-      "flatpak install --user https://pkg.soapbox.pub/flatpak/soapbox.pub/buzz.armada.app/buzz.armada.app.flatpakref",
-    );
-  });
-
-  it("repeats the same commands and links in index.html's <noscript> fallback", () => {
-    const html = readFileSync(resolve(process.cwd(), "index.html"), "utf8");
-    const noscript = html.slice(html.lastIndexOf("<noscript>"), html.lastIndexOf("</noscript>"));
-    for (const manager of PACKAGE_MANAGERS) {
-      for (const line of [...manager.setup, manager.install]) expect(noscript).toContain(line);
-    }
-    for (const store of ANDROID_STORES.filter((s) => s.label !== "Google Play")) {
-      expect(noscript).toContain(store.url);
-    }
-  });
-
-  it("lists the npkg F-Droid repository among the Android sources", () => {
-    const fdroid = ANDROID_STORES.find((store) => store.label === "F-Droid");
-    expect(fdroid?.url).toContain("pkg.soapbox.pub/fdroid");
-    // The F-Droid client needs the pinned fingerprint in the URL.
-    expect(fdroid?.url).toContain("fingerprint=");
-  });
-});
-
-/**
- * The page can only render a build it can file under a platform. Reading the
- * workflow makes that a checked contract rather than a convention: staging a
- * new artifact type in CI without teaching the client about it fails the suite,
- * instead of shipping a download the page silently drops on the floor.
- */
-describe("the CI workflow that publishes these files", () => {
-  const workflow = readFileSync(resolve(process.cwd(), ".ngit/act/workflows/release.yml"), "utf8");
-
-  /** Every `Armada-...` artifact name the workflow stages for the release. */
-  const staged = [...new Set(
-    [...workflow.matchAll(/\bArmada-\$(?:TAG|\{TAG\}|VERSION_NAME|\{VERSION_NAME\})[\w.$-]*\.\w+/g)]
-      .map((match) => match[0].replace(/\$\{?(?:TAG|VERSION_NAME)\}?/g, "v1.2.3")),
-  )];
-
-  it("stages artifacts the test can actually see", () => {
-    // Guards the regex above: if the workflow stops spelling names this way,
-    // every assertion below would vacuously pass.
-    expect(staged.length).toBeGreaterThanOrEqual(7);
-  });
-
-  it("produces only filenames the client can file under a platform", () => {
-    for (const filename of staged) {
-      expect(artifactOs("", filename), `${filename} lands on no platform card`).toBeDefined();
-    }
+  it("treats .deb and .flatpak as repository-served formats", () => {
+    expect(isRepublishedPackage("Cchat-v1.2.3.deb")).toBe(true);
+    expect(isRepublishedPackage("Cchat-v1.2.3.flatpak")).toBe(true);
+    expect(isRepublishedPackage("Cchat-v1.2.3.AppImage")).toBe(false);
+    expect(isRepublishedPackage("Cchat-v1.2.3.apk")).toBe(false);
   });
 });

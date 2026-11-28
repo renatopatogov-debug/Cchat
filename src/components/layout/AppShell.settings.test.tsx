@@ -152,23 +152,23 @@ describe("AppShell settings overlay & Signal bottom navigation", () => {
 
   it("renders SignalBottomNav only on top-level tabs and hides it inside threads or communities", () => {
     const { unmount: u1 } = render(<Harness initialPath="/dm" />);
-    expect(screen.getByRole("navigation", { name: "Navegação principal" })).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Main navigation" })).toBeInTheDocument();
     u1();
 
     const { unmount: u2 } = render(<Harness initialPath="/wallet" />);
-    expect(screen.getByRole("navigation", { name: "Navegação principal" })).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Main navigation" })).toBeInTheDocument();
     u2();
 
     const { unmount: u3 } = render(<Harness initialPath="/communities" />);
-    expect(screen.getByRole("navigation", { name: "Navegação principal" })).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Main navigation" })).toBeInTheDocument();
     u3();
 
     const { unmount: u4 } = render(<Harness initialPath="/dm/npub1peer" />);
-    expect(screen.queryByRole("navigation", { name: "Navegação principal" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "Main navigation" })).not.toBeInTheDocument();
     u4();
 
     const { unmount: u5 } = render(<Harness initialPath="/c/test-comm" />);
-    expect(screen.queryByRole("navigation", { name: "Navegação principal" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "Main navigation" })).not.toBeInTheDocument();
     u5();
   });
 });

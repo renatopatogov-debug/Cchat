@@ -447,7 +447,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ isOpen, onClose, onLogin, onS
                 <form onSubmit={(e) => { e.preventDefault(); void handleLogin(); }} className="space-y-3">
                   <div className="space-y-1.5">
                     <label htmlFor="cchat-login-key" className="text-xs font-medium text-foreground">
-                      Cole sua chave secreta ou link do signer
+                      <FormattedMessage id="cchat.login.keyLabel" defaultMessage="Paste your secret key or signer link" />
                     </label>
                     <Input
                       id="cchat-login-key"
@@ -458,7 +458,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ isOpen, onClose, onLogin, onS
                         if (loginError) setLoginError('');
                       }}
                       aria-label={intl.formatMessage({ id: 'loginScreen.inputPlaceholder', defaultMessage: 'nsec1… or bunker://…' })}
-                      placeholder="Chave secreta (nsec1…) ou link bunker://…"
+                      placeholder={intl.formatMessage({ id: 'cchat.login.keyPlaceholder', defaultMessage: 'Secret key (nsec1…) or bunker://… link' })}
                       autoComplete="off"
                       className={cn(
                         'h-12 rounded-xl bg-card border-border',
@@ -466,7 +466,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ isOpen, onClose, onLogin, onS
                       )}
                     />
                     <p className="text-[11px] leading-relaxed text-muted-foreground">
-                      Sua chave secreta é o código privado da sua conta (começa com nsec1). Detectamos automaticamente se é chave ou link de signer remoto.
+                      <FormattedMessage
+                        id="cchat.login.keyHint"
+                        defaultMessage="Your secret key is your account's private code (starts with nsec1). Keys and remote signer links are detected automatically."
+                      />
                     </p>
                   </div>
 
@@ -501,7 +504,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ isOpen, onClose, onLogin, onS
                       aria-label={intl.formatMessage({ id: 'loginScreen.moreOptions', defaultMessage: 'More login options' })}
                       className="flex w-full items-center justify-between px-4 py-3 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      <span>Opções avançadas (QR, arquivo ou extensão)</span>
+                      <span>
+                        <FormattedMessage id="cchat.login.advancedOptions" defaultMessage="Advanced options (QR, file, or extension)" />
+                      </span>
                       <ChevronDown className={cn('size-4 transition-transform duration-200', advancedOpen && 'rotate-180')} />
                     </button>
                   </CollapsibleTrigger>

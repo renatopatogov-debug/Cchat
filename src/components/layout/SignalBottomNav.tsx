@@ -1,13 +1,14 @@
 import { MessageCircle, Users, Wallet } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 
+import { useIntl } from "@/i18n";
 import { cn } from "@/lib/utils";
 
 /**
- * Barra inferior limpa estilo Signal com 3 abas principais:
- * 1. Conversas (/dm — inclui Bluetooth Mesh integrado)
- * 2. Carteira (/wallet — BRZ, QR v2 e entregas com código)
- * 3. Comunidades (/communities — servidores e canais separados das DMs)
+ * Clean Signal-style bottom tab bar with 3 top-level tabs:
+ * 1. Conversas (/dm — includes integrated Bluetooth Mesh)
+ * 2. Carteira (/wallet — BRZ, QR v2 & delivery escrow)
+ * 3. Grupos (/communities — encrypted E2EE groups & call channels)
  */
 export function SignalBottomNav({
   unreadCount = 0,
@@ -16,25 +17,26 @@ export function SignalBottomNav({
   unreadCount?: number;
   className?: string;
 }) {
+  const intl = useIntl();
   const { pathname } = useLocation();
 
   const items = [
     {
       to: "/dm",
-      label: "Conversas",
+      label: intl.formatMessage({ id: "cchat.nav.chats", defaultMessage: "Chats" }),
       icon: MessageCircle,
       active: pathname.startsWith("/dm") || pathname.startsWith("/mesh"),
       badge: unreadCount > 0 ? unreadCount : undefined,
     },
     {
       to: "/wallet",
-      label: "Carteira",
+      label: intl.formatMessage({ id: "cchat.nav.wallet", defaultMessage: "Wallet" }),
       icon: Wallet,
       active: pathname.startsWith("/wallet"),
     },
     {
       to: "/communities",
-      label: "Grupos",
+      label: intl.formatMessage({ id: "cchat.nav.groups", defaultMessage: "Groups" }),
       icon: Users,
       active:
         pathname.startsWith("/communities") ||
@@ -47,7 +49,7 @@ export function SignalBottomNav({
 
   return (
     <nav
-      aria-label="Navegação principal"
+      aria-label={intl.formatMessage({ id: "cchat.nav.bottomAria", defaultMessage: "Main navigation" })}
       className={cn(
         "sidebar:hidden shrink-0 border-t border-border bg-background/95 backdrop-blur px-3 pt-1.5 pb-[calc(env(safe-area-inset-bottom,0px)+0.45rem)] flex items-center justify-around z-30",
         className,

@@ -1,7 +1,7 @@
 import { Check, ChevronRight, Copy, Info, Link as LinkIcon, Loader2, Share2, UserPlus, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-import { ArmadaCrest, ArmadaCrestKeyframes } from "@/components/brand/ArmadaCrest";
+import { CchatLogo } from "@/components/brand/CchatLogo";
 import { ProfileSearchSelect } from "@/components/chat/ProfileSearchSelect";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -85,7 +85,6 @@ export function InviteDialog({
               <InviteBody community={community} canCreateLink={canCreateLink} />
             </PortalContainerProvider>
           </div>
-          <ArmadaCrestKeyframes />
         </DrawerContent>
       </Drawer>
     );
@@ -97,7 +96,6 @@ export function InviteDialog({
         <PortalContainerProvider value={portalNode ?? undefined}>
           <InviteBody community={community} canCreateLink={canCreateLink} />
         </PortalContainerProvider>
-        <ArmadaCrestKeyframes />
       </ChromeDialogContent>
     </Dialog>
   );
@@ -285,9 +283,9 @@ function InviteBody({ community, canCreateLink }: { community: Community | undef
   return (
     <div className="flex flex-col items-center gap-6">
       <div className="flex flex-col items-center gap-3 text-center">
-        <ArmadaCrest size={72} />
+        <CchatLogo size={64} />
         <div className="space-y-1">
-          <h2 className="chrome-dialog-title font-mono font-bold lowercase tracking-tight text-foreground">
+          <h2 className="chrome-dialog-title font-bold tracking-tight text-foreground">
             <FormattedMessage id="inviteDialog.heading" defaultMessage="invite people" />
           </h2>
           <p className="text-sm text-muted-foreground">

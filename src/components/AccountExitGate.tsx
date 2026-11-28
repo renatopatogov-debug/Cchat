@@ -1,73 +1,52 @@
-import { ArmadaCrest, ArmadaCrestKeyframes } from "@/components/brand/ArmadaCrest";
-import { BrandMark } from "@/components/brand/BrandMark";
-import { SignalStatic } from "@/components/brand/SignalStatic";
-import { TerminalProgress } from "@/components/brand/TerminalProgress";
+import { Check, Loader2 } from "lucide-react";
+
 import { useAccountExit } from "@/components/accountExitState";
+import { CchatLogo } from "@/components/brand/CchatLogo";
 import { useIntl } from "@/i18n";
 
 /**
- * Full-screen account-exit overlay: the {@link SyncGate} login sequence in
- * reverse, reporting each teardown step. Mounted above the signed-in gate so it
- * outlives the login being cleared before the reload; never takes itself down.
+ * Full-screen account-exit overlay reporting each teardown step cleanly.
  */
 export function AccountExitGate() {
   const intl = useIntl();
   const exit = useAccountExit();
   if (!exit) return null;
 
-  const { kind, seed, log } = exit;
-  const tagline =
+  const { kind, log } = exit;
+  const subtitle =
     kind === "logout"
-      ? intl.formatMessage({ id: "accountExitGate.logout", defaultMessage: "jacking out" })
-      : intl.formatMessage({ id: "accountExitGate.switch", defaultMessage: "switching identities" });
-  // 1ch is one mono glyph, so the caret lands flush for either wording.
-  const len = tagline.length;
-
-  // Interference RISES with each settled teardown step (the sync gate's reverse).
-  const resolvedCount = log.filter((line) => line.status !== undefined).length;
-  const staticLevel = Math.min(0.55, 0.12 + 0.14 * resolvedCount);
-
-  // Changes on every log mutation; SignalStatic ripples a band on each change.
-  const wireSignal = log.map((line) => `${line.id}:${line.status ?? ""}`).join("|");
+      ? intl.formatMessage({ id: "cchat.exitGate.logout", defaultMessage: "Signing out securely…" })
+      : intl.formatMessage({ id: "cchat.exitGate.switch", defaultMessage: "Switching account…" });
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-10 overflow-hidden bg-background px-6"
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-8 bg-background px-6"
       role="status"
       aria-live="polite"
     >
-      <div className="flex flex-col items-center gap-6">
-        <ArmadaCrest size={96} loop />
-        <BrandMark
-          tagline={
-            // Reduced motion kills the animation; the span falls back to full width.
-            <span
-              className="inline-block overflow-hidden whitespace-nowrap align-bottom motion-reduce:!animate-none"
-              style={{ animation: `armada-untype 3.5s steps(${len}, end) infinite` }}
-            >
-              {tagline}
-            </span>
-          }
-        />
+      <div className="flex flex-col items-center gap-3 text-center">
+        <CchatLogo size={76} />
+        <h1 className="text-xl font-bold tracking-tight text-foreground">Cchat</h1>
+        <p className="text-sm text-muted-foreground">{subtitle}</p>
       </div>
 
       {log.length > 0 && (
-        <div className="w-full max-w-sm">
-          <TerminalProgress lines={log} />
+        <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-4 space-y-2.5">
+          {log.map((line) => (
+            <div key={line.id} className="flex items-center justify-between gap-3 text-xs">
+              <span className="truncate text-foreground/90">{line.text}</span>
+              {line.status !== undefined ? (
+                <span className="inline-flex items-center gap-1 shrink-0 font-medium text-emerald-500">
+                  <Check className="size-3.5" />
+                  {line.status}
+                </span>
+              ) : (
+                <Loader2 className="size-3.5 shrink-0 animate-spin text-primary" />
+              )}
+            </div>
+          ))}
         </div>
       )}
-
-      <SignalStatic level={staticLevel} seed={seed} signal={wireSignal} />
-
-      <ArmadaCrestKeyframes />
-      {/* Exit-only keyframes: the login gate's type/hold/erase loop reversed. */}
-      <style>{`
-        @keyframes armada-untype {
-          0%, 24% { width: ${len}ch; }
-          56%, 74% { width: 0ch; }
-          100% { width: ${len}ch; }
-        }
-      `}</style>
     </div>
   );
 }

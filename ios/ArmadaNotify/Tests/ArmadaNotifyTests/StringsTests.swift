@@ -5,7 +5,7 @@ import XCTest
 /// The extension's own copy of the `notification.*` catalog.
 final class StringsTests: XCTestCase {
 
-    private let languages = ["en", "de", "es", "fr", "it", "nl", "pt", "ja"]
+    private let languages = ["en", "es", "pt"]
 
     func testEveryLanguageHasEveryKey() {
         XCTAssertEqual(Set(Strings.tables.keys), Set(languages))
@@ -50,7 +50,7 @@ final class StringsTests: XCTestCase {
         XCTAssertEqual(en.reacted(emoji: "🎉"), "Reacted 🎉 to your message")
         XCTAssertEqual(en.roomTitle(community: "Armada", channel: "general"), "Armada / #general")
         XCTAssertEqual(
-            Strings(locale: "de").repliedInThread(text: "klar"), "Im Thread geantwortet: klar"
+            Strings(locale: "pt").repliedInThread(text: "certo"), "Respondeu na thread: certo"
         )
     }
 
@@ -67,8 +67,8 @@ final class StringsTests: XCTestCase {
         XCTAssertEqual(Strings(locale: "ko").language, "en")
         XCTAssertEqual(Strings(locale: "ko").anonymous, "Anonymous")
         XCTAssertEqual(Strings(locale: "pt-BR").language, "pt")
-        XCTAssertEqual(Strings(locale: "de-AT").language, "de")
-        XCTAssertEqual(Strings(locale: "JA").chat, "チャット")
+        XCTAssertEqual(Strings(locale: "de-AT").language, "en")
+        XCTAssertEqual(Strings(locale: "ES").chat, "Chat")
     }
 
     func testEachMediaKindIsAWholeSentence() {
@@ -81,9 +81,9 @@ final class StringsTests: XCTestCase {
                     plane: .c2, kind: 9, content: "https://x.example/a.png",
                     authorName: "alex", roomTitle: nil
                 ),
-                strings: Strings(locale: "fr")
+                strings: Strings(locale: "pt")
             ),
-            "A envoyé une image"
+            "Enviou uma imagem"
         )
     }
 
@@ -92,15 +92,15 @@ final class StringsTests: XCTestCase {
     private let self_ = String(repeating: "a", count: 64)
 
     func testTheConfigCarriesTheLocale() {
-        let config = PushConfig.parse(json: #"{"self":"\#(self_)","locale":"nl"}"#)
-        XCTAssertEqual(config?.locale, "nl")
+        let config = PushConfig.parse(json: #"{"self":"\#(self_)","locale":"es"}"#)
+        XCTAssertEqual(config?.locale, "es")
         XCTAssertNil(PushConfig.parse(json: #"{"self":"\#(self_)"}"#)?.locale)
     }
 
     func testTheProcessorWordsANotificationInTheConfigsLanguage() {
         let config = PushConfig(
             policy: .generic, selfPubkey: self_, knownPeers: [], secretKey: nil,
-            nip46: nil, concord: [], locale: "de"
+            nip46: nil, concord: [], locale: "es"
         )
         let processor = PushProcessor(store: nil, config: config, now: 1_700_000_000)
         let event = signedEvent(
@@ -108,19 +108,19 @@ final class StringsTests: XCTestCase {
         )
         let prepared = processor.prepare(userInfo: napp(event))
         XCTAssertEqual(prepared?.title, "Chat")
-        XCTAssertEqual(prepared?.body, "Anonym: Hat eine Nachricht gesendet")
-        XCTAssertEqual(prepared?.sender?.name, "Anonym")
+        XCTAssertEqual(prepared?.body, "Anónimo: Envió un mensaje")
+        XCTAssertEqual(prepared?.sender?.name, "Anónimo")
 
         XCTAssertEqual(
-            PushProcessor.fallback(.dm, path: "/dm", strings: Strings(locale: "ja")).body,
-            "新しいダイレクトメッセージ"
+            PushProcessor.fallback(.dm, path: "/dm", strings: Strings(locale: "pt")).body,
+            "Nova mensagem direta"
         )
     }
 
     func testADroppedPushCarriesTheQuietText() {
-        let dropped = PreparedPush.dropped(Strings(locale: "it"))
+        let dropped = PreparedPush.dropped(Strings(locale: "pt"))
         XCTAssertTrue(dropped.drop)
-        XCTAssertEqual(dropped.title, "Armada")
-        XCTAssertEqual(dropped.body, "Messaggi sincronizzati")
+        XCTAssertEqual(dropped.title, "Cchat")
+        XCTAssertEqual(dropped.body, "Mensagens sincronizadas")
     }
 }

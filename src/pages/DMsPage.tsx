@@ -298,7 +298,7 @@ const ConversationRow = memo(function ConversationRow({
               </div>
               {inMesh && (
                 <span
-                  title="No alcance Bluetooth Mesh"
+                  title={t({ id: "cchat.dms.inMeshReach", defaultMessage: "In Bluetooth Mesh range" })}
                   className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-sky-500 text-[9px] font-bold text-white shadow-sm"
                 >
                   M
@@ -2488,9 +2488,27 @@ export function ConversationList({
             <div className="rounded-2xl bg-sky-500/15 border border-sky-500/30 px-3 py-2 flex items-center justify-between text-xs text-sky-400">
               <span className="flex items-center gap-1.5 font-medium">
                 <WifiOff className="size-3.5 shrink-0" />
-                Sem internet • {meshAvailable ? "Mesh ativa" : "Modo offline"}
+                {meshAvailable ? (
+                  <FormattedMessage
+                    id="cchat.dms.offlineMeshActive"
+                    defaultMessage="No internet • Mesh active"
+                  />
+                ) : (
+                  <FormattedMessage
+                    id="cchat.dms.offlineMode"
+                    defaultMessage="No internet • Offline mode"
+                  />
+                )}
               </span>
-              {meshAvailable && <span className="font-bold">{liveMeshPeers.length} por perto</span>}
+              {meshAvailable && (
+                <span className="font-bold">
+                  <FormattedMessage
+                    id="cchat.dms.nearbyCount"
+                    defaultMessage="{count} nearby"
+                    values={{ count: liveMeshPeers.length }}
+                  />
+                </span>
+              )}
             </div>
           )}
           <div className="flex items-center gap-1.5 overflow-x-auto text-xs pb-0.5">
@@ -2504,7 +2522,7 @@ export function ConversationList({
                   : "bg-secondary/70 text-muted-foreground hover:text-foreground",
               )}
             >
-              Todas
+              <FormattedMessage id="cchat.dms.filterAll" defaultMessage="All" />
             </button>
             <button
               type="button"
@@ -2516,7 +2534,7 @@ export function ConversationList({
                   : "bg-secondary/70 text-muted-foreground hover:text-foreground",
               )}
             >
-              Não lidas
+              <FormattedMessage id="cchat.dms.filterUnread" defaultMessage="Unread" />
             </button>
             {meshAvailable && (
               <button
@@ -2530,7 +2548,13 @@ export function ConversationList({
                 )}
               >
                 <span className="font-bold">M</span>
-                <span>Por perto ({liveMeshPeers.length})</span>
+                <span>
+                  <FormattedMessage
+                    id="cchat.dms.filterNearby"
+                    defaultMessage="Nearby ({count})"
+                    values={{ count: liveMeshPeers.length }}
+                  />
+                </span>
               </button>
             )}
           </div>
@@ -2552,7 +2576,12 @@ export function ConversationList({
                   </span>
                   <div className="min-w-0">
                     <p className="text-sm font-semibold truncate">{peer.nickname || `Mesh ${peer.peerID.slice(0, 6)}`}</p>
-                    <p className="text-xs text-sky-400 truncate">No alcance Bluetooth Mesh • Toque p/ conversar</p>
+                    <p className="text-xs text-sky-400 truncate">
+                      <FormattedMessage
+                        id="cchat.dms.meshTapHint"
+                        defaultMessage="In Bluetooth Mesh range • Tap to chat"
+                      />
+                    </p>
                   </div>
                 </div>
               </button>

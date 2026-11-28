@@ -96,7 +96,7 @@ export function routeParamToRelay(param: string): string | undefined {
   return normalizeRelayUrl(decoded);
 }
 
-export const APP_NAME: string = config("APP_NAME") || "Armada";
+export const APP_NAME: string = config("APP_NAME") || "Cchat";
 
 /** Where users reach the developers, including to report inappropriate activity (App Store 1.2). */
 export const SUPPORT_EMAIL = "support@soapbox.pub";
